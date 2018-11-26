@@ -62,8 +62,6 @@ class MideaClient:
 
         data['sign'] = self.security.sign(url, data)
 
-        print(data)
-
         # POST the endpoint with the payload
         r = requests.post(url = url, data = data) 
         response = json.loads(r.text)

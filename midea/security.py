@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from urllib.request import unquote
 from Crypto.Cipher import AES
 
+# Much secure, very null... IV of 0's... Why even have encryption at this point?
 INITIALIZATION_VECTOR = b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0'
 
 class security:
@@ -24,7 +25,7 @@ class security:
         # Create a query string (?!?) and make sure to unescape the URL encoded characters (!!!)
         query = urllib.parse.unquote_plus(urllib.parse.urlencode(query))
         
-        # Combine all the sign stuff to make one giant string, then SHA256 it and add it to the payload
+        # Combine all the sign stuff to make one giant string, then SHA256 it
         sign = path + query + self.appKey 
         m = hashlib.sha256()
         m.update(sign.encode('ASCII'))
@@ -43,31 +44,38 @@ class security:
         return m.hexdigest()
 
     def aes_decrypt(self, raw, key = None):
+        # If the key is not set, then use the data_key from the access_token that comes from the current session
         if not key:
             key = self.data_key()
 
         final = bytearray([])
+        # Break up the data into blockSize sized blocks
         blocks = [raw[i:i+self.blockSize] for i in range(0, len(raw), self.blockSize)]  
 
-        for block in blocks:
+        # Decrypt each block with a new Cipher. There doesn't seem to be a reset in Python for the Cipher object
+        for block in blocks:            
             cipher = AES.new(key, AES.MODE_CBC, iv=INITIALIZATION_VECTOR)    
             decrypted = cipher.decrypt(block) 
             final.extend(decrypted)  
         
-        final = self._unpad(final)
-        raw = bytes(final)
-        return raw
+        # Remove the padding
+        final = self._unpad(final)        
+        
+        return bytes(final)
 
     def aes_encrypt(self, raw, key = None):
+        # If the key is not set, then use the data_key from the access_token that comes from the current session
         if not key:
             key = self.data_key() 
 
+        # Make sure to pad the data
         self._pad(raw)
-
+        
+        # Break up the data into blockSize sized blocks
         blocks = [raw[i:i+self.blockSize] for i in range(0, len(raw), self.blockSize)]
         final = bytearray([])
-        print(blocks)
 
+        # Encrypt each block with a new Cipher. There doesn't seem to be a reset in Python for the Cipher object
         for block in blocks:    
             cipher = AES.new(key, AES.MODE_CBC, iv=INITIALIZATION_VECTOR)        
             encrypted = cipher.encrypt(block)
@@ -83,9 +91,16 @@ class security:
         return s[:-s[-1]]
 
     def data_key(self):
+        """ 
+        This is just horrible...
+        """
+        # MD5 sum, yay
         m = hashlib.md5()
+        # Hash the appKey
         m.update(self.appKey.encode('ascii'))
+        # Use only half the HEX output of the hash
         key_hash = m.hexdigest().encode('ascii')[0:16]
+        # Decrypt the access token with that weird key
         key = self.aes_decrypt(bytearray.fromhex(self.accessToken), key_hash)
         return key     
 
