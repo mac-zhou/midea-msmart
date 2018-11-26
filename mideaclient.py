@@ -12,6 +12,7 @@ import json
 import binascii
 from midea.security import security
 from midea.command import request_status_command
+from midea.device import device
 from midea.packet_builder import packet_builder
 
 
@@ -164,3 +165,7 @@ builder = packet_builder()
 builder.set_command(command)
 data = client.appliance_transparent_send(deviceList[0]['id'] , builder.finalize())
 print(data)
+
+# Decode the data!
+dev = device(data)
+print(dev.status)
