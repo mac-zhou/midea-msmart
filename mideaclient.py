@@ -12,7 +12,10 @@ import json
 import binascii
 from midea.security import security
 from midea.command import request_status_command
+from midea.command import set_command
 from midea.device import device
+from midea.device import fan_speed
+from midea.device import operational_mode
 from midea.packet_builder import packet_builder
 
 
@@ -159,13 +162,17 @@ data = security.aes_decrypt(bytearray.fromhex(reply['reply']))
 print(data)
 print(client.decode(data))
 
-# Test if the class flavours of that command is working. The packet builder and the command adds quite a bit of complexity, but does abstract this sufficiently from the caller.
-command = request_status_command()
+command = set_command()
+command.power_status(False)
+command.target_temperature(24)
+command.fan_speed(fan_speed.LOW)
+command.operational_mode(operational_mode.COOL)
+
 builder = packet_builder()
 builder.set_command(command)
-data = client.appliance_transparent_send(deviceList[0]['id'] , builder.finalize())
-print(data)
+data = client.appliance_transparent_send(deviceList[1]['id'] , builder.finalize())
 
-# Decode the data!
-dev = device(data)
+# Decode the data! Luckily for us, the data from the request status command and the set commands are the same. There is also a lot of similarity between the command data and the response data structure.
+# TBD consolidate these data arrays, it would be much nicer to deal with a single "device" object.
+dev = device(data) 
 print(dev.status)
