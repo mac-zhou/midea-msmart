@@ -28,9 +28,9 @@ class client:
             current_device = self._devices.setdefault(current_device_id, None)
             if current_device is None:
                 current_device = device(self._cloud, device_status)
-                current_device.refresh()
                 self._devices[current_device_id] = current_device
             else:
                 current_device.set_status(device_status)
 
         return list(self._devices.values())
+

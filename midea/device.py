@@ -10,25 +10,36 @@ from midea.packet_builder import packet_builder
 
 
 class fan_speed_enum(Enum):
-    UNSET = 101
-    AUTO = 102
-    HIGH = 80
-    MEDIUM = 60
-    LOW = 40
-    SILENT = 20
+    Auto = 102
+    High = 80
+    Medium = 60
+    Low = 40
+    Silent = 20
+
+    @staticmethod
+    def list():
+        return list(map(lambda c: c.name, fan_speed_enum))
 
 
 class operational_mode_enum(Enum):
-    AUTO = 1
-    COOL = 2
-    DRY = 3
-    HEAT = 4
-    FAN = 5
+    auto = 1
+    cool = 2
+    dry = 3
+    heat = 4
+    fan_only = 5
+
+    @staticmethod
+    def list():
+        return list(map(lambda c: c.name, operational_mode_enum))
 
 
 class swing_mode_enum(Enum):
-    OFF = 0
-    ON = 0x3C
+    Off = 0
+    On = 0x3C
+
+    @staticmethod
+    def list():
+        return list(map(lambda c: c.name, swing_mode_enum))
 
 
 class device:
@@ -40,9 +51,9 @@ class device:
         self._audible_feedback = False
         self._power_state = False
         self._target_temperature = 17
-        self._operational_mode = operational_mode_enum.AUTO
-        self._fan_speed = fan_speed_enum.AUTO
-        self._swing_mode = swing_mode_enum.OFF
+        self._operational_mode = operational_mode_enum.auto
+        self._fan_speed = fan_speed_enum.Auto
+        self._swing_mode = swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
 

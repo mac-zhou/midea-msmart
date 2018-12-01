@@ -7,6 +7,7 @@ from midea.security import security
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
+
 class cloud:
     SERVER_URL = "https://mapp.appsmb.com/v1/"
     CLIENT_TYPE = 1                 # Android
