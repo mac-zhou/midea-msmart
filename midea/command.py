@@ -2,6 +2,7 @@
 import midea.crc8 as crc8
 from midea.device import operational_mode as operational_mode_enum
 from midea.device import fan_speed as fan_speed_enum
+from midea.device import swing_mode as swing_mode_enum
 import base64
 
 
@@ -48,6 +49,7 @@ class set_command(base_command):
         self._target_temperature = 21
         self._operational_mode = operational_mode_enum.AUTO
         self._fan_speed = fan_speed_enum.AUTO
+        self._swing_mode = None
         self._eco_mode = None
         self._turbo_mode = None
 
@@ -70,6 +72,9 @@ class set_command(base_command):
 
     def eco_mode(self, eco_mode_enabled: bool):
         self._eco_mode = eco_mode_enabled
+
+    def swing_mode(self, mode: swing_mode_enum):
+        self._swing_mode = mode
 
     def turbo_mode(self, turbo_mode_enabled: bool):
         self._turbo_mode = turbo_mode_enabled
@@ -98,6 +103,8 @@ class set_command(base_command):
             (self._target_temperature << 4) & 0x10)
 
         data[0x0d] = self._fan_speed.value
+
+        data[0x11] = self._swing_mode.value if self._swing_mode else 0
 
         data[0x13] = 0xFF if self._eco_mode else 0
 

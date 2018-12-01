@@ -17,6 +17,11 @@ class operational_mode(Enum):
     HEAT = 4
     FAN = 5
 
+# There should be more option possible, but my AC only has one setting for vertical
+class swing_mode(Enum):
+    OFF = 0
+    ON = 0x3C
+
 class device:
 
     def __init__(self, data: bytes):
@@ -60,7 +65,7 @@ class device:
         return (self.data[pointer + 8] & 0x10) >> 4
 
     def swing_mode(self):
-        return (self.data[pointer + 6] & 0xff) > 0
+        return swing_mode(self.data[pointer + 6] & 0xff)
 
     def turbo_mode(self):
         return (self.data[pointer + 9] & 0x2) > 0
