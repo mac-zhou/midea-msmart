@@ -1,10 +1,5 @@
 
 import midea.crc8 as crc8
-from midea.device import operational_mode as operational_mode_enum
-from midea.device import fan_speed as fan_speed_enum
-from midea.device import swing_mode as swing_mode_enum
-import base64
-
 
 class base_command:
 
@@ -14,100 +9,153 @@ class base_command:
             0xaa, 0x23, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x03, 0x02, 0x40, 0x81, 0x00, 0xff, 0x03, 0xff,
             0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00
+            0x00, 0x00, 0x00, 0x00, 0x03, 0xcc
         ])
         self.data[0x02] = device_type
 
     def finalize(self):
-        # Fill the data with the actual command data
-        self.fill()
-
-        print(self.data[0x0b])
-        # Magic 3!
-        self.data.extend([3])
         # Add the CRC8
-        self.data.extend([crc8.calculate(self.data[16:])])
+        self.data[0x1d] = crc8.calculate(self.data[16:])
         # Set the length of the command data
-        self.data[1] = len(self.data)
+        self.data[0x01] = len(self.data)
+        print(self.data.hex())
         return self.data
-
-    def fill(self):
-        pass
-
-
-class request_status_command(base_command):
-    def fill(self):
-        return
-
 
 class set_command(base_command):
 
-    def __init__(self):
-        base_command.__init__(self, device_type=0xAC)
-        # It seems that at a minimum, the AC needs the Power Status, Temperature, Mode and fan speed set before it responds to anything.
-        self._power_status = False
-        self._target_temperature = 21
-        self._operational_mode = operational_mode_enum.AUTO
-        self._fan_speed = fan_speed_enum.AUTO
-        self._swing_mode = None
-        self._eco_mode = None
-        self._turbo_mode = None
+    def __init__(self, device_type):
+        base_command.__init__(self, device_type)
 
-        # I love this bit. My AC is so noisy via the app and the remote, if this is set to false, the changes will be applied SILENTLY!
-        # Default this to false, those sounds are annoying as hell!
-        self._audible_feedback = False
-        # TBD: Timer setting
+    @property
+    def audible_feedback(self):
+        return self.data[0x0b] & 0x42
 
-    def power_status(self, state: bool):
-        self._power_status = state
-
-    def target_temperature(self, temperature_celsius: int):
-        self._target_temperature = temperature_celsius
-
-    def operational_mode(self, mode: operational_mode_enum):
-        self._operational_mode = mode
-
-    def fan_speed(self, speed: fan_speed_enum):
-        self._fan_speed = speed
-
-    def eco_mode(self, eco_mode_enabled: bool):
-        self._eco_mode = eco_mode_enabled
-
-    def swing_mode(self, mode: swing_mode_enum):
-        self._swing_mode = mode
-
-    def turbo_mode(self, turbo_mode_enabled: bool):
-        self._turbo_mode = turbo_mode_enabled
-
+    @audible_feedback.setter
     def audible_feedback(self, feedback_anabled: bool):
-        self._audible_feedback = feedback_anabled
+        self.data[0x0b] &= ~ 0x42  # Clear the audible bits
+        self.data[0x0b] |= 0x42 if feedback_anabled else 0
 
-    def fill(self):
-        data = self.data
+    @property
+    def power_state(self):
+        return self.data[0x0b] & 0x01 
 
-        data[0x0b] &= ~ 0x01  # Clear the power bit
-        if self._power_status:
-            data[0x0b] |= 0x01
+    @power_state.setter
+    def power_state(self, state: bool):
+        self.data[0x0b] &= ~ 0x01  # Clear the power bit
+        self.data[0x0b] |= 0x01 if state else 0
 
-        data[0x0b] &= ~ 0x42  # Clear the audible bits
-        if self._audible_feedback:
-            data[0x0b] |= 0x42
+    @property
+    def target_temperature(self):
+        return self.data[0x0c] & 0x1f 
 
-        print(data[0x0c])
+    @target_temperature.setter
+    def target_temperature(self, temperature_celsius: int):
+        self.data[0x0c] &= ~ 0x1f  # Clear the temperature bits
+        self.data[0x0c] |= (temperature_celsius & 0xf) | (
+            (temperature_celsius << 4) & 0x10)
+    
+    @property
+    def operational_mode(self):
+        return (self.data[0x0c] & 0xe0) >> 5
 
-        data[0x0c] &= ~ 0xe0  # Clear the mode bit
-        data[0x0c] |= (self._operational_mode.value << 5) & 0xE0
+    @operational_mode.setter
+    def operational_mode(self, mode: int):
+        self.data[0x0c] &= ~ 0xe0  # Clear the mode bit
+        self.data[0x0c] |= (mode << 5) & 0xE0
 
-        data[0x0c] &= ~ 0x1f  # Clear the temperature bits
-        data[0x0c] |= (self._target_temperature & 0xf) | (
-            (self._target_temperature << 4) & 0x10)
+    @property
+    def fan_speed(self):
+        return self.data[0x0d]
 
-        data[0x0d] = self._fan_speed.value
+    @fan_speed.setter
+    def fan_speed(self, speed: int):
+        self.data[0x0d] = speed
 
-        data[0x11] = self._swing_mode.value if self._swing_mode else 0
+    @property
+    def eco_mode(self):
+        return self.data[0x13] > 0
 
-        data[0x13] = 0xFF if self._eco_mode else 0
+    @eco_mode.setter
+    def eco_mode(self, eco_mode_enabled: bool):
+        self.data[0x13] = 0xFF if eco_mode_enabled else 0
 
-        data[0x14] = 0x02 if self._turbo_mode else 0
+    @property
+    def swing_mode(self):
+        return self.data[0x11]
 
-        return
+    @swing_mode.setter
+    def swing_mode(self, mode: int):
+        self.data[0x11] = mode if mode is not None else 0
+
+    @property
+    def turbo_mode(self):
+        return self.data[0x14] > 0
+
+    @turbo_mode.setter
+    def turbo_mode(self, turbo_mode_enabled: bool):
+        self.data[0x14] = 0x02 if turbo_mode_enabled else 0
+
+class appliance_response:
+
+    def __init__(self, data: bytearray):
+        # The response data from the appliance includes a packet header which we don't want
+        self.data = data[0x28:]
+
+    @property
+    def audible_feedback(self):
+        return self.data[0x0b] & 0x42 > 0
+
+    @property
+    def power_state(self):
+        return (self.data[0x0b] & 0x1) > 0
+
+    @property
+    def target_temperature(self):
+        return (self.data[0x0c] & 0xF) + 16
+
+    @property
+    def operational_mode(self):
+        return (self.data[0x0c] & 0xe0) >> 5
+
+    @property
+    def fan_speed(self):
+        return self.data[0x0d] & 0x7f
+
+    @property
+    def indoor_temperature(self):
+        return (self.data[0x15] - 50) / 2.0
+
+    @property
+    def outdoor_temperature(self):
+        return (self.data[0x16] - 50) / 2.0
+
+    @property
+    def eco_mode(self):
+        return (self.data[0x13] & 0x10) > 0
+
+    @property
+    def swing_mode(self):
+        return self.data[0x11] & 0xff
+
+    @property
+    def turbo_mode(self):
+        return (self.data[0x14] & 0x2) > 0
+
+    @property
+    def on_timer(self):
+        on_timer_value = self.data[0x0e]
+        return {
+            'status': ((on_timer_value & 0x80) >> 7) > 0,
+            'hour': ((on_timer_value & 0x7c) >> 2),
+            'minutes': ((on_timer_value & 0x3) | ((on_timer_value & 0xf0)))
+        }
+
+    @property
+    def off_timer(self):
+        off_timer_value = self.data[0x0f]
+        return {
+            'status': ((off_timer_value & 0x80) >> 7) > 0,
+            'hour': ((off_timer_value & 0x7c) >> 2),
+            'minutes': ((off_timer_value & 0x3) | ((off_timer_value & 0xf0)))
+        }
+    

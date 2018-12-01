@@ -1,8 +1,15 @@
+
 from enum import Enum
 
-pointer = 0x33
+import midea.crc8 as crc8
+from midea.cloud import cloud
+from midea.command import appliance_response
+from midea.command import base_command as request_status_command
+from midea.command import set_command
+from midea.packet_builder import packet_builder
 
-class fan_speed(Enum):
+
+class fan_speed_enum(Enum):
     UNSET = 101
     AUTO = 102
     HIGH = 80
@@ -10,80 +17,167 @@ class fan_speed(Enum):
     LOW = 40
     SILENT = 20
 
-class operational_mode(Enum):
+
+class operational_mode_enum(Enum):
     AUTO = 1
     COOL = 2
     DRY = 3
     HEAT = 4
     FAN = 5
 
-# There should be more option possible, but my AC only has one setting for vertical
-class swing_mode(Enum):
+
+class swing_mode_enum(Enum):
     OFF = 0
     ON = 0x3C
 
+
 class device:
 
-    def __init__(self, data: bytes):
-        self.update(data)
-    
-    def update(self, data):
-        self.data = data
-        self.status = {
-            'power_status': self.power_status(),
-            'target_temperature': self.target_temperature(),
-            'operational_mode': self.operational_mode(),
-            'fan_speed': self.fan_speed(),
-            'indoor_temperature': self.indoor_temperature(),
-            'outdoor_temperature': self.outdoor_temperature(),
-            'eco_mode': self.eco_mode(),
-            'swing_mode': self.swing_mode(),
-            'turbo_mode': self.turbo_mode(),
-            'on_timer': self.on_timer(),
-            'off_timer': self.off_timer()
-        }
+    def __init__(self, cloud_client: cloud, status: dict):
+        self._cloud_client = cloud_client
+        self.set_status(status)
 
-    def power_status(self):
-        return (self.data[pointer] & 0x1) > 0
+        self._audible_feedback = False
+        self._power_state = False
+        self._target_temperature = 17
+        self._operational_mode = operational_mode_enum.AUTO
+        self._fan_speed = fan_speed_enum.AUTO
+        self._swing_mode = swing_mode_enum.OFF
+        self._eco_mode = False
+        self._turbo_mode = False
 
-    def target_temperature(self):
-        return (self.data[pointer + 1] & 0xF) + 16
+        self._on_timer = None
+        self._off_timer = None
+        self._indoor_temperature = 0.0
+        self._outdoor_temperature = 0.0
 
-    def operational_mode(self):
-        return operational_mode((self.data[pointer + 1] & 0xe0) >> 5)
+    def set_status(self, status: dict):
+        self.id = status['id']
+        self.name = status['name']
+        self.model_number = status['modelNumber']
+        self.serial_number = status['sn']
+        self.type = int(status['type'], 0)
+        self.active = status['activeStatus'] == '1'
+        self.online = status['onlineStatus'] == '1'
 
-    def fan_speed(self):
-        return fan_speed(self.data[pointer + 2] & 0x7f)
+    def refresh(self):
+        cmd = request_status_command(self.type)
+        pkt_builder = packet_builder()
+        pkt_builder.set_command(cmd)
 
-    def indoor_temperature(self):
-        return (self.data[pointer + 10] - 50) / 2.0
+        data = pkt_builder.finalize()
+        data = self._cloud_client.appliance_transparent_send(self.id, data)
+        response = appliance_response(data)
+        self.update(response)
 
-    def outdoor_temperature(self):
-        return (self.data[pointer + 11] - 50) / 2.0
+    def apply(self):
+        cmd = set_command(self.type)
+        cmd.audible_feedback = self._audible_feedback
+        cmd.power_state = self._power_state
+        cmd.target_temperature = self._target_temperature
+        cmd.operational_mode = self._operational_mode.value
+        cmd.fan_speed = self._fan_speed.value
+        cmd.swing_mode = self._swing_mode.value
+        cmd.eco_mode = self._eco_mode
+        cmd.turbo_mode = self._turbo_mode
 
-    def eco_mode(self):
-        return (self.data[pointer + 8] & 0x10) >> 4
+        pkt_builder = packet_builder()
+        pkt_builder.set_command(cmd)
 
-    def swing_mode(self):
-        return swing_mode(self.data[pointer + 6] & 0xff)
+        data = pkt_builder.finalize()
+        data = self._cloud_client.appliance_transparent_send(self.id, data)
+        response = appliance_response(data)
+        self.update(response)
 
-    def turbo_mode(self):
-        return (self.data[pointer + 9] & 0x2) > 0
+    def update(self, res: appliance_response):
+        self._power_state = res.power_state
+        self._target_temperature = res.target_temperature
+        self._operational_mode = operational_mode_enum(res.operational_mode)
+        self._fan_speed = fan_speed_enum(res.fan_speed)
+        self._swing_mode = swing_mode_enum(res.swing_mode)
+        self._eco_mode = res.eco_mode
+        self._turbo_mode = res.turbo_mode
+        self._indoor_temperature = res.indoor_temperature
+        self._outdoor_temperature = res.outdoor_temperature
+        self._timer_on = res.on_timer
+        self._timer_off = res.off_timer
 
-    def on_timer(self):
-        value = self.data[pointer + 3]
-
-        return {
-            'status': ((value & 0x80) >> 7) > 0,
-            'hour': ((value & 0x7c) >> 2),
-            'minutes': ((value & 0x3) | ((value & 0xf0)))
-        }
+    @property
+    def audible_feedback(self):
+        return self._audible_feedback
         
-    def off_timer(self):
-        value = self.data[pointer + 4]
+    @audible_feedback.setter
+    def audible_feedback(self, feedback: bool):
+        self._audible_feedback = feedback
 
-        return {
-            'status': ((value & 0x80) >> 7) > 0,
-            'hour': ((value & 0x7c) >> 2),
-            'minutes': ((value & 0x3) | ((value & 0xf0)))
-        }
+    @property
+    def power_state(self):
+        return self._power_state
+
+    @power_state.setter
+    def power_state(self, state: bool):
+        self._power_state = state
+
+    @property
+    def target_temperature(self):
+        return self._target_temperature
+
+    @target_temperature.setter
+    def target_temperature(self, temperature: int):
+        self._target_temperature = temperature
+
+    @property
+    def operational_mode(self):
+        return self._operational_mode
+
+    @operational_mode.setter
+    def operational_mode(self, mode: operational_mode_enum):
+        self._operational_mode = mode
+
+    @property
+    def fan_speed(self):
+        return self._fan_speed
+
+    @fan_speed.setter
+    def fan_speed(self, speed: fan_speed_enum):
+        self._fan_speed = speed
+
+    @property
+    def swing_mode(self):
+        return self._swing_mode
+
+    @swing_mode.setter
+    def swing_mode(self, mode: swing_mode_enum):
+        self._swing_mode = mode
+
+    @property
+    def eco_mode(self):
+        return self._eco_mode
+
+    @eco_mode.setter
+    def eco_mode(self, enabled: bool):
+        self._eco_mode = enabled
+
+    @property
+    def turbo_mode(self):
+        return self._turbo_mode
+
+    @turbo_mode.setter
+    def turbo_mode(self, enabled: bool):
+        self._turbo_mode = enabled
+
+    @property
+    def indoor_temperature(self):
+        return self._indoor_temperature
+
+    @property
+    def outdoor_temperature(self):
+        return self._outdoor_temperature
+
+    @property
+    def on_timer(self):
+        return self._on_timer
+
+    @property
+    def off_timer(self):
+        return self._off_timer

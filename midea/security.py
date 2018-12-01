@@ -35,12 +35,12 @@ class security:
     def encryptPassword(self, loginId, password):         
         # Hash the password
         m = hashlib.sha256()
-        m.update(password.encode('ASCII'))
+        m.update(password.encode('ascii'))
         
         # Create the login hash with the loginID + password hash + appKey, then hash it all AGAIN       
         loginHash = loginId + m.hexdigest() + self.appKey
         m = hashlib.sha256()
-        m.update(loginHash.encode('ASCII'))
+        m.update(loginHash.encode('ascii'))
         return m.hexdigest()
 
     def aes_decrypt(self, raw, key = None):

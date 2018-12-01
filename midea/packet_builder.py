@@ -1,4 +1,4 @@
-import midea.crc8 as crc8
+
 from midea.command import base_command
 
 class packet_builder:
