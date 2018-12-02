@@ -18,7 +18,6 @@ class base_command:
         self.data[0x1d] = crc8.calculate(self.data[16:])
         # Set the length of the command data
         self.data[0x01] = len(self.data)
-        print(self.data.hex())
         return self.data
 
 class set_command(base_command):
