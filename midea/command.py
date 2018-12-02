@@ -8,7 +8,7 @@ class base_command:
         self.data = bytearray([
             0xaa, 0x23, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x03, 0x02, 0x40, 0x81, 0x00, 0xff, 0x03, 0xff,
-            0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x03, 0xcc
         ])
         self.data[0x02] = device_type
@@ -60,7 +60,7 @@ class set_command(base_command):
     @operational_mode.setter
     def operational_mode(self, mode: int):
         self.data[0x0c] &= ~ 0xe0  # Clear the mode bit
-        self.data[0x0c] |= (mode << 5) & 0xE0
+        self.data[0x0c] |= (mode << 5) & 0xe0
 
     @property
     def fan_speed(self):
@@ -83,8 +83,9 @@ class set_command(base_command):
         return self.data[0x11]
 
     @swing_mode.setter
-    def swing_mode(self, mode: int):
-        self.data[0x11] = mode if mode is not None else 0
+    def swing_mode(self, mode: int):        
+        self.data[0x11] &= ~ 0x0f  # Clear the mode bit
+        self.data[0x11] |= mode & 0x0f
 
     @property
     def turbo_mode(self):
@@ -134,7 +135,7 @@ class appliance_response:
 
     @property
     def swing_mode(self):
-        return self.data[0x11] & 0xff
+        return self.data[0x11] & 0x0f
 
     @property
     def turbo_mode(self):

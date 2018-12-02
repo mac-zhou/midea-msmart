@@ -34,8 +34,10 @@ class operational_mode_enum(Enum):
 
 
 class swing_mode_enum(Enum):
-    Off = 0
-    On = 0x3C
+    Off = 0x0
+    Vertical = 0xC
+    Horizontal = 0x3
+    Both = 0xF
 
     @staticmethod
     def list():
