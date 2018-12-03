@@ -13,7 +13,7 @@ class client:
 
     def __init__(self, appKey: str, email: str, password: str):
         self._cloud = cloud(appKey, email, password)
-        self._devices: Dict[str, device] = {}
+        self._devices = {} # type: Dict[str, device]
 
     def setup(self):
         if self._cloud.loginId is None:

@@ -54,8 +54,8 @@ class security:
 
         # Decrypt each block with a new Cipher. There doesn't seem to be a reset in Python for the Cipher object
         for block in blocks:            
-            cipher = AES.new(key, AES.MODE_CBC, iv=INITIALIZATION_VECTOR)    
-            decrypted = cipher.decrypt(block) 
+            cipher = AES.new(key, AES.MODE_CBC, INITIALIZATION_VECTOR)
+            decrypted = cipher.decrypt(bytes(block))
             final.extend(decrypted)  
         
         # Remove the padding
@@ -77,8 +77,8 @@ class security:
 
         # Encrypt each block with a new Cipher. There doesn't seem to be a reset in Python for the Cipher object
         for block in blocks:    
-            cipher = AES.new(key, AES.MODE_CBC, iv=INITIALIZATION_VECTOR)        
-            encrypted = cipher.encrypt(block)
+            cipher = AES.new(key, AES.MODE_CBC, INITIALIZATION_VECTOR)
+            encrypted = cipher.encrypt(bytes(block))
             final.extend(encrypted)
             
         return final
