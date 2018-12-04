@@ -11,7 +11,7 @@ from midea.security import security
 class cloud:
     SERVER_URL = "https://mapp.appsmb.com/v1/"
     CLIENT_TYPE = 1                 # Android
-    FORMAT = 2                 # JSON
+    FORMAT = 2                      # JSON
     LANGUAGE = 'en_US'
     APP_ID = 1017
     SRC = 17
@@ -28,7 +28,7 @@ class cloud:
         self.applianceList = []     # A list of appliances associated with the account
 
         self.security = security(self.appKey)
-        # Lets not store the password in plain text any longer than we should
+        self._retries = 0
 
     def api_request(self, endpoint, args):
         """Sends an API request to the Midea cloud service and returns the results
@@ -59,7 +59,15 @@ class cloud:
         response = json.loads(r.text)
         # Check for errors, raise if there are any
         if response['errorCode'] != '0':
-            raise ValueError(response['errorCode'], response['msg'])
+            self.handle_api_error(int(response['errorCode']), response['msg'])
+            # If you don't throw, then retry
+            if(__debug__):
+                print("Retrying API call: '{}'".format(endpoint))
+            self._retries += 1
+            if(self._retries < 10):
+                return self.api_request(endpoint, args)
+            else:
+                raise RecursionError()
 
         return response['result']
 
@@ -133,3 +141,23 @@ class cloud:
         if(__debug__):
             print("Recieved from {}: {}".format(id, reply.hex()))
         return reply
+
+    def handle_api_error(self, error_code, message: str):
+
+        def session_restart():
+            self.login()
+
+        def throw():
+            raise ValueError(error_code, message)
+
+        def ignore():
+            if(__debug__):
+                print("Error ignored: '{}' - '{}'".format(error_code, message))
+
+        error_handlers = {
+            3176: lambda self: "Device timeout",
+            3106: session_restart
+        }
+
+        handler = error_handlers.get(error_code, throw)
+        handler()
