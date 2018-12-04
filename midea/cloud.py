@@ -96,6 +96,8 @@ class cloud:
         })
 
         self.applianceList = response['list']
+        if(__debug__):
+            print("Device list: {}".format(self.applianceList))
         return self.applianceList
 
     def encode(self, data: bytearray):
@@ -116,6 +118,8 @@ class cloud:
         return bytearray(data)
 
     def appliance_transparent_send(self, id, data):
+        if(__debug__):
+            print("Sending to {}: {}".format(id, data.hex()))
         encoded = self.encode(data)
         order = self.security.aes_encrypt(encoded)
         response = self.api_request('appliance/transparent/send', {
@@ -125,4 +129,7 @@ class cloud:
         })
         reply = self.decode(self.security.aes_decrypt(
             bytearray.fromhex(response['reply'])))
+
+        if(__debug__):
+            print("Recieved from {}: {}".format(id, reply.hex()))
         return reply

@@ -9,53 +9,120 @@ from midea.command import set_command
 from midea.packet_builder import packet_builder
 
 
-class fan_speed_enum(Enum):
-    Auto = 102
-    High = 80
-    Medium = 60
-    Low = 40
-    Silent = 20
-
-    @staticmethod
-    def list():
-        return list(map(lambda c: c.name, fan_speed_enum))
-
-
-class operational_mode_enum(Enum):
-    auto = 1
-    cool = 2
-    dry = 3
-    heat = 4
-    fan_only = 5
-
-    @staticmethod
-    def list():
-        return list(map(lambda c: c.name, operational_mode_enum))
-
-
-class swing_mode_enum(Enum):
-    Off = 0x0
-    Vertical = 0xC
-    Horizontal = 0x3
-    Both = 0xF
-
-    @staticmethod
-    def list():
-        return list(map(lambda c: c.name, swing_mode_enum))
-
-
 class device:
 
-    def __init__(self, cloud_client: cloud, status: dict):
-        self._cloud_client = cloud_client
-        self.set_status(status)
+    def __init__(self, cloud_service: cloud):
+        self._cloud_service = cloud_service
+
+    def set_device_detail(self, device_detail: dict):
+        self._id = device_detail['id']
+        self._name = device_detail['name']
+        self._model_number = device_detail['modelNumber']
+        self._serial_number = device_detail['sn']
+        self._type = int(device_detail['type'], 0)
+        self._active = device_detail['activeStatus'] == '1'
+        self._online = device_detail['onlineStatus'] == '1'
+
+    def refresh(self):
+        pass
+
+    def apply(self):
+        pass
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def model_number(self):
+        return self._model_number
+
+    @property
+    def serial_number(self):
+        return self._serial_number
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def active(self):
+        return self._active
+
+    @property
+    def online(self):
+        return self._online
+
+
+class air_conditioning_device(device):
+
+    class fan_speed_enum(Enum):
+        Auto = 102
+        High = 80
+        Medium = 60
+        Low = 40
+        Silent = 20
+
+        @staticmethod
+        def list():
+            return list(map(lambda c: c.name, air_conditioning_device.fan_speed_enum))
+
+        @staticmethod
+        def get(value):
+            if(value in air_conditioning_device.fan_speed_enum._value2member_map_):
+                return air_conditioning_device.fan_speed_enum(value)
+            print("Unknown Fan Speed: {}".format(value))
+            return air_conditioning_device.fan_speed_enum.Auto
+
+    class operational_mode_enum(Enum):
+        auto = 1
+        cool = 2
+        dry = 3
+        heat = 4
+        fan_only = 5
+        super_test = 6
+
+        @staticmethod
+        def list():
+            return list(map(lambda c: c.name, air_conditioning_device.operational_mode_enum))
+
+        @staticmethod
+        def get(value):
+            if(value in air_conditioning_device.operational_mode_enum._value2member_map_):
+                return air_conditioning_device.operational_mode_enum(value)
+            print("Unknown Operational Mode: {}".format(value))
+            return air_conditioning_device.operational_mode_enum.fan_only
+
+    class swing_mode_enum(Enum):
+        Off = 0x0
+        Vertical = 0xC
+        Horizontal = 0x3
+        Both = 0xF
+
+        @staticmethod
+        def list():
+            return list(map(lambda c: c.name, air_conditioning_device.swing_mode_enum))
+
+        @staticmethod
+        def get(value):
+            if(value in air_conditioning_device.swing_mode_enum._value2member_map_):
+                return air_conditioning_device.swing_mode_enum(value)
+            print("Unknown Swing Mode: {}".format(value))
+            return air_conditioning_device.swing_mode_enum.Off
+
+    def __init__(self, cloud_service: cloud):
+        super().__init__(cloud_service)
 
         self._audible_feedback = False
         self._power_state = False
         self._target_temperature = 17
-        self._operational_mode = operational_mode_enum.auto
-        self._fan_speed = fan_speed_enum.Auto
-        self._swing_mode = swing_mode_enum.Off
+        self._operational_mode = air_conditioning_device.operational_mode_enum.auto
+        self._fan_speed = air_conditioning_device.fan_speed_enum.Auto
+        self._swing_mode = air_conditioning_device.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
 
@@ -64,22 +131,13 @@ class device:
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
 
-    def set_status(self, status: dict):
-        self.id = status['id']
-        self.name = status['name']
-        self.model_number = status['modelNumber']
-        self.serial_number = status['sn']
-        self.type = int(status['type'], 0)
-        self.active = status['activeStatus'] == '1'
-        self.online = status['onlineStatus'] == '1'
-
     def refresh(self):
         cmd = request_status_command(self.type)
         pkt_builder = packet_builder()
         pkt_builder.set_command(cmd)
 
         data = pkt_builder.finalize()
-        data = self._cloud_client.appliance_transparent_send(self.id, data)
+        data = self._cloud_service.appliance_transparent_send(self.id, data)
         response = appliance_response(data)
         self.update(response)
 
@@ -98,16 +156,19 @@ class device:
         pkt_builder.set_command(cmd)
 
         data = pkt_builder.finalize()
-        data = self._cloud_client.appliance_transparent_send(self.id, data)
+        data = self._cloud_service.appliance_transparent_send(self.id, data)
         response = appliance_response(data)
         self.update(response)
 
     def update(self, res: appliance_response):
         self._power_state = res.power_state
         self._target_temperature = res.target_temperature
-        self._operational_mode = operational_mode_enum(res.operational_mode)
-        self._fan_speed = fan_speed_enum(res.fan_speed)
-        self._swing_mode = swing_mode_enum(res.swing_mode)
+        self._operational_mode = air_conditioning_device.operational_mode_enum.get(
+            res.operational_mode)
+        self._fan_speed = air_conditioning_device.fan_speed_enum.get(
+            res.fan_speed)
+        self._swing_mode = air_conditioning_device.swing_mode_enum.get(
+            res.swing_mode)
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
         self._indoor_temperature = res.indoor_temperature
@@ -118,7 +179,7 @@ class device:
     @property
     def audible_feedback(self):
         return self._audible_feedback
-        
+
     @audible_feedback.setter
     def audible_feedback(self, feedback: bool):
         self._audible_feedback = feedback
@@ -194,3 +255,38 @@ class device:
     @property
     def off_timer(self):
         return self._off_timer
+
+
+class unknown_device(device):
+
+    def __init__(self, cloud_service: cloud):
+        super().__init__(cloud_service)
+
+    def refresh(self):
+        cmd = request_status_command(self.type)
+        pkt_builder = packet_builder()
+        pkt_builder.set_command(cmd)
+
+        data = pkt_builder.finalize()
+        data = self._cloud_service.appliance_transparent_send(self.id, data)
+        response = appliance_response(data)
+        print("Decoded Data: {}".format({
+            'audible_feedback': response.audible_feedback,
+            'target_temperature': response.target_temperature,
+            'indoor_temperature': response.indoor_temperature,
+            'outdoor_temperature': response.outdoor_temperature,
+            'operational_mode': response.operational_mode,
+            'fan_speed': response.fan_speed,
+            'swing_mode': response.swing_mode,
+            'eco_mode': response.eco_mode,
+            'turbo_mode': response.turbo_mode
+        }))
+
+    def apply(self):
+        print("Cannot apply, device not fully supported yet")
+
+
+class dehumidifier_device(unknown_device):
+
+    def __init__(self, cloud_service: cloud):
+        super().__init__(cloud_service)

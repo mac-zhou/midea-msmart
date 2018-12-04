@@ -6,14 +6,32 @@
 from typing import Dict, List
 
 from midea.cloud import cloud
-from midea.device import device
+from midea.device import air_conditioning_device
+from midea.device import dehumidifier_device
+from midea.device import unknown_device
+
+DEVICE_TYPES = {
+    0xAC: air_conditioning_device,
+    0x00: dehumidifier_device
+}
+
+
+def build_device(cloud_service: cloud, device_detail: dict):
+    device_type = int(device_detail['type'], 0)
+    device_constructor = DEVICE_TYPES.get(device_type, None)
+    if device_constructor is not None:
+        device = device_constructor(cloud_service)
+    else:
+        device = unknown_device(cloud_service)        
+    device.set_device_detail(device_detail)
+    return device
 
 
 class client:
 
     def __init__(self, appKey: str, email: str, password: str):
         self._cloud = cloud(appKey, email, password)
-        self._devices = {} # type: Dict[str, device]
+        self._devices = {}  # type: Dict[str, device]
 
     def setup(self):
         if self._cloud.loginId is None:
@@ -27,7 +45,7 @@ class client:
             current_device_id = device_status['id']
             current_device = self._devices.setdefault(current_device_id, None)
             if current_device is None:
-                current_device = device(self._cloud, device_status)
+                current_device = build_device(self._cloud, device_status)
                 self._devices[current_device_id] = current_device
             else:
                 current_device.set_status(device_status)

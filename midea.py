@@ -47,13 +47,19 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     clnt = client(app_key, username, password)
     devices = clnt.devices()
-    entities = [MideaClimateDevice(device, temp_step) for device in devices]
+    entities = []
+    for device in devices:
+        if(device.type == 0xAC):
+            entities.append(MideaClimateACDevice(device, temp_step))
+        else:
+            _LOGGER.error(
+                "Unsupported device type: 0x{}".format(device.type.hex()))
 
     async_add_entities(entities)
 
 
-class MideaClimateDevice(ClimateDevice):
-    """Representation of a Midea climate device."""
+class MideaClimateACDevice(ClimateDevice):
+    """Representation of a Midea climate AC device."""
 
     def __init__(self, device, temp_step: float):
         """Initialize the climate device."""
