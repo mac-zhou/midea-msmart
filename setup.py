@@ -1,3 +1,4 @@
+#!/bin/python
 import setuptools
 
 with open("README.md", "r") as fh:
@@ -5,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='midea',  
-     version='0.1',
+     version='0.0.4',
      author="NeoAcheron",
      author_email="master@neoacheron.com",
      description="A library to control Midea appliances via the cloud API",
