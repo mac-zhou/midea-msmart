@@ -53,7 +53,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
             entities.append(MideaClimateACDevice(device, temp_step))
         else:
             _LOGGER.error(
-                "Unsupported device type: 0x{}".format(device.type.hex()))
+                "Unsupported device type: 0x{:02x}".format(device.type))
 
     async_add_entities(entities)
 
