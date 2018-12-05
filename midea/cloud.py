@@ -69,6 +69,7 @@ class cloud:
             else:
                 raise RecursionError()
 
+        self._retries = 0
         return response['result']
 
     def login(self):
