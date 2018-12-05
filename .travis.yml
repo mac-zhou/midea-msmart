@@ -1,29 +1,15 @@
 language: python
 python:
-  - '3.6'
+- '3.6'
 install:
-  - pip install -r requirements.txt
+- pip install -r requirements.txt
 script:
-  - git config --global user.email "travis@travis-ci.com"
-  - git config --global user.name "Travis CI"
-  - bumpversion --verbose patch
-  - python setup.py sdist bdist_wheel
+- chmod +x .travis/push.sh
+- .travis/push.sh
+- python setup.py sdist bdist_wheel
 deploy:
-  - provider: releases
-    api_key:
-      secure: IikRH2CYUnAEMGRy4aqOUfzrkzztWvQ438DH52BEiKjj4PcOKIm6IBWWc0JVIzZahjMCn913eWbpE8b+1Mpt2+fG+8rOKTCISxZPMaujeGLmopXpAurLJXnRf3RieaxBIC6fjVPQEZbcuRmSWdPMnO1ZISAAXtzxVM/zhqpaNpN8jgHAwxqt69G8J6inX0pWrbb+td+o26m696q6rlaKvQ4W/whwd7krTAh2mCzSVXKcyjowupKX3KaOoq440qZQvyJ2yi4FjTQ8MF91uwMNq3aG+0hqYDoBiHUYSdWB24O5xaobj+wAcUYInmp7ZrAfE8uy9ydCUOi+czNjKEVQ/CGLShoQker/btJneDj20ik5KQ337ThbT8AdKv2TrVqle3IKvHguwc9X21cNlLNZJ6Vq2X7GKJeiV3pMjPHhylNWyqsecDoia1lKGpKCRsj6ejsx45iD6YZYl2oB3kkiI1oE+6nIJOTIZ23Rt0ILtIZz4/CU8v0xpK2j1YYGJA5BXe9nNQfjX/iM8USfOInHK1ZxCXgheU+mrCjWmmI66xzutaacRcQ6McYFC9DG7XztiCJqPdRwIWQqhoXKRH2o7kugv92Y4B5smQMRb034Z1pUZWp5jcK0ET+IWN0xbY+Yp7XP1v7wC7oZ1+zsKjEXB+V+tJiu1kDUU2x40CuDyxU=
-    file_glob: true
-    file: dist/*
-    skip_cleanup: true
-    on:
-      repo: NeoAcheron/midea-ac-py
-  - provider: pypi
-    user: NeoAcheron
-    password:
-      secure: U129tvkj/wo8y5bnTNZbjhRnCT4/8K27GY7jh4QbWTVnCwoWePzfe6A38QO/z2d3XMm4ur4adOIfUSgfgRRwK/NCWp9lEJMkxj867AyPOD9c3yqq/M31i+BtcGKZFTA9dZNUZZqh2TxZAKvaNn9j1DZnNp1vlv0Dgc4ZqcKlZ9ERy0pvyWjNPk3Mfp2daQ95WVhVYJrP84envoqxboYRbgKRZBnNM1oPzORUo0zlN1dSMI1jAy1Jah3I8NVbKh6ugLhP06Tn2YYgH9PJDAKeMvN7PmUq5wIT87D9mwplqZeafqKbLEG9QxZDcL0MysUkcWA19Ew9dBZ9B9TDtqZOHAifyt17Yq0ARJ2ofDxLoN+3lz3S8lP1kLrwjdTtykzC11sUIBbnLUkB1kdNRAz1ubX9qracvHVuM9lvcYc7mJxRv1rHYVg4d5QdU74tOejeli7BUdf2zaCG5KJvrqJPzEGreo0ILHi0FGSdlEamWp1falBwYoRDFlLPpaqgvOWJ+JasKI8DCHSN3w35EZbtJR/BAEd954BTfosOIot0btIq7ecVpfgUKbQVmjYk0HkrcTNhiT0UNYhtL1vuq+oioU2T1pCVtctFkg/uBdCliMldWlOmbL/8UEamHga7EnkxbYbeNPYJYN6jEZQx2uBTmBjEEK+3s9Ph33ASMlPkoJQ=
-    skip_cleanup: true
-  - provider: script
-    skip_cleanup: true
-    script: git push
-    on:
-      branch: master
+  provider: pypi
+  user: NeoAcheron
+  skip_cleanup: true
+  password:
+    secure: Znp6wiYWcfjmIWl3Gsq+dqGLLNp3aUVDu2QTVqX5gJ9zc1MVPZE5mpw0Wfl9AUdCmO/xj7ZZ7lbhKh66xYbuvKNwStJUrSKdUL5JsNFGRxSsfaM++1wtiwNBzsATaVjBLsXhUomWfet78qsqvwLlBAT0prthoT3FP/5N8tP0TMauh2pdc+DoFyYe/D1eiTffZjiYj44Dycb965Ys5Voqu55hSE8Tiy1vKwT6wxiBvDjBSeNafpcyoLK0kDLEQomX57u7Z4T4OWPvcmIpS/U60iJ7WT4U+HxjwgvGsROPZ5vlD9sh+SZk+6GMb5nxo8jlp9RZz6C840TR7PGLskO+MvoFQuSdLEBcnnZOu9SxdYKO04LfqKBskM0n8TCDuGhLSTupS7ReaGOn5CeJmmE5qBpUm+K8Juz38zh7x0bF7rzmonUuNvSN/nY5lyg7yl457P2eeQCN/fhDEhetgp7jC6BiNJblq28DpUKRuRGgu1XOrTGk8Mdw8KXwO2Z3tE7Xi4Xz1vLv8zYs1NURJeLR3bDqfeyK5ALQbPxLhq+wIyGWzw4wuziNcaneJN6A3EUzBAu2I+jcKX/b/eW1PdBPtAxWs3r06axpCIa3Je1cnpLskqJsUar+Jw2zI82i1pM813z3/LoXdeHc10z7sJ4tLpWn49rIf/LnetYs23D3qJc=

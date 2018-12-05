@@ -1,6 +1,6 @@
 {
     "midea": {
-      "version": "0.0.4",
+      "version": "0.0.0",
       "local_location": "custom_components/midea.py",
       "remote_location": "https://raw.githubusercontent.com/NeoAcheron/midea-ac-py/master/midea.py",
       "visit_repo": "https://github.com/NeoAcheron/midea-ac-py",
