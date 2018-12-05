@@ -1,4 +1,4 @@
-# midea-ac-py
+# midea-ac-py [![Build Status](https://travis-ci.org/NeoAcheron/midea-ac-py.svg?branch=master)](https://travis-ci.org/NeoAcheron/midea-ac-py)
 
 This is a library to allow communicating to a Midea AC via the Midea Cloud.
 
