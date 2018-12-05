@@ -146,6 +146,7 @@ class cloud:
     def handle_api_error(self, error_code, message: str):
 
         def session_restart():
+            self.session = None
             self.login()
 
         def throw():
@@ -156,7 +157,7 @@ class cloud:
                 print("Error ignored: '{}' - '{}'".format(error_code, message))
 
         error_handlers = {
-            3176: lambda self: "Device timeout",
+            3176: ignore,
             3106: session_restart
         }
 
