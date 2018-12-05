@@ -3,7 +3,7 @@
 git config --global user.email "travis@travis-ci.org"
 git config --global user.name "Travis CI"
 
-bumpversion minor --no-tag --allow-dirty --no-commit --list > .temp
+bumpversion patch --no-tag --allow-dirty --no-commit --list > .temp
 CURRENT_VERSION=`cat .temp | grep current_version | sed -r s,"^.*=",,`
 NEW_VERSION=`cat .temp | grep new_version | sed -r s,"^.*=",,`
 
