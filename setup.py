@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
      name='midea',  
-     version='0.1.0',
+     version='0.1.1',
      author="NeoAcheron",
      author_email="master@neoacheron.com",
      description="A library to control Midea appliances via the cloud API",
