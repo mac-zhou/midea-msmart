@@ -48,7 +48,7 @@ class client:
                 current_device = build_device(self._cloud, device_status)
                 self._devices[current_device_id] = current_device
             else:
-                current_device.set_status(device_status)
+                current_device.set_device_detail(device_status)
 
         return list(self._devices.values())
 

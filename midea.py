@@ -39,15 +39,15 @@ SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_AWAY_MODE | SUPPORT_FAN_MOD
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up the Midea cloud service and query appliances."""
 
-    from midea.client import client
+    from midea.client import client as midea_client
 
     app_key = config.get(CONF_APP_KEY)
     username = config.get(CONF_USERNAME)
     password = config.get(CONF_PASSWORD)
     temp_step = config.get(CONF_TEMP_STEP)
 
-    clnt = client(app_key, username, password)
-    devices = clnt.devices()
+    client = midea_client(app_key, username, password)
+    devices = client.devices()
     entities = []
     for device in devices:
         if(device.type == 0xAC):
@@ -64,9 +64,7 @@ class MideaClimateACDevice(ClimateDevice):
 
     def __init__(self, device, temp_step: float):
         """Initialize the climate device."""
-        from midea.device import operational_mode_enum
-        from midea.device import fan_speed_enum
-        from midea.device import swing_mode_enum
+        from midea.device import air_conditioning_device as ac
 
         # Not a great place to have this, but if we don't refresh the state, 
         # bad state values are logged in the state timeline.
@@ -77,9 +75,9 @@ class MideaClimateACDevice(ClimateDevice):
         self._unit_of_measurement = TEMP_CELSIUS
         self._target_temperature_step = temp_step
 
-        self._operation_list = operational_mode_enum.list()
-        self._fan_list = fan_speed_enum.list()
-        self._swing_list = swing_mode_enum.list()
+        self._operation_list = ac.operational_mode_enum.list()
+        self._fan_list = ac.fan_speed_enum.list()
+        self._swing_list = ac.swing_mode_enum.list()
 
     def update(self):
         """Retrieve latest state from the appliance."""
@@ -176,22 +174,22 @@ class MideaClimateACDevice(ClimateDevice):
 
     def set_swing_mode(self, swing_mode):
         """Set new target temperature."""
-        from midea.device import swing_mode_enum
-        self._device.swing_mode = swing_mode_enum[swing_mode]
+        from midea.device import air_conditioning_device as ac
+        self._device.swing_mode = ac.swing_mode_enum[swing_mode]
         self._device.apply()
         self.schedule_update_ha_state()
 
     def set_fan_mode(self, fan_mode):
         """Set new target temperature."""
-        from midea.device import fan_speed_enum
-        self._device.fan_speed = fan_speed_enum[fan_mode]
+        from midea.device import air_conditioning_device as ac
+        self._device.fan_speed = ac.fan_speed_enum[fan_mode]
         self._device.apply()
         self.schedule_update_ha_state()
 
     def set_operation_mode(self, operation_mode):
         """Set new target temperature."""
-        from midea.device import operational_mode_enum
-        self._device.operational_mode = operational_mode_enum[operation_mode]
+        from midea.device import air_conditioning_device as ac
+        self._device.operational_mode = ac.operational_mode_enum[operation_mode]
         self._device.apply()
         self.schedule_update_ha_state()
 
