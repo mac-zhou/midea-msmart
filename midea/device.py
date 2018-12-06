@@ -84,7 +84,6 @@ class air_conditioning_device(device):
         dry = 3
         heat = 4
         fan_only = 5
-        super_test = 6
 
         @staticmethod
         def list():
