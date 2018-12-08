@@ -157,8 +157,10 @@ class cloud:
                 print("Error ignored: '{}' - '{}'".format(error_code, message))
 
         error_handlers = {
-            3176: ignore,
-            3106: session_restart
+            3176: ignore,          # The asyn reply does not exist.
+            3106: session_restart, # invalidSession.
+            3004: session_restart, # value is illegal.
+            9999: session_restart, # system error.
         }
 
         handler = error_handlers.get(error_code, throw)
