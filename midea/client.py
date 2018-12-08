@@ -10,6 +10,8 @@ from midea.device import air_conditioning_device
 from midea.device import dehumidifier_device
 from midea.device import unknown_device
 
+VERSION = '0.1.3'
+
 DEVICE_TYPES = {
     0xAC: air_conditioning_device,
     0x00: dehumidifier_device
@@ -22,7 +24,7 @@ def build_device(cloud_service: cloud, device_detail: dict):
     if device_constructor is not None:
         device = device_constructor(cloud_service)
     else:
-        device = unknown_device(cloud_service)        
+        device = unknown_device(cloud_service)
     device.set_device_detail(device_detail)
     return device
 
@@ -51,4 +53,3 @@ class client:
                 current_device.set_device_detail(device_status)
 
         return list(self._devices.values())
-

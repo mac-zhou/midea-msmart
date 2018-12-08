@@ -9,6 +9,8 @@ from midea.security import security
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
+VERSION = '0.1.3'
+
 
 class cloud:
     SERVER_URL = "https://mapp.appsmb.com/v1/"
@@ -166,9 +168,9 @@ class cloud:
 
         error_handlers = {
             3176: ignore,          # The asyn reply does not exist.
-            3106: session_restart, # invalidSession.
-            3004: session_restart, # value is illegal.
-            9999: session_restart, # system error.
+            3106: session_restart,  # invalidSession.
+            3004: session_restart,  # value is illegal.
+            9999: session_restart,  # system error.
         }
 
         handler = error_handlers.get(error_code, throw)

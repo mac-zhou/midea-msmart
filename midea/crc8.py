@@ -1,3 +1,5 @@
+VERSION = '0.1.3'
+
 # The huge CRC table! Aparently this can be generated, but storage space is cheap...
 crc8_854_table = [
     0x00, 0x5E, 0xBC, 0xE2, 0x61, 0x3F, 0xDD, 0x83,
@@ -34,9 +36,10 @@ crc8_854_table = [
     0xB6, 0xE8, 0x0A, 0x54, 0xD7, 0x89, 0x6B, 0x35
 ]
 
+
 def calculate(data):
     crc_value = 0
-    for m in data:        
+    for m in data:
         k = crc_value ^ m
         if k > 256:
             k -= 256

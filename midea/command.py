@@ -1,6 +1,9 @@
 
 import midea.crc8 as crc8
 
+VERSION = '0.1.3'
+
+
 class base_command:
 
     def __init__(self, device_type=0xAC):
@@ -20,6 +23,7 @@ class base_command:
         self.data[0x01] = len(self.data)
         return self.data
 
+
 class set_command(base_command):
 
     def __init__(self, device_type):
@@ -36,7 +40,7 @@ class set_command(base_command):
 
     @property
     def power_state(self):
-        return self.data[0x0b] & 0x01 
+        return self.data[0x0b] & 0x01
 
     @power_state.setter
     def power_state(self, state: bool):
@@ -45,14 +49,14 @@ class set_command(base_command):
 
     @property
     def target_temperature(self):
-        return self.data[0x0c] & 0x1f 
+        return self.data[0x0c] & 0x1f
 
     @target_temperature.setter
     def target_temperature(self, temperature_celsius: int):
         self.data[0x0c] &= ~ 0x1f  # Clear the temperature bits
         self.data[0x0c] |= (temperature_celsius & 0xf) | (
             (temperature_celsius << 4) & 0x10)
-    
+
     @property
     def operational_mode(self):
         return (self.data[0x0c] & 0xe0) >> 5
@@ -83,7 +87,7 @@ class set_command(base_command):
         return self.data[0x11]
 
     @swing_mode.setter
-    def swing_mode(self, mode: int):        
+    def swing_mode(self, mode: int):
         self.data[0x11] &= ~ 0x0f  # Clear the mode bit
         self.data[0x11] |= mode & 0x0f
 
@@ -94,6 +98,7 @@ class set_command(base_command):
     @turbo_mode.setter
     def turbo_mode(self, turbo_mode_enabled: bool):
         self.data[0x14] = 0x02 if turbo_mode_enabled else 0
+
 
 class appliance_response:
 
@@ -158,4 +163,3 @@ class appliance_response:
             'hour': ((off_timer_value & 0x7c) >> 2),
             'minutes': ((off_timer_value & 0x3) | ((off_timer_value & 0xf0)))
         }
-    
