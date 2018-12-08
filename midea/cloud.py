@@ -156,6 +156,8 @@ class cloud:
     def handle_api_error(self, error_code, message: str):
 
         def session_restart():
+            if(__debug__):
+                print("Restarting session due to: '{}' - '{}'".format(error_code, message))
             self.session = None
             self.login()
 
