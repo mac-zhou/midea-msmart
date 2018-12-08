@@ -79,9 +79,8 @@ class MideaClimateACDevice(ClimateDevice):
         self._fan_list = ac.fan_speed_enum.list()
         self._swing_list = ac.swing_mode_enum.list()
 
-    def update(self):
+    async def async_update(self):
         """Retrieve latest state from the appliance."""
-        # This cannot be async, the API doesn't like it at all.
         self._device.refresh()
 
     @property
