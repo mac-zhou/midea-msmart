@@ -2,6 +2,8 @@ import requests
 import datetime
 import json
 
+from threading import Lock
+
 from midea.security import security
 
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
@@ -30,6 +32,8 @@ class cloud:
         self.security = security(self.appKey)
         self._retries = 0
 
+        self._mutex = Lock()
+
     def api_request(self, endpoint, args):
         """Sends an API request to the Midea cloud service and returns the results
         or raises ValueError if there is an error
@@ -54,8 +58,12 @@ class cloud:
 
         data['sign'] = self.security.sign(url, data)
 
-        # POST the endpoint with the payload
-        r = requests.post(url=url, data=data)
+        # POST the endpoint with the payload, but one at a time
+        self._mutex.acquire()
+        try:
+            r = requests.post(url=url, data=data)
+        finally:
+            self._mutex.release()
         response = json.loads(r.text)
         # Check for errors, raise if there are any
         if response['errorCode'] != '0':
