@@ -10,7 +10,7 @@ from midea.device import air_conditioning_device
 from midea.device import dehumidifier_device
 from midea.device import unknown_device
 
-VERSION = '0.1.3'
+VERSION = '0.1.4'
 
 DEVICE_TYPES = {
     0xAC: air_conditioning_device,

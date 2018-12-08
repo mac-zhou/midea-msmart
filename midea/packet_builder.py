@@ -1,7 +1,7 @@
 
 from midea.command import base_command
 
-VERSION = '0.1.3'
+VERSION = '0.1.4'
 
 
 class packet_builder:
