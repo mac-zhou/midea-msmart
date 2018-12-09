@@ -104,62 +104,155 @@ class appliance_response:
 
     def __init__(self, data: bytearray):
         # The response data from the appliance includes a packet header which we don't want
-        self.data = data[0x28:]
+        self.data = data[0x32:]
+        if(__debug__):
+            print("Appliance response data: {}".format(self.data.hex()))
 
-    @property
-    def audible_feedback(self):
-        return self.data[0x0b] & 0x42 > 0
+    # Byte 0x01
 
     @property
     def power_state(self):
-        return (self.data[0x0b] & 0x1) > 0
+        return (self.data[0x01] & 0x1) > 0
 
     @property
+    def imode_resume(self):
+        return (self.data[0x01] & 0x4) > 0
+
+    @property
+    def timer_mode(self):
+        return (self.data[0x01] & 0x10) > 0
+
+    @property
+    def appliance_error(self):
+        return (self.data[0x01] & 0x80) > 0
+
+    # Byte 0x02
+    @property
     def target_temperature(self):
-        return (self.data[0x0c] & 0xF) + 16
+        return (self.data[0x02] & 0xf) + 16
 
     @property
     def operational_mode(self):
-        return (self.data[0x0c] & 0xe0) >> 5
+        return (self.data[0x02] & 0xe0) >> 5
 
+    # Byte 0x03
     @property
     def fan_speed(self):
-        return self.data[0x0d] & 0x7f
+        return self.data[0x03] & 0x7f
+
+    # Byte 0x04 + 0x06
+    @property
+    def on_timer(self):
+        on_timer_value = self.data[0x04]
+        on_timer_minutes = self.data[0x06]
+        return {
+            'status': ((on_timer_value & 0x80) >> 7) > 0,
+            'hour': (on_timer_value & 0x7c) >> 2,
+            'minutes': (on_timer_value & 0x3) | ((on_timer_minutes & 0xf0) >> 4)
+        }
+
+    # Byte 0x05 + 0x06
+    @property
+    def off_timer(self):
+        off_timer_value = self.data[0x05]
+        off_timer_minutes = self.data[0x06]
+        return {
+            'status': ((off_timer_value & 0x80) >> 7) > 0,
+            'hour': (off_timer_value & 0x7c) >> 2,
+            'minutes': (off_timer_value & 0x3) | (off_timer_minutes & 0xf)
+        }
+
+    # Byte 0x07
+    @property
+    def swing_mode(self):
+        return self.data[0x07] & 0x0f
+
+    # Byte 0x08
+    @property
+    def cozy_sleep(self):
+        return self.data[0x08] & 0x03
 
     @property
-    def indoor_temperature(self):
-        return (self.data[0x15] - 50) / 2.0
+    def save(self):  # This needs a better name, dunno what it actually means
+        return (self.data[0x08] & 0x08) > 0
 
     @property
-    def outdoor_temperature(self):
-        return (self.data[0x16] - 50) / 2.0
+    def low_frequency_fan(self):
+        return (self.data[0x08] & 0x10) > 0
+
+    @property
+    def super_fan(self):
+        return (self.data[0x08] & 0x20) > 0
+
+    @property
+    def feel_own(self):  # This needs a better name, dunno what it actually means
+        return (self.data[0x08] & 0x80) > 0
+
+    # Byte 0x09
+    @property
+    def child_sleep_mode(self):
+        return (self.data[0x09] & 0x01) > 0
+
+    @property
+    def exchange_air(self):
+        return (self.data[0x09] & 0x02) > 0
+
+    @property
+    def dry_clean(self):  # This needs a better name, dunno what it actually means
+        return (self.data[0x09] & 0x04) > 0
+
+    @property
+    def aux_heat(self):
+        return (self.data[0x09] & 0x08) > 0
 
     @property
     def eco_mode(self):
-        return (self.data[0x13] & 0x10) > 0
+        return (self.data[0x09] & 0x10) > 0
 
     @property
-    def swing_mode(self):
-        return self.data[0x11] & 0x0f
+    def clean_up(self):  # This needs a better name, dunno what it actually means
+        return (self.data[0x09] & 0x20) > 0
+
+    @property
+    def temp_unit(self):  # This needs a better name, dunno what it actually means
+        return (self.data[0x09] & 0x80) > 0
+
+    # Byte 0x0a
+    @property
+    def sleep_function(self):
+        return (self.data[0x0a] & 0x01) > 0
 
     @property
     def turbo_mode(self):
-        return (self.data[0x14] & 0x2) > 0
+        return (self.data[0x0a] & 0x02) > 0
 
     @property
-    def on_timer(self):
-        on_timer_value = self.data[0x0e]
-        return {
-            'status': ((on_timer_value & 0x80) >> 7) > 0,
-            'hour': ((on_timer_value & 0x7c) >> 2),
-            'minutes': ((on_timer_value & 0x3) | ((on_timer_value & 0xf0)))
-        }
+    def catch_cold(self):   # This needs a better name, dunno what it actually means
+        return (self.data[0x0a] & 0x08) > 0
 
     @property
-    def off_timer(self):
-        off_timer_value = self.data[0x0f]
-        return {
-            'status': ((off_timer_value & 0x80) >> 7) > 0,
-            'hour': ((off_timer_value & 0x7c) >> 2),
-            'minutes': ((off_timer_value & 0x3) | ((off_timer_value & 0xf0)))
-        }
+    def night_light(self):   # This needs a better name, dunno what it actually means
+        return (self.data[0x0a] & 0x10) > 0
+
+    @property
+    def peak_elec(self):   # This needs a better name, dunno what it actually means
+        return (self.data[0x0a] & 0x20) > 0
+
+    @property
+    def natural_fan(self):   # This needs a better name, dunno what it actually means
+        return (self.data[0x0a] & 0x40) > 0
+
+    # Byte 0x0b
+    @property
+    def indoor_temperature(self):
+        return (self.data[0x0b] - 50) / 2.0
+
+    # Byte 0x0c
+    @property
+    def outdoor_temperature(self):
+        return (self.data[0x0c] - 50) / 2.0
+
+    # Byte 0x0d
+    @property
+    def humidity(self):
+        return (self.data[0x0d] & 0x7f)
