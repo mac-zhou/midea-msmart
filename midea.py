@@ -66,7 +66,7 @@ class MideaClimateACDevice(ClimateDevice):
         """Initialize the climate device."""
         from midea.device import air_conditioning_device as ac
 
-        # Not a great place to have this, but if we don't refresh the state, 
+        # Not a great place to have this, but if we don't refresh the state,
         # bad state values are logged in the state timeline.
         device.refresh()
 
@@ -79,9 +79,16 @@ class MideaClimateACDevice(ClimateDevice):
         self._fan_list = ac.fan_speed_enum.list()
         self._swing_list = ac.swing_mode_enum.list()
 
+        self._changed = False
+
     async def async_update(self):
-        """Retrieve latest state from the appliance."""
-        self._device.refresh()
+        """Retrieve latest state from the appliance if no changes made, 
+        otherwise update the remote device state."""
+        if self._changed:
+            self._device.apply()
+        else:
+            self._device.refresh()
+        self._changed = False
 
     @property
     def available(self):
@@ -167,51 +174,51 @@ class MideaClimateACDevice(ClimateDevice):
         """Set new target temperatures."""
         if kwargs.get(ATTR_TEMPERATURE) is not None:
             self._device.target_temperature = int(kwargs.get(ATTR_TEMPERATURE))
+            self._changed = True
 
-        self._device.apply()
         self.schedule_update_ha_state()
 
     def set_swing_mode(self, swing_mode):
         """Set new target temperature."""
         from midea.device import air_conditioning_device as ac
         self._device.swing_mode = ac.swing_mode_enum[swing_mode]
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
 
     def set_fan_mode(self, fan_mode):
         """Set new target temperature."""
         from midea.device import air_conditioning_device as ac
         self._device.fan_speed = ac.fan_speed_enum[fan_mode]
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
 
     def set_operation_mode(self, operation_mode):
         """Set new target temperature."""
         from midea.device import air_conditioning_device as ac
         self._device.operational_mode = ac.operational_mode_enum[operation_mode]
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
 
     def turn_away_mode_on(self):
         """Turn away mode on."""
         self._device.eco_mode = True
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
 
     def turn_away_mode_off(self):
         """Turn away mode off."""
         self._device.eco_mode = False
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
 
     def turn_on(self):
         """Turn on."""
         self._device.power_state = True
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
 
     def turn_off(self):
         """Turn off."""
         self._device.power_state = False
-        self._device.apply()
+        self._changed = True
         self.schedule_update_ha_state()
