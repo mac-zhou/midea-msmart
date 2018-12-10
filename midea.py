@@ -18,8 +18,8 @@ from homeassistant.components.climate import (
     SUPPORT_ON_OFF, PLATFORM_SCHEMA)
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE
 
-REQUIREMENTS = ['midea==0.1.4', 'pycryptodome==3.7.0']
-VERSION = '0.1.4'
+REQUIREMENTS = ['midea==0.1.5', 'pycryptodome==3.7.0']
+VERSION = '0.1.5'
 
 _LOGGER = logging.getLogger(__name__)
 

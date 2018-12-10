@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 from urllib.request import unquote
 from Crypto.Cipher import AES
 
-VERSION = '0.1.4'
+VERSION = '0.1.5'
 
 # Much secure, very null... IV of 0's... Why even have encryption at this point?
 INITIALIZATION_VECTOR = b'\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0'

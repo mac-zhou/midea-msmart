@@ -1,7 +1,7 @@
 
 import midea.crc8 as crc8
 
-VERSION = '0.1.4'
+VERSION = '0.1.5'
 
 
 class base_command:

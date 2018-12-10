@@ -8,7 +8,7 @@ from midea.command import base_command as request_status_command
 from midea.command import set_command
 from midea.packet_builder import packet_builder
 
-VERSION = '0.1.4'
+VERSION = '0.1.5'
 
 class device:
 
