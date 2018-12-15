@@ -184,24 +184,23 @@ class MideaClimateACDevice(ClimateDevice):
         if kwargs.get(ATTR_TEMPERATURE) is not None:
             self._device.target_temperature = int(kwargs.get(ATTR_TEMPERATURE))
             self._changed = True
+            self.async_schedule_update_ha_state()
 
-        self.schedule_update_ha_state()
-
-    def set_swing_mode(self, swing_mode):
-        """Set new target temperature."""
+    async def async_set_swing_mode(self, swing_mode):
+        """Set new target tempera   ture."""
         from midea.device import air_conditioning_device as ac
         self._device.swing_mode = ac.swing_mode_enum[swing_mode]
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def set_fan_mode(self, fan_mode):
+    async def async_set_fan_mode(self, fan_mode):
         """Set new target temperature."""
         from midea.device import air_conditioning_device as ac
         self._device.fan_speed = ac.fan_speed_enum[fan_mode]
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def set_operation_mode(self, operation_mode):
+    async def async_set_operation_mode(self, operation_mode):
         """Set new target temperature."""
         from midea.device import air_conditioning_device as ac
 
@@ -212,28 +211,28 @@ class MideaClimateACDevice(ClimateDevice):
                 self._device.power_state = True
             self._device.operational_mode = ac.operational_mode_enum[operation_mode]
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def turn_away_mode_on(self):
+    async def async_turn_away_mode_on(self):
         """Turn away mode on."""
         self._device.eco_mode = True
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def turn_away_mode_off(self):
+    async def async_turn_away_mode_off(self):
         """Turn away mode off."""
         self._device.eco_mode = False
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def turn_on(self):
+    async def async_turn_on(self):
         """Turn on."""
         self._device.power_state = True
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
 
-    def turn_off(self):
+    async def async_turn_off(self):
         """Turn off."""
         self._device.power_state = False
         self._changed = True
-        self.schedule_update_ha_state()
+        self.async_schedule_update_ha_state()
