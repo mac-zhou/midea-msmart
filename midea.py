@@ -236,3 +236,13 @@ class MideaClimateACDevice(ClimateDevice):
         self._device.power_state = False
         self._changed = True
         self.async_schedule_update_ha_state()
+
+    @property
+    def min_temp(self):
+        """Return the minimum temperature."""
+        return 17
+
+    @property
+    def max_temp(self):
+        """Return the maximum temperature."""
+        return 30
