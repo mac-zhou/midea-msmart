@@ -13,7 +13,7 @@ import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.components.climate import (
     ClimateDevice,
-    SUPPORT_TARGET_TEMPERATURE,
+    SUPPORT_TARGET_TEMPERATURE, SUPPORT_TARGET_TEMPERATURE_HIGH, SUPPORT_TARGET_TEMPERATURE_LOW,
     SUPPORT_AWAY_MODE, SUPPORT_FAN_MODE, SUPPORT_OPERATION_MODE, SUPPORT_SWING_MODE,
     SUPPORT_ON_OFF, PLATFORM_SCHEMA)
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE
@@ -25,15 +25,17 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_APP_KEY = 'app_key'
 CONF_TEMP_STEP = 'temp_step'
+CONF_INCLUDE_OFF_AS_STATE = 'include_off_as_state'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
     vol.Required(CONF_APP_KEY): cv.string,
     vol.Required(CONF_USERNAME): cv.string,
     vol.Required(CONF_PASSWORD): cv.string,
-    vol.Optional(CONF_TEMP_STEP, default=1.0): vol.Coerce(float)
+    vol.Optional(CONF_TEMP_STEP, default=1.0): vol.Coerce(float),
+    vol.Optional(CONF_INCLUDE_OFF_AS_STATE, default=True): vol.Coerce(bool)
 })
 
-SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_AWAY_MODE | SUPPORT_FAN_MODE | SUPPORT_OPERATION_MODE | SUPPORT_SWING_MODE | SUPPORT_ON_OFF
+SUPPORT_FLAGS = SUPPORT_TARGET_TEMPERATURE | SUPPORT_AWAY_MODE | SUPPORT_FAN_MODE | SUPPORT_OPERATION_MODE | SUPPORT_SWING_MODE | SUPPORT_TARGET_TEMPERATURE_HIGH | SUPPORT_TARGET_TEMPERATURE_LOW
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -45,13 +47,15 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     username = config.get(CONF_USERNAME)
     password = config.get(CONF_PASSWORD)
     temp_step = config.get(CONF_TEMP_STEP)
+    include_off_as_state = config.get(CONF_INCLUDE_OFF_AS_STATE)
 
     client = midea_client(app_key, username, password)
     devices = client.devices()
     entities = []
     for device in devices:
         if(device.type == 0xAC):
-            entities.append(MideaClimateACDevice(device, temp_step))
+            entities.append(MideaClimateACDevice(
+                device, temp_step, include_off_as_state))
         else:
             _LOGGER.error(
                 "Unsupported device type: 0x{:02x}".format(device.type))
@@ -62,22 +66,25 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 class MideaClimateACDevice(ClimateDevice):
     """Representation of a Midea climate AC device."""
 
-    def __init__(self, device, temp_step: float):
+    def __init__(self, device, temp_step: float, include_off_as_state: bool):
         """Initialize the climate device."""
         from midea.device import air_conditioning_device as ac
-
-        # Not a great place to have this, but if we don't refresh the state,
-        # bad state values are logged in the state timeline.
-        device.refresh()
-
-        self._support_flags = SUPPORT_FLAGS
-        self._device = device
-        self._unit_of_measurement = TEMP_CELSIUS
-        self._target_temperature_step = temp_step
 
         self._operation_list = ac.operational_mode_enum.list()
         self._fan_list = ac.fan_speed_enum.list()
         self._swing_list = ac.swing_mode_enum.list()
+
+        support_flags = SUPPORT_FLAGS
+        if not include_off_as_state:
+            support_flags != SUPPORT_ON_OFF
+        else:
+            self._operation_list.append("off")
+
+        self._support_flags = support_flags
+        self._device = device
+        self._unit_of_measurement = TEMP_CELSIUS
+        self._target_temperature_step = temp_step
+        self._include_off_as_state = include_off_as_state
 
         self._changed = False
 
@@ -148,6 +155,8 @@ class MideaClimateACDevice(ClimateDevice):
     @property
     def current_operation(self):
         """Return current operation ie. heat, cool, idle."""
+        if self._include_off_as_state and not self._device.power_state:
+            return "off"
         return self._device.operational_mode.name
 
     @property
@@ -195,7 +204,13 @@ class MideaClimateACDevice(ClimateDevice):
     def set_operation_mode(self, operation_mode):
         """Set new target temperature."""
         from midea.device import air_conditioning_device as ac
-        self._device.operational_mode = ac.operational_mode_enum[operation_mode]
+
+        if self._include_off_as_state and operation_mode == "off":
+            self._device.power_state = False
+        else:
+            if self._include_off_as_state:
+                self._device.power_state = True
+            self._device.operational_mode = ac.operational_mode_enum[operation_mode]
         self._changed = True
         self.schedule_update_ha_state()
 
