@@ -4,8 +4,6 @@ python:
 install:
 - pip install -r requirements.txt
 script:
-- chmod +x .travis/push.sh
-- .travis/push.sh
 - python setup.py sdist bdist_wheel
 deploy:
   provider: pypi

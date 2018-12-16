@@ -14,4 +14,3 @@ git add midea/*.py
 
 git commit -m "[ci skip] Version Changed from ${CURRENT_VERSION} -> ${NEW_VERSION}"
 git tag "v${NEW_VERSION}"
-git remote add build https://${GH_TOKEN}@github.com/NeoAcheron/midea-ac-py.git > /dev/null 2>&1
