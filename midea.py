@@ -92,9 +92,9 @@ class MideaClimateACDevice(ClimateDevice):
         """Retrieve latest state from the appliance if no changes made, 
         otherwise update the remote device state."""
         if self._changed:
-            self._device.apply()
+            await self.hass.async_add_executor_job(self._device.apply)
         else:
-            self._device.refresh()
+            await self.hass.async_add_executor_job(self._device.refresh)
         self._changed = False
 
     @property
