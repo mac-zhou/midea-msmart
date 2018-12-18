@@ -40,33 +40,36 @@ class cloud:
         """Sends an API request to the Midea cloud service and returns the results
         or raises ValueError if there is an error
         """
-        # Set up the initial data payload with the global variable set
-        data = {
-            'appId': self.APP_ID,
-            'format': self.FORMAT,
-            'clientType': self.CLIENT_TYPE,
-            'language': self.LANGUAGE,
-            'src': self.SRC,
-            'stamp': datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        }
-        # Add the method parameters for the endpoint
-        data.update(args)
-
-        # Add the sessionId if there is a valid session
-        if self.session:
-            data['sessionId'] = self.session['sessionId']
-
-        url = self.SERVER_URL + endpoint
-
-        data['sign'] = self.security.sign(url, data)
-
-        # POST the endpoint with the payload, but one at a time
         self._mutex.acquire()
+        response = {}
         try:
+            # Set up the initial data payload with the global variable set
+            data = {
+                'appId': self.APP_ID,
+                'format': self.FORMAT,
+                'clientType': self.CLIENT_TYPE,
+                'language': self.LANGUAGE,
+                'src': self.SRC,
+                'stamp': datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+            }
+            # Add the method parameters for the endpoint
+            data.update(args)
+
+            # Add the sessionId if there is a valid session
+            if self.session:
+                data['sessionId'] = self.session['sessionId']
+
+            url = self.SERVER_URL + endpoint
+
+            data['sign'] = self.security.sign(url, data)
+
+            # POST the endpoint with the payload
             r = requests.post(url=url, data=data)
+
+            response = json.loads(r.text)
         finally:
             self._mutex.release()
-        response = json.loads(r.text)
+
         # Check for errors, raise if there are any
         if response['errorCode'] != '0':
             self.handle_api_error(int(response['errorCode']), response['msg'])
