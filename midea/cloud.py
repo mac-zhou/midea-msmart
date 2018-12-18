@@ -34,13 +34,13 @@ class cloud:
         self.security = security(self.appKey)
         self._retries = 0
 
-        self._mutex = Lock()
+        self._api_lock = Lock()
 
     def api_request(self, endpoint, args):
         """Sends an API request to the Midea cloud service and returns the results
         or raises ValueError if there is an error
         """
-        self._mutex.acquire()
+        self._api_lock.acquire()
         response = {}
         try:
             # Set up the initial data payload with the global variable set
@@ -68,7 +68,7 @@ class cloud:
 
             response = json.loads(r.text)
         finally:
-            self._mutex.release()
+            self._api_lock.release()
 
         # Check for errors, raise if there are any
         if response['errorCode'] != '0':
@@ -165,6 +165,7 @@ class cloud:
             self.login()
 
         def throw():
+            self.session = None  # Log out but don't log back in immediately
             raise ValueError(error_code, message)
 
         def ignore():
