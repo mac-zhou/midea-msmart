@@ -38,11 +38,11 @@ class cloud:
         self._api_lock = Lock()
         self._login_lock = Lock()
 
-        # An obscure log in ID that is seperate to the email address
-        self.login_id = self.get_login_id()
-
         self.security = security(self.appKey)
         self._retries = 0
+
+        # An obscure log in ID that is seperate to the email address
+        self.login_id = self.get_login_id()
 
     def api_request(self, endpoint, args):
         """
