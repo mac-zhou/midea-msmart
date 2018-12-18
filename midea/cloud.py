@@ -74,7 +74,7 @@ class cloud:
             if(__debug__):
                 print("Retrying API call: '{}'".format(endpoint))
             self._retries += 1
-            if(self._retries < 10):
+            if(self._retries < 3):
                 return self.api_request(endpoint, args)
             else:
                 raise RecursionError()
