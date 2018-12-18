@@ -35,14 +35,14 @@ class cloud:
         # A list of appliances associated with the account
         self.appliance_list = []
 
+        self._api_lock = Lock()
+        self._login_lock = Lock()
+
         # An obscure log in ID that is seperate to the email address
         self.login_id = self.get_login_id()
 
         self.security = security(self.appKey)
         self._retries = 0
-
-        self._api_lock = Lock()
-        self._login_lock = Lock()
 
     def api_request(self, endpoint, args):
         """
