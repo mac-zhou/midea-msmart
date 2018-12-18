@@ -23,15 +23,20 @@ class cloud:
     def __init__(self, appKey, email, password):
         # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
         self.appKey = appKey
-        self.loginAccount = email   # Your email address for your Midea account
+        self.login_account = email   # Your email address for your Midea account
         self.password = password
+
         # A session dictionary that holds the login information of the current user
         self.session = {}
-        self.homeGroups = []        # A list of home groups used by the API to seperate "zones"
-        self.applianceList = []     # A list of appliances associated with the account
+
+        # A list of home groups used by the API to seperate "zones"
+        self.home_groups = []
+
+        # A list of appliances associated with the account
+        self.appliance_list = []
 
         # An obscure log in ID that is seperate to the email address
-        self.loginId = self.get_login_id()
+        self.login_id = self.get_login_id()
 
         self.security = security(self.appKey)
         self._retries = 0
@@ -40,7 +45,8 @@ class cloud:
         self._login_lock = Lock()
 
     def api_request(self, endpoint, args):
-        """Sends an API request to the Midea cloud service and returns the results
+        """
+        Sends an API request to the Midea cloud service and returns the results
         or raises ValueError if there is an error
         """
         self._api_lock.acquire()
@@ -91,12 +97,13 @@ class cloud:
     def get_login_id(self):
         # Get the login ID from the email address
         response = self.api_request(
-            "user/login/id/get", {'loginAccount': self.loginAccount})
-        self.loginId = response['loginId']
-        return self.loginId
+            "user/login/id/get", {'loginAccount': self.login_account})
+        self.login_id = response['loginId']
+        return self.login_id
 
     def login(self):
-        """Performs a user login with the credentials supplied to the constructor
+        """
+        Performs a user login with the credentials supplied to the constructor
         """
         self.session = None
         self._login_lock.acquire()
@@ -106,8 +113,8 @@ class cloud:
 
             # Log in and store the session
             self.session = self.api_request("user/login", {
-                'loginAccount': self.loginAccount,
-                'password': self.security.encryptPassword(self.loginId, self.password)
+                'loginAccount': self.login_account,
+                'password': self.security.encryptPassword(self.login_id, self.password)
             })
 
             self.security.accessToken = self.session['accessToken']
@@ -115,7 +122,8 @@ class cloud:
             self._login_lock.release()
 
     def list(self, home_group_id=-1):
-        """Lists all appliances associated with the account
+        """
+        Lists all appliances associated with the account
         """
 
         # If a homeGroupId is not specified, use the default one
@@ -128,10 +136,10 @@ class cloud:
             'homegroupId': home_group_id
         })
 
-        self.applianceList = response['list']
+        self.appliance_list = response['list']
         if(__debug__):
-            print("Device list: {}".format(self.applianceList))
-        return self.applianceList
+            print("Device list: {}".format(self.appliance_list))
+        return self.appliance_list
 
     def encode(self, data: bytearray):
         normalized = []
@@ -151,6 +159,9 @@ class cloud:
         return bytearray(data)
 
     def appliance_transparent_send(self, id, data):
+        if not self.session:
+            self.login()
+
         if(__debug__):
             print("Sending to {}: {}".format(id, data.hex()))
         encoded = self.encode(data)
@@ -160,6 +171,7 @@ class cloud:
             'funId': '0000',
             'applianceId': id
         })
+
         reply = self.decode(self.security.aes_decrypt(
             bytearray.fromhex(response['reply'])))
 
@@ -168,21 +180,22 @@ class cloud:
         return reply
 
     def list_homegroups(self, force_update=False):
-        """Lists all home groups
+        """
+        Lists all home groups
         """
 
         # Get all home groups (I think the API supports multiple zones or something)
-        if self.homeGroups is None or force_update:
+        if self.home_groups is None or force_update:
             response = self.api_request('homegroup/list/get', {})
-            self.homeGroups = response['list']
+            self.home_groups = response['list']
 
-        return self.homeGroups
+        return self.home_groups
 
     def handle_api_error(self, error_code, message: str):
 
         def session_restart():
             if(__debug__):
-                print("Restarting session due to: '{}' - '{}'".format(error_code, message))
+                print("Restarting session: '{}' - '{}'".format(error_code, message))
             self.session = None
             self.login()
 
