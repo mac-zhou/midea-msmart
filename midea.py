@@ -96,7 +96,6 @@ class MideaClimateACDevice(ClimateDevice):
             self._changed = False
         else:
             await self.hass.async_add_executor_job(self._device.refresh)
-        print(self.state)
 
     @property
     def available(self):
