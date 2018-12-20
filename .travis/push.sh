@@ -12,5 +12,5 @@ git add midea.py
 git add setup.py
 git add midea/*.py
 
-git commit -m "[ci skip] Version Changed from ${CURRENT_VERSION} -> ${NEW_VERSION}"
+git commit -m "Version Changed from ${CURRENT_VERSION} -> ${NEW_VERSION}"
 git tag "v${NEW_VERSION}"
