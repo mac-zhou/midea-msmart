@@ -20,11 +20,14 @@ class cloud:
     APP_ID = 1017
     SRC = 17
 
-    def __init__(self, appKey, email, password):
+    def __init__(self, app_key, email, password):
         # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
-        self.appKey = appKey
+        self.app_key = app_key
         self.login_account = email   # Your email address for your Midea account
         self.password = password
+
+        # An obscure log in ID that is seperate to the email address
+        self.login_id = None
 
         # A session dictionary that holds the login information of the current user
         self.session = {}
@@ -36,13 +39,9 @@ class cloud:
         self.appliance_list = []
 
         self._api_lock = Lock()
-        self._login_lock = Lock()
 
-        self.security = security(self.appKey)
+        self.security = security(self.app_key)
         self._retries = 0
-
-        # An obscure log in ID that is seperate to the email address
-        self.login_id = self.get_login_id()
 
     def api_request(self, endpoint, args):
         """
@@ -95,31 +94,31 @@ class cloud:
         return response['result']
 
     def get_login_id(self):
-        # Get the login ID from the email address
-        response = self.api_request(
-            "user/login/id/get", {'loginAccount': self.login_account})
+        """
+        Get the login ID from the email address
+        """
+        response = self.api_request("user/login/id/get", {
+            'loginAccount': self.login_account
+        })
         self.login_id = response['loginId']
-        return self.login_id
 
     def login(self):
         """
         Performs a user login with the credentials supplied to the constructor
         """
-        self.session = None
-        self._login_lock.acquire()
-        try:
-            if self.session:
-                return  # Don't try logging in again, someone beat this thread to it
+        if self.login_id == None:
+            self.get_login_id()
 
-            # Log in and store the session
-            self.session = self.api_request("user/login", {
-                'loginAccount': self.login_account,
-                'password': self.security.encryptPassword(self.login_id, self.password)
-            })
+        if self.session:
+            return  # Don't try logging in again, someone beat this thread to it
 
-            self.security.accessToken = self.session['accessToken']
-        finally:
-            self._login_lock.release()
+        # Log in and store the session
+        self.session = self.api_request("user/login", {
+            'loginAccount': self.login_account,
+            'password': self.security.encryptPassword(self.login_id, self.password)
+        })
+
+        self.security.accessToken = self.session['accessToken']
 
     def list(self, home_group_id=-1):
         """
@@ -185,13 +184,20 @@ class cloud:
         """
 
         # Get all home groups (I think the API supports multiple zones or something)
-        if self.home_groups is None or force_update:
+        if not self.home_groups or force_update:
             response = self.api_request('homegroup/list/get', {})
             self.home_groups = response['list']
 
         return self.home_groups
 
     def handle_api_error(self, error_code, message: str):
+
+        def restart_full():
+            if(__debug__):
+                print("Restarting full: '{}' - '{}'".format(error_code, message))
+            self.session = None
+            self.get_login_id()
+            self.login()
 
         def session_restart():
             if(__debug__):
@@ -200,7 +206,6 @@ class cloud:
             self.login()
 
         def throw():
-            self.session = None  # Log out but don't log back in immediately
             raise ValueError(error_code, message)
 
         def ignore():
@@ -210,6 +215,7 @@ class cloud:
         error_handlers = {
             3176: ignore,          # The asyn reply does not exist.
             3106: session_restart,  # invalidSession.
+            3144: restart_full,
             3004: session_restart,  # value is illegal.
             9999: session_restart,  # system error.
         }
