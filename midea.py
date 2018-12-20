@@ -93,9 +93,10 @@ class MideaClimateACDevice(ClimateDevice):
         otherwise update the remote device state."""
         if self._changed:
             await self.hass.async_add_executor_job(self._device.apply)
+            self._changed = False
         else:
             await self.hass.async_add_executor_job(self._device.refresh)
-        self._changed = False
+        print(self.state)
 
     @property
     def available(self):

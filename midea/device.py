@@ -10,6 +10,7 @@ from midea.packet_builder import packet_builder
 
 VERSION = '0.1.6'
 
+
 class device:
 
     def __init__(self, cloud_service: cloud):
@@ -23,6 +24,8 @@ class device:
         self._type = int(device_detail['type'], 0)
         self._active = device_detail['activeStatus'] == '1'
         self._online = device_detail['onlineStatus'] == '1'
+        self._updating = False
+        self._defer_update = False
 
     def refresh(self):
         pass
@@ -139,26 +142,33 @@ class air_conditioning_device(device):
         data = pkt_builder.finalize()
         data = self._cloud_service.appliance_transparent_send(self.id, data)
         response = appliance_response(data)
+        self._defer_update = False
         self.update(response)
 
     def apply(self):
-        cmd = set_command(self.type)
-        cmd.audible_feedback = self._audible_feedback
-        cmd.power_state = self._power_state
-        cmd.target_temperature = self._target_temperature
-        cmd.operational_mode = self._operational_mode.value
-        cmd.fan_speed = self._fan_speed.value
-        cmd.swing_mode = self._swing_mode.value
-        cmd.eco_mode = self._eco_mode
-        cmd.turbo_mode = self._turbo_mode
+        self._updating = True
+        try:
+            cmd = set_command(self.type)
+            cmd.audible_feedback = self._audible_feedback
+            cmd.power_state = self._power_state
+            cmd.target_temperature = self._target_temperature
+            cmd.operational_mode = self._operational_mode.value
+            cmd.fan_speed = self._fan_speed.value
+            cmd.swing_mode = self._swing_mode.value
+            cmd.eco_mode = self._eco_mode
+            cmd.turbo_mode = self._turbo_mode
 
-        pkt_builder = packet_builder()
-        pkt_builder.set_command(cmd)
+            pkt_builder = packet_builder()
+            pkt_builder.set_command(cmd)
 
-        data = pkt_builder.finalize()
-        data = self._cloud_service.appliance_transparent_send(self.id, data)
-        response = appliance_response(data)
-        self.update(response)
+            data = pkt_builder.finalize()
+            data = self._cloud_service.appliance_transparent_send(self.id, data)
+            response = appliance_response(data)
+            if not self._defer_update:
+                self.update(response)
+        finally:
+            self._updating = False
+            self._defer_update = False
 
     def update(self, res: appliance_response):
         self._power_state = res.power_state
@@ -182,6 +192,8 @@ class air_conditioning_device(device):
 
     @audible_feedback.setter
     def audible_feedback(self, feedback: bool):
+        if self._updating:
+            self._defer_update = True
         self._audible_feedback = feedback
 
     @property
@@ -190,6 +202,8 @@ class air_conditioning_device(device):
 
     @power_state.setter
     def power_state(self, state: bool):
+        if self._updating:
+            self._defer_update = True
         self._power_state = state
 
     @property
@@ -198,6 +212,8 @@ class air_conditioning_device(device):
 
     @target_temperature.setter
     def target_temperature(self, temperature: int):
+        if self._updating:
+            self._defer_update = True
         self._target_temperature = temperature
 
     @property
@@ -206,6 +222,8 @@ class air_conditioning_device(device):
 
     @operational_mode.setter
     def operational_mode(self, mode: operational_mode_enum):
+        if self._updating:
+            self._defer_update = True
         self._operational_mode = mode
 
     @property
@@ -214,6 +232,8 @@ class air_conditioning_device(device):
 
     @fan_speed.setter
     def fan_speed(self, speed: fan_speed_enum):
+        if self._updating:
+            self._defer_update = True
         self._fan_speed = speed
 
     @property
@@ -222,6 +242,8 @@ class air_conditioning_device(device):
 
     @swing_mode.setter
     def swing_mode(self, mode: swing_mode_enum):
+        if self._updating:
+            self._defer_update = True
         self._swing_mode = mode
 
     @property
@@ -230,6 +252,8 @@ class air_conditioning_device(device):
 
     @eco_mode.setter
     def eco_mode(self, enabled: bool):
+        if self._updating:
+            self._defer_update = True
         self._eco_mode = enabled
 
     @property
@@ -238,6 +262,8 @@ class air_conditioning_device(device):
 
     @turbo_mode.setter
     def turbo_mode(self, enabled: bool):
+        if self._updating:
+            self._defer_update = True
         self._turbo_mode = enabled
 
     @property
