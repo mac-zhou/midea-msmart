@@ -11,11 +11,11 @@ import logging
 import voluptuous as vol
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.components.climate import (
-    ClimateDevice,
+from homeassistant.components.climate import ClimateDevice, PLATFORM_SCHEMA
+from homeassistant.components.climate.const import (
     SUPPORT_TARGET_TEMPERATURE, SUPPORT_TARGET_TEMPERATURE_HIGH, SUPPORT_TARGET_TEMPERATURE_LOW,
     SUPPORT_AWAY_MODE, SUPPORT_FAN_MODE, SUPPORT_OPERATION_MODE, SUPPORT_SWING_MODE,
-    SUPPORT_ON_OFF, PLATFORM_SCHEMA)
+    SUPPORT_ON_OFF)
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD, TEMP_CELSIUS, TEMP_FAHRENHEIT, ATTR_TEMPERATURE
 
 REQUIREMENTS = ['midea==0.1.7', 'pycryptodome==3.7.0']
