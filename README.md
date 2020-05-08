@@ -1,18 +1,9 @@
-## No more development
-Unfortunately I do not have access to my Midea Air Conditioners as I have relocated to a new house. This means that I cannot reliably support this library due to not being able to test it with real hardware anymore.
+This is a library to allow communicating to a Midea AC via the Local area network.
 
-# midea-ac-py 
+# midea-msmart
 
-This is a library to allow communicating to a Midea AC via the Midea Cloud.
+This a mirror from the repo at [NeoAcheron/midea-ac-py](https://github.com/NeoAcheron/midea-ac-py).
 
-This is a very early release, and comes without any guarantees. This is still an early work in progress and simply serves as a proof of concept.
+But this library just allow communicating to a Midea AC via the Local area network, not via the Midea Cloud yet.
 
-This library would not have been possible if it wasn't for the amazing work done by @yitsushi and his Ruby based command line tool. 
-You can find his work here: https://github.com/yitsushi/midea-air-condition
-The reasons for me converting this to Python is that this library also serves as a platform component for Home Assistant.
-
-## Wiki
-Please visit the Wiki for device support and instruction on how to use this component: https://github.com/NeoAcheron/midea-ac-py/wiki 
-
-## No more development
-Unfortunately I do not have access to my Midea Air Conditioners as I have relocated to a new house. This means that I cannot reliably support this library due to not being able to test it with real hardware anymore.
+Thanks for [yitsushi's project](https://github.com/yitsushi/midea-air-condition), [NeoAcheron's project](https://github.com/NeoAcheron/midea-ac-py), [andersonshatch's project](https://github.com/andersonshatch/midea-ac-py).
