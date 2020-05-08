@@ -5,7 +5,7 @@
 
 from typing import Dict, List
 
-from midea.cloud import cloud
+from midea.lan import lan
 from midea.device import air_conditioning_device
 from midea.device import dehumidifier_device
 from midea.device import unknown_device
@@ -31,13 +31,12 @@ def build_device(cloud_service: cloud, device_detail: dict):
 
 class client:
 
-    def __init__(self, appKey: str, email: str, password: str):
-        self._cloud = cloud(appKey, email, password)
+    def __init__(self, device_ip: str, device_id: str):
+        self._lan = lan(device_ip, device_ip)
         self._devices = {}  # type: Dict[str, device]
 
     def setup(self):
-        if self._cloud.session is None:
-            self._cloud.login()
+        self._lan.login()
 
     def devices(self):
         self.setup()

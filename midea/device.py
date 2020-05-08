@@ -2,7 +2,7 @@
 from enum import Enum
 
 import midea.crc8 as crc8
-from midea.cloud import cloud
+from midea.lan import lan
 from midea.command import appliance_response
 from midea.command import base_command as request_status_command
 from midea.command import set_command
@@ -13,8 +13,18 @@ VERSION = '0.1.7'
 
 class device:
 
-    def __init__(self, cloud_service: cloud):
-        self._cloud_service = cloud_service
+    def __init__(self, device_ip: str, device_id: str):
+        self._lan_service = lan(device_ip, device_id)
+        self._ip = device_ip
+        self._id = device_id
+        self._type = 0xac
+        self._updating = False
+        self._defer_update = False
+
+    def setup(self):
+        # self.air_conditioning_device.refresh()
+       device = air_conditioning_device(self._ip, self._id)
+       return device
 
     def set_device_detail(self, device_detail: dict):
         self._id = device_detail['id']
@@ -24,8 +34,6 @@ class device:
         self._type = int(device_detail['type'], 0)
         self._active = device_detail['activeStatus'] == '1'
         self._online = device_detail['onlineStatus'] == '1'
-        self._updating = False
-        self._defer_update = False
 
     def refresh(self):
         pass
@@ -36,6 +44,10 @@ class device:
     @property
     def id(self):
         return self._id
+    
+    @property
+    def ip(self):
+        return self._ip
 
     @property
     def name(self):
@@ -55,17 +67,17 @@ class device:
 
     @property
     def active(self):
-        return self._active
+        return True
 
     @property
     def online(self):
-        return self._online
+        return True
 
 
 class air_conditioning_device(device):
 
     class fan_speed_enum(Enum):
-        Auto = 102
+        Auto = 101
         High = 80
         Medium = 60
         Low = 40
@@ -77,6 +89,8 @@ class air_conditioning_device(device):
 
         @staticmethod
         def get(value):
+            if value == 102:
+                value = 101
             if(value in air_conditioning_device.fan_speed_enum._value2member_map_):
                 return air_conditioning_device.fan_speed_enum(value)
             print("Unknown Fan Speed: {}".format(value))
@@ -117,8 +131,8 @@ class air_conditioning_device(device):
             print("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
-    def __init__(self, cloud_service: cloud):
-        super().__init__(cloud_service)
+    def __init__(self, device_ip: str, device_id: str):
+        super().__init__(device_ip, device_id)
 
         self._audible_feedback = False
         self._power_state = False
@@ -136,11 +150,11 @@ class air_conditioning_device(device):
 
     def refresh(self):
         cmd = request_status_command(self.type)
-        pkt_builder = packet_builder()
+        pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
 
         data = pkt_builder.finalize()
-        data = self._cloud_service.appliance_transparent_send(self.id, data)
+        data = self._lan_service.appliance_transparent_send(data)
         response = appliance_response(data)
         self._defer_update = False
         self.update(response)
@@ -158,11 +172,11 @@ class air_conditioning_device(device):
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
 
-            pkt_builder = packet_builder()
+            pkt_builder = packet_builder(self.id)
             pkt_builder.set_command(cmd)
 
             data = pkt_builder.finalize()
-            data = self._cloud_service.appliance_transparent_send(self.id, data)
+            data = self._lan_service.appliance_transparent_send(data)
             response = appliance_response(data)
             if not self._defer_update:
                 self.update(response)
@@ -285,8 +299,8 @@ class air_conditioning_device(device):
 
 class unknown_device(device):
 
-    def __init__(self, cloud_service: cloud):
-        super().__init__(cloud_service)
+    def __init__(self, lan_service: lan):
+        super().__init__(lan_service)
 
     def refresh(self):
         cmd = request_status_command(self.type)
@@ -294,7 +308,7 @@ class unknown_device(device):
         pkt_builder.set_command(cmd)
 
         data = pkt_builder.finalize()
-        data = self._cloud_service.appliance_transparent_send(self.id, data)
+        data = self._lan_service.appliance_transparent_send(self.id, data)
         response = appliance_response(data)
         print("Decoded Data: {}".format({
             'audible_feedback': response.audible_feedback,
@@ -314,5 +328,5 @@ class unknown_device(device):
 
 class dehumidifier_device(unknown_device):
 
-    def __init__(self, cloud_service: cloud):
-        super().__init__(cloud_service)
+    def __init__(self, lan_service: lan):
+        super().__init__(lan_service)
