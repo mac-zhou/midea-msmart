@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name='midea-msmart',
+    name='msmart',
     version='0.1.8',
     author="mac_zhou",
     author_email="mac.zfl@gmail.com",
