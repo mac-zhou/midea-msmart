@@ -1,7 +1,7 @@
 
 import msmart.crc8 as crc8
 
-VERSION = '0.1.11'
+VERSION = '0.1.12'
 
 
 class base_command:

@@ -8,7 +8,7 @@ from msmart.command import base_command as request_status_command
 from msmart.command import set_command
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.11'
+VERSION = '0.1.12'
 
 def convert_device_id_hex(device_id: int):
     hex_string = hex(device_id)[2:]

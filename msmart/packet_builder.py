@@ -2,7 +2,7 @@
 from msmart.command import base_command
 from msmart.security import security
 
-VERSION = '0.1.11'
+VERSION = '0.1.12'
 
 
 class packet_builder:
