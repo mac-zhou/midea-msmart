@@ -1,9 +1,0 @@
-{
-    "climate.midea": {
-      "version": "0.1.7",
-      "local_location": "/custom_components/climate/midea.py",
-      "remote_location": "https://raw.githubusercontent.com/NeoAcheron/midea-ac-py/master/midea.py",
-      "visit_repo": "https://github.com/NeoAcheron/midea-ac-py",
-      "changelog": "https://github.com/NeoAcheron/midea-ac-py/releases/latest"
-    }
-}
