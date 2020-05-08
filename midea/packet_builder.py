@@ -2,7 +2,7 @@
 from midea.command import base_command
 from midea.security import security
 
-VERSION = '0.1.7'
+VERSION = '0.1.8'
 
 
 class packet_builder:
