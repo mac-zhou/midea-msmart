@@ -7,7 +7,7 @@ from Crypto.Cipher import AES
 from base64 import b64decode
 from base64 import b64encode
 
-VERSION = '0.1.9'
+VERSION = '0.1.10'
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
 
