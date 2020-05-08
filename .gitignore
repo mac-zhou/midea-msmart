@@ -102,3 +102,13 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# mytest
+test
+
+# macOS
+.DS_Store
+
+# vscode
+.vscode-upload.json
+.vscode/settings.json
