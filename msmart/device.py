@@ -11,7 +11,10 @@ from msmart.packet_builder import packet_builder
 VERSION = '0.1.11'
 
 def convert_device_id_hex(device_id: int):
-    old = bytearray.fromhex(hex(device_id)[2:])
+    hex_string = hex(device_id)[2:]
+    if len(hex_string) % 2 != 0:
+        hex_string = '0' + hex_string
+    old = bytearray.fromhex(hex_string)
     new = reversed(old)
     return bytearray(new).hex()
 
