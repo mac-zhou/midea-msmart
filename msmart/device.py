@@ -10,10 +10,20 @@ from msmart.packet_builder import packet_builder
 
 VERSION = '0.1.10'
 
+def convert_device_id_hex(device_id: int):
+    old = bytearray.fromhex(hex(device_id)[2:])
+    new = reversed(old)
+    return bytearray(new).hex()
+
+def convert_device_id_int(device_id: str):
+    old = bytearray.fromhex(device_id)
+    new = reversed(old)
+    return int(bytearray(new).hex(), 16)
 
 class device:
 
-    def __init__(self, device_ip: str, device_id: str):
+    def __init__(self, device_ip: str, device_id: int):
+        device_id = convert_device_id_hex(device_id)
         self._lan_service = lan(device_ip, device_id)
         self._ip = device_ip
         self._id = device_id
@@ -23,8 +33,8 @@ class device:
 
     def setup(self):
         # self.air_conditioning_device.refresh()
-       device = air_conditioning_device(self._ip, self._id)
-       return device
+        device = air_conditioning_device(self._ip, self._id)
+        return device
 
     def set_device_detail(self, device_detail: dict):
         self._id = device_detail['id']
@@ -132,7 +142,7 @@ class air_conditioning_device(device):
             return air_conditioning_device.swing_mode_enum.Off
 
     def __init__(self, device_ip: str, device_id: str):
-        super().__init__(device_ip, device_id)
+        super().__init__(device_ip, convert_device_id_int(device_id))
 
         self._audible_feedback = False
         self._power_state = False
