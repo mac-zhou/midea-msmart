@@ -1,36 +1,56 @@
 
 from midea.command import base_command
+from midea.security import security
 
 VERSION = '0.1.7'
 
 
 class packet_builder:
 
-    def __init__(self):
+    def __init__(self, device_id):
         self.command = None
-
-        # Init the packet with the header data. Weird magic numbers, I'm not sure what they all do, but they have to be there (packet length at 0x4)
+        self.security = security()
+        # aa20ac00000000000003418100ff03ff000200000000000000000000000006f274
+        # Init the packet with the header data.
         self.packet = bytearray([
-            0x5a, 0x5a, 0x01, 0x11, 0x5c, 0x00, 0x20, 0x00,
+            # 2 bytes - StaicHeader
+            0x5a, 0x5a,
+            # 2 bytes - mMessageType
+            0x01, 0x11,
+            # 1 bytes - PacketLenght
+            0x68,
+            # 3 bytes
+            0x00, 0x20, 0x00,
+            # 4 bytes - MessageId 
+            0x00, 0x00, 0x00, 0x00,
+            # 8 bytes - Date&Time
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x0e, 0x03, 0x12, 0x14, 0xc6, 0x79, 0x00, 0x00,
-            0x00, 0x05, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00
+            # 6 bytes - mDeviceID
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            # 14 bytes 
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
+        self.packet[20:26] = bytearray.fromhex(device_id)
 
     def set_command(self, command: base_command):
         self.command = command.finalize()
 
     def finalize(self):
-        # Append the command data to the packet
-        self.packet.extend(self.command)
-        # Append a basic checksum of the command to the packet (This is apart from the CRC8 that was added in the command)
-        self.packet.extend([self.checksum(self.command[1:])])
-        # Ehh... I dunno, but this seems to make things work. Pad with 0's
-        self.packet.extend([0] * (46 - len(self.command)))
+        # Add cheksum
+        self.command.append(self.checksum(self.command[1:]))
+        if(__debug__):
+            print("Finalize request data: {}".format(self.command.hex()))
+        # Append the command data(48 bytes) to the packet
+        self.packet.extend(self.security.aes_encrypt(self.command)[:48])
         # Set the packet length in the packet!
-        self.packet[0x04] = len(self.packet)
+        self.packet[0x04] = len(self.packet) + 16
+        # Append a basic checksum data(16 bytes) to the packet
+        self.packet.extend(self.encode32(self.packet))
         return self.packet
+
+    def encode32(self, data):
+        # 16 bytes encode32
+        return self.security.encode32_data(data)
 
     def checksum(self, data):
         return 255 - sum(data) % 256 + 1
