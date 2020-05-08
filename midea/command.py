@@ -9,18 +9,28 @@ class base_command:
     def __init__(self, device_type=0xAC):
         # More magic numbers. I'm sure each of these have a purpose, but none of it is documented in english. I might make an effort to google translate the SDK
         self.data = bytearray([
-            0xaa, 0x23, 0xAC, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x03, 0x02, 0x40, 0x81, 0x00, 0xff, 0x03, 0xff,
-            0x00, 0x30, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x03, 0xcc
+            0xaa,
+            # request is 0x20; setting is 0x23
+            0x20, 
+            # device type
+            0xac, 
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+            # request is 0x03; setting is 0x02
+            0x03,
+            # request is 0x41; setting is 0x40
+            0x41, 0x81, 0x00, 0xff, 0x03, 0xff, 0x00, 0x02, 
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+            0x00, 0x00, 0x00, 0x00,
+            # 
+            0x00
         ])
         self.data[0x02] = device_type
 
     def finalize(self):
         # Add the CRC8
-        self.data[0x1d] = crc8.calculate(self.data[16:])
+        self.data.append(crc8.calculate(self.data[10:]))
         # Set the length of the command data
-        self.data[0x01] = len(self.data)
+        # self.data[0x01] = len(self.data)
         return self.data
 
 
@@ -28,6 +38,10 @@ class set_command(base_command):
 
     def __init__(self, device_type):
         base_command.__init__(self, device_type)
+        self.data[0x01] = 0x23
+        self.data[0x09] = 0x02
+        self.data[0x0a] = 0x40
+        self.data.extend(bytearray([0x00, 0x00, 0x00]))
 
     @property
     def audible_feedback(self):
@@ -104,7 +118,7 @@ class appliance_response:
 
     def __init__(self, data: bytearray):
         # The response data from the appliance includes a packet header which we don't want
-        self.data = data[0x32:]
+        self.data = data[0xa:]
         if(__debug__):
             print("Appliance response data: {}".format(self.data.hex()))
 
