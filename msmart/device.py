@@ -150,7 +150,7 @@ class air_conditioning_device(device):
     def __init__(self, device_ip: str, device_id: str):
         super().__init__(device_ip, convert_device_id_int(device_id))
 
-        self._audible_feedback = False
+        self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17
         self._operational_mode = air_conditioning_device.operational_mode_enum.auto
@@ -180,7 +180,7 @@ class air_conditioning_device(device):
         self._updating = True
         try:
             cmd = set_command(self.type)
-            cmd.audible_feedback = self._audible_feedback
+            cmd.prompt_tone = self._prompt_tone
             cmd.power_state = self._power_state
             cmd.target_temperature = self._target_temperature
             cmd.operational_mode = self._operational_mode.value
@@ -219,14 +219,14 @@ class air_conditioning_device(device):
         self._timer_off = res.off_timer
 
     @property
-    def audible_feedback(self):
-        return self._audible_feedback
+    def prompt_tone(self):
+        return self._prompt_tone
 
-    @audible_feedback.setter
-    def audible_feedback(self, feedback: bool):
+    @prompt_tone.setter
+    def prompt_tone(self, feedback: bool):
         if self._updating:
             self._defer_update = True
-        self._audible_feedback = feedback
+        self._prompt_tone = feedback
 
     @property
     def power_state(self):
@@ -329,7 +329,7 @@ class unknown_device(device):
         data = self._lan_service.appliance_transparent_send(self.id, data)
         response = appliance_response(data)
         _LOGGER.debug("Decoded Data: {}".format({
-            'audible_feedback': response.audible_feedback,
+            'prompt_tone': response.prompt_tone,
             'target_temperature': response.target_temperature,
             'indoor_temperature': response.indoor_temperature,
             'outdoor_temperature': response.outdoor_temperature,

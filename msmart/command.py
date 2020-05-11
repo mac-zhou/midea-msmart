@@ -61,11 +61,11 @@ class set_command(base_command):
         self.data.extend(bytearray([0x00, 0x00, 0x00]))
 
     @property
-    def audible_feedback(self):
+    def prompt_tone(self):
         return self.data[0x0b] & 0x42
 
-    @audible_feedback.setter
-    def audible_feedback(self, feedback_anabled: bool):
+    @prompt_tone.setter
+    def prompt_tone(self, feedback_anabled: bool):
         self.data[0x0b] &= ~ 0x42  # Clear the audible bits
         self.data[0x0b] |= 0x42 if feedback_anabled else 0
 
