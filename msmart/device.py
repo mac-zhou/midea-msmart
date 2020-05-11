@@ -1,4 +1,5 @@
 
+import logging
 from enum import Enum
 
 import msmart.crc8 as crc8
@@ -9,6 +10,8 @@ from msmart.command import set_command
 from msmart.packet_builder import packet_builder
 
 VERSION = '0.1.12'
+
+_LOGGER = logging.getLogger(__name__)
 
 def convert_device_id_hex(device_id: int):
     hex_string = hex(device_id)[2:]
@@ -106,7 +109,7 @@ class air_conditioning_device(device):
                 value = 101
             if(value in air_conditioning_device.fan_speed_enum._value2member_map_):
                 return air_conditioning_device.fan_speed_enum(value)
-            print("Unknown Fan Speed: {}".format(value))
+            _LOGGER.debug("Unknown Fan Speed: {}".format(value))
             return air_conditioning_device.fan_speed_enum.Auto
 
     class operational_mode_enum(Enum):
@@ -124,7 +127,7 @@ class air_conditioning_device(device):
         def get(value):
             if(value in air_conditioning_device.operational_mode_enum._value2member_map_):
                 return air_conditioning_device.operational_mode_enum(value)
-            print("Unknown Operational Mode: {}".format(value))
+            _LOGGER.debug("Unknown Operational Mode: {}".format(value))
             return air_conditioning_device.operational_mode_enum.fan_only
 
     class swing_mode_enum(Enum):
@@ -141,7 +144,7 @@ class air_conditioning_device(device):
         def get(value):
             if(value in air_conditioning_device.swing_mode_enum._value2member_map_):
                 return air_conditioning_device.swing_mode_enum(value)
-            print("Unknown Swing Mode: {}".format(value))
+            _LOGGER.debug("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
     def __init__(self, device_ip: str, device_id: str):
@@ -323,7 +326,7 @@ class unknown_device(device):
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(self.id, data)
         response = appliance_response(data)
-        print("Decoded Data: {}".format({
+        _LOGGER.debug("Decoded Data: {}".format({
             'audible_feedback': response.audible_feedback,
             'target_temperature': response.target_temperature,
             'indoor_temperature': response.indoor_temperature,
@@ -336,7 +339,7 @@ class unknown_device(device):
         }))
 
     def apply(self):
-        print("Cannot apply, device not fully supported yet")
+        _LOGGER.debug("Cannot apply, device not fully supported yet")
 
 
 class dehumidifier_device(unknown_device):

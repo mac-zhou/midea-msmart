@@ -1,9 +1,11 @@
 
+import logging
 from msmart.command import base_command
 from msmart.security import security
 
 VERSION = '0.1.12'
 
+_LOGGER = logging.getLogger(__name__)
 
 class packet_builder:
 
@@ -38,8 +40,7 @@ class packet_builder:
     def finalize(self):
         # Add cheksum
         self.command.append(self.checksum(self.command[1:]))
-        if(__debug__):
-            print("Finalize request data: {}".format(self.command.hex()))
+        _LOGGER.debug("Finalize request data: {}".format(self.command.hex()))
         # Append the command data(48 bytes) to the packet
         self.packet.extend(self.security.aes_encrypt(self.command)[:48])
         # Set the packet length in the packet!
