@@ -171,6 +171,7 @@ class air_conditioning_device(device):
 
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(data)
+        _LOGGER.debug("refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
         response = appliance_response(data)
         self._defer_update = False
         self.update(response)
@@ -193,6 +194,7 @@ class air_conditioning_device(device):
 
             data = pkt_builder.finalize()
             data = self._lan_service.appliance_transparent_send(data)
+            _LOGGER.debug("apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
             response = appliance_response(data)
             if not self._defer_update:
                 self.update(response)

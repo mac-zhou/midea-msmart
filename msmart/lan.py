@@ -66,7 +66,5 @@ class lan:
         encoded = self.encode(data)
         response = bytearray(self.request(data))[40:88]
         reply = self.decode(self.security.aes_decrypt(response))
-
-        _LOGGER.debug("Recieved from {}: {}".format(id, reply.hex()))
         return reply
 
