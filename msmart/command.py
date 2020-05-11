@@ -19,8 +19,22 @@ class base_command:
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
             # request is 0x03; setting is 0x02
             0x03,
-            # request is 0x41; setting is 0x40
-            0x41, 0x81, 0x00, 0xff, 0x03, 0xff, 0x00, 0x02, 
+            # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
+            0x41, 
+            # Byte1 
+            0x00, 
+            # Byte2 - operational_mode
+            0x00, 
+            # Byte3
+            0xff, 
+            # Byte4
+            0x03, 
+            # Byte5
+            0xff, 
+            # Byte6
+            0x00,
+            # Byte7 - Room Temperature Request: 0x02 - indoor_temperature, 0x03 - outdoor_temperature
+            0x02, 
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
             0x00, 0x00, 0x00, 0x00,
             # 
@@ -42,6 +56,7 @@ class set_command(base_command):
         base_command.__init__(self, device_type)
         self.data[0x01] = 0x23
         self.data[0x09] = 0x02
+        # Set up Mode
         self.data[0x0a] = 0x40
         self.data.extend(bytearray([0x00, 0x00, 0x00]))
 
