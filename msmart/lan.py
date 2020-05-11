@@ -1,3 +1,4 @@
+import logging
 import requests
 import datetime
 import json
@@ -11,6 +12,7 @@ from msmart.security import security
 
 VERSION = '0.1.12'
 
+_LOGGER = logging.getLogger(__name__)
 
 class lan:
     def __init__(self, device_ip, device_id):
@@ -24,7 +26,7 @@ class lan:
     def request(self, message):
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5)
+        sock.settimeout(8)
 
         # Connect the Device
         device_address = (self.device_ip, self.device_port)
@@ -35,7 +37,9 @@ class lan:
             sock.sendall(message)
 
             # Received data
-            response = sock.recv(256)
+            response = sock.recv(512)
+        except socket.timeout:
+            _LOGGER.debug("Connect the Device %s:%s TimeOut." %(self.device_ip, self.device_port))
         finally:
             sock.close()
         
@@ -63,7 +67,6 @@ class lan:
         response = bytearray(self.request(data))[40:88]
         reply = self.decode(self.security.aes_decrypt(response))
 
-        if(__debug__):
-            print("Recieved from {}: {}".format(id, reply.hex()))
+        _LOGGER.debug("Recieved from {}: {}".format(id, reply.hex()))
         return reply
 
