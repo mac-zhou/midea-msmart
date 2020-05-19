@@ -10,7 +10,7 @@ from msmart.security import security
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
-VERSION = '0.1.12'
+VERSION = '0.1.13'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,15 +34,17 @@ class lan:
 
         try:
             # Send data
+            _LOGGER.debug("Sending to %s:%s %s." %(self.device_ip, self.device_port, message.hex()))
             sock.sendall(message)
 
             # Received data
             response = sock.recv(512)
         except socket.timeout:
             _LOGGER.debug("Connect the Device %s:%s TimeOut." %(self.device_ip, self.device_port))
+            return None
         finally:
             sock.close()
-        
+        _LOGGER.debug("Received from %s:%s %s." %(self.device_ip, self.device_port, message.hex()))
         return response
 
     def encode(self, data: bytearray):

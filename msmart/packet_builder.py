@@ -3,7 +3,7 @@ import logging
 from msmart.command import base_command
 from msmart.security import security
 
-VERSION = '0.1.12'
+VERSION = '0.1.13'
 
 _LOGGER = logging.getLogger(__name__)
 

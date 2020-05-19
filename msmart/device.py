@@ -9,7 +9,7 @@ from msmart.command import base_command as request_status_command
 from msmart.command import set_command
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.12'
+VERSION = '0.1.13'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -172,9 +172,10 @@ class air_conditioning_device(device):
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(data)
         _LOGGER.debug("refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
-        response = appliance_response(data)
-        self._defer_update = False
-        self.update(response)
+        if len(data) > 0:
+            response = appliance_response(data)
+            self._defer_update = False
+            self.update(response)
 
     def apply(self):
         self._updating = True
@@ -195,9 +196,10 @@ class air_conditioning_device(device):
             data = pkt_builder.finalize()
             data = self._lan_service.appliance_transparent_send(data)
             _LOGGER.debug("apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
-            response = appliance_response(data)
-            if not self._defer_update:
-                self.update(response)
+            if len(data) > 0:
+                response = appliance_response(data)
+                if not self._defer_update:
+                    self.update(response)
         finally:
             self._updating = False
             self._defer_update = False
@@ -327,18 +329,19 @@ class unknown_device(device):
 
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(self.id, data)
-        response = appliance_response(data)
-        _LOGGER.debug("Decoded Data: {}".format({
-            'prompt_tone': response.prompt_tone,
-            'target_temperature': response.target_temperature,
-            'indoor_temperature': response.indoor_temperature,
-            'outdoor_temperature': response.outdoor_temperature,
-            'operational_mode': response.operational_mode,
-            'fan_speed': response.fan_speed,
-            'swing_mode': response.swing_mode,
-            'eco_mode': response.eco_mode,
-            'turbo_mode': response.turbo_mode
-        }))
+        if len(data) > 0:
+            response = appliance_response(data)
+            _LOGGER.debug("Decoded Data: {}".format({
+                'prompt_tone': response.prompt_tone,
+                'target_temperature': response.target_temperature,
+                'indoor_temperature': response.indoor_temperature,
+                'outdoor_temperature': response.outdoor_temperature,
+                'operational_mode': response.operational_mode,
+                'fan_speed': response.fan_speed,
+                'swing_mode': response.swing_mode,
+                'eco_mode': response.eco_mode,
+                'turbo_mode': response.turbo_mode
+            }))
 
     def apply(self):
         _LOGGER.debug("Cannot apply, device not fully supported yet")
