@@ -2,7 +2,7 @@
 import logging
 import msmart.crc8 as crc8
 
-VERSION = '0.1.13'
+VERSION = '0.1.14'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,7 +16,8 @@ class base_command:
             0x20, 
             # device type
             0xac, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 
             # request is 0x03; setting is 0x02
             0x03,
             # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
