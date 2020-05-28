@@ -2,7 +2,7 @@
 import logging
 import msmart.crc8 as crc8
 
-VERSION = '0.1.14'
+VERSION = '0.1.15'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class set_command(base_command):
 
     @target_temperature.setter
     def target_temperature(self, temperature_celsius: int):
-        self.data[0x0c] &= ~ 0x1f  # Clear the temperature bits
+        self.data[0x0c] &= ~ 0x1f  # Clear the temperature bits. bit4 is temp_step
         self.data[0x0c] |= (temperature_celsius & 0xf) | (
             (temperature_celsius << 4) & 0x10)
 
