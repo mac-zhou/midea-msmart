@@ -26,7 +26,7 @@ class lan:
     def request(self, message):
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(8)
+        sock.settimeout(10)
 
         # Connect the Device
         device_address = (self.device_ip, self.device_port)
@@ -40,8 +40,8 @@ class lan:
             # Received data
             response = sock.recv(512)
         except socket.timeout:
-            _LOGGER.debug("Connect the Device %s:%s TimeOut." %(self.device_ip, self.device_port))
-            return None
+            _LOGGER.info("Connect the Device %s:%s TimeOut for 10s. don't care about a small amount of this. if many maybe not support." %(self.device_ip, self.device_port))
+            return bytearray()
         finally:
             sock.close()
         _LOGGER.debug("Received from %s:%s %s." %(self.device_ip, self.device_port, message.hex()))
@@ -64,9 +64,12 @@ class lan:
                 data[i] = data[i] + 256
         return bytearray(data)
 
-    def appliance_transparent_send(self, data):
+    def appliance_transparent_send(self, data): 
         encoded = self.encode(data)
-        response = bytearray(self.request(data))[40:88]
-        reply = self.decode(self.security.aes_decrypt(response))
-        return reply
+        response = bytearray(self.request(data))
+        if len(response) > 0:
+            reply = self.decode(self.security.aes_decrypt(response[40:88]))
+            return reply
+        else:
+            return bytearray()
 
