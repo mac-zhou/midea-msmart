@@ -36,6 +36,7 @@ class device:
         self._type = 0xac
         self._updating = False
         self._defer_update = False
+        self._half_temp_step = False
 
     def setup(self):
         # self.air_conditioning_device.refresh()
@@ -93,7 +94,7 @@ class device:
 class air_conditioning_device(device):
 
     class fan_speed_enum(Enum):
-        Auto = 101
+        Auto = 102
         High = 80
         Medium = 60
         Low = 40
@@ -105,8 +106,6 @@ class air_conditioning_device(device):
 
         @staticmethod
         def get(value):
-            if value == 102:
-                value = 101
             if(value in air_conditioning_device.fan_speed_enum._value2member_map_):
                 return air_conditioning_device.fan_speed_enum(value)
             _LOGGER.debug("Unknown Fan Speed: {}".format(value))
@@ -149,7 +148,6 @@ class air_conditioning_device(device):
 
     def __init__(self, device_ip: str, device_id: str):
         super().__init__(device_ip, convert_device_id_int(device_id))
-
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17
