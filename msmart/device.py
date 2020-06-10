@@ -13,6 +13,7 @@ VERSION = '0.1.15'
 
 _LOGGER = logging.getLogger(__name__)
 
+
 def convert_device_id_hex(device_id: int):
     hex_string = hex(device_id)[2:]
     if len(hex_string) % 2 != 0:
@@ -21,10 +22,12 @@ def convert_device_id_hex(device_id: int):
     new = reversed(old)
     return bytearray(new).hex()
 
+
 def convert_device_id_int(device_id: str):
     old = bytearray.fromhex(device_id)
     new = reversed(old)
     return int(bytearray(new).hex(), 16)
+
 
 class device:
 
@@ -37,6 +40,7 @@ class device:
         self._updating = False
         self._defer_update = False
         self._half_temp_step = False
+        self._support = False
 
     def setup(self):
         # self.air_conditioning_device.refresh()
@@ -61,7 +65,7 @@ class device:
     @property
     def id(self):
         return self._id
-    
+
     @property
     def ip(self):
         return self._ip
@@ -89,6 +93,10 @@ class device:
     @property
     def online(self):
         return True
+
+    @property
+    def support(self):
+        return self._support
 
 
 class air_conditioning_device(device):
@@ -169,10 +177,12 @@ class air_conditioning_device(device):
 
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(data)
-        _LOGGER.debug("refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
+        _LOGGER.debug(
+            "refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
         if len(data) > 0:
             response = appliance_response(data)
             self._defer_update = False
+            self._support = True
             self.update(response)
 
     def apply(self):
@@ -193,9 +203,11 @@ class air_conditioning_device(device):
 
             data = pkt_builder.finalize()
             data = self._lan_service.appliance_transparent_send(data)
-            _LOGGER.debug("apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
+            _LOGGER.debug(
+                "apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
             if len(data) > 0:
                 response = appliance_response(data)
+                self._support = True
                 if not self._defer_update:
                     self.update(response)
         finally:

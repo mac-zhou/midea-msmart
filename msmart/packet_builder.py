@@ -7,6 +7,7 @@ VERSION = '0.1.15'
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class packet_builder:
 
     def __init__(self, device_id):
@@ -23,13 +24,13 @@ class packet_builder:
             0x68,
             # 3 bytes
             0x00, 0x20, 0x00,
-            # 4 bytes - MessageId 
+            # 4 bytes - MessageId
             0x00, 0x00, 0x00, 0x00,
             # 8 bytes - Date&Time
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             # 6 bytes - mDeviceID
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            # 14 bytes 
+            # 14 bytes
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
         self.packet[20:26] = bytearray.fromhex(device_id)

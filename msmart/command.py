@@ -1,10 +1,12 @@
 
 import logging
+import datetime
 import msmart.crc8 as crc8
 
 VERSION = '0.1.15'
 
 _LOGGER = logging.getLogger(__name__)
+
 
 class base_command:
 
@@ -13,34 +15,35 @@ class base_command:
         self.data = bytearray([
             0xaa,
             # request is 0x20; setting is 0x23
-            0x20, 
+            0x20,
             # device type
-            0xac, 
+            0xac,
             0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 
+            0x00,
             # request is 0x03; setting is 0x02
             0x03,
             # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
-            0x41, 
-            # Byte1 
-            0x00, 
+            0x41,
+            # Byte1
+            0x00,
             # Byte2 - operational_mode
-            0x00, 
+            0x00,
             # Byte3
-            0xff, 
+            0xff,
             # Byte4
-            0x03, 
+            0x03,
             # Byte5
-            0xff, 
+            0xff,
             # Byte6
             0x00,
             # Byte7 - Room Temperature Request: 0x02 - indoor_temperature, 0x03 - outdoor_temperature
-            0x02, 
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
+            0x02,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
-            # 
+            # Message ID
             0x00
         ])
+        self.data[-1] = datetime.datetime.now().second
         self.data[0x02] = device_type
 
     def finalize(self):
@@ -85,7 +88,8 @@ class set_command(base_command):
 
     @target_temperature.setter
     def target_temperature(self, temperature_celsius: int):
-        self.data[0x0c] &= ~ 0x1f  # Clear the temperature bits. bit4 is temp_step
+        # Clear the temperature bits. bit4 is temp_step
+        self.data[0x0c] &= ~ 0x1f
         self.data[0x0c] |= (temperature_celsius & 0xf) | (
             (temperature_celsius << 4) & 0x10)
 
@@ -135,12 +139,11 @@ class set_command(base_command):
 class appliance_response:
 
     def __init__(self, data: bytearray):
-        # The response data from the appliance includes a packet header which we don't want 
+        # The response data from the appliance includes a packet header which we don't want
         self.data = data[0xa:]
         _LOGGER.debug("Appliance response data: {}".format(self.data.hex()))
 
     # Byte 0x01
-
     @property
     def power_state(self):
         return (self.data[0x01] & 0x1) > 0
@@ -276,12 +279,16 @@ class appliance_response:
     # Byte 0x0b
     @property
     def indoor_temperature(self):
-        return (self.data[0x0b] - 50) / 2.0
+        indoor_temp = (self.data[0x0b] - 50) / 2.0
+        _LOGGER.debug("indoor_temperature: {} .".format(indoor_temp))
+        return indoor_temp
 
     # Byte 0x0c
     @property
     def outdoor_temperature(self):
-        return (self.data[0x0c] - 50) / 2.0
+        outdoor_temp = (self.data[0x0c] - 50) / 2.0
+        _LOGGER.debug("outdoor_temperature: {} .".format(outdoor_temp))
+        return outdoor_temp
 
     # Byte 0x0d
     @property

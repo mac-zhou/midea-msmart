@@ -14,6 +14,7 @@ VERSION = '0.1.15'
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class lan:
     def __init__(self, device_ip, device_id):
         # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
@@ -34,17 +35,24 @@ class lan:
 
         try:
             # Send data
-            _LOGGER.debug("Sending to %s:%s %s." %(self.device_ip, self.device_port, message.hex()))
+            _LOGGER.debug("Sending to %s:%s %s." %
+                          (self.device_ip, self.device_port, message.hex()))
             sock.sendall(message)
 
             # Received data
             response = sock.recv(512)
         except socket.timeout:
-            _LOGGER.info("Connect the Device %s:%s TimeOut for 10s. don't care about a small amount of this. if many maybe not support." %(self.device_ip, self.device_port))
-            return bytearray()
+            _LOGGER.info("Connect the Device %s:%s TimeOut for 10s. don't care about a small amount of this. if many maybe not support." % (
+                self.device_ip, self.device_port))
+            return bytearray(0)
         finally:
             sock.close()
-        _LOGGER.debug("Received from %s:%s %s." %(self.device_ip, self.device_port, message.hex()))
+        _LOGGER.debug("Received from %s:%s %s." %
+                      (self.device_ip, self.device_port, message.hex()))
+        if response.hex() == message.hex():
+            _LOGGER.debug("Something wrong! reply is same. %s:%s %s." % (
+                self.device_ip, self.device_port, message.hex()))
+            return bytearray(0)
         return response
 
     def encode(self, data: bytearray):
@@ -64,12 +72,10 @@ class lan:
                 data[i] = data[i] + 256
         return bytearray(data)
 
-    def appliance_transparent_send(self, data): 
-        encoded = self.encode(data)
+    def appliance_transparent_send(self, data):
         response = bytearray(self.request(data))
         if len(response) > 0:
             reply = self.decode(self.security.aes_decrypt(response[40:88]))
             return reply
         else:
-            return bytearray()
-
+            return bytearray(0)
