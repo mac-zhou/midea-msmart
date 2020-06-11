@@ -2,6 +2,7 @@
 import logging
 from msmart.command import base_command
 from msmart.security import security
+import datetime
 
 VERSION = '0.1.16'
 
@@ -33,6 +34,8 @@ class packet_builder:
             # 14 bytes
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
+        _LOGGER.debug("add packet_time")
+        self.packet[12:20] = self.packet_time()
         self.packet[20:26] = bytearray.fromhex(device_id)
 
     def set_command(self, command: base_command):
@@ -56,3 +59,12 @@ class packet_builder:
 
     def checksum(self, data):
         return 255 - sum(data) % 256 + 1
+
+    def packet_time(self):
+        t = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[
+            :16]
+        b = bytearray()
+        for i in range(0, len(t), 2):
+            d = int(t[i:i+2])
+            b.insert(0, d)
+        return b
