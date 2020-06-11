@@ -75,7 +75,10 @@ class lan:
     def appliance_transparent_send(self, data):
         response = bytearray(self.request(data))
         if len(response) > 0:
-            reply = self.decode(self.security.aes_decrypt(response[40:88]))
+            if len(response) == 88:
+                reply = self.decode(self.security.aes_decrypt(response[40:72]))
+            else:
+                reply = self.decode(self.security.aes_decrypt(response[40:88]))
             return reply
         else:
             return bytearray(0)
