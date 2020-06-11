@@ -27,7 +27,7 @@ class lan:
     def request(self, message):
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(10)
+        sock.settimeout(8)
 
         # Connect the Device
         device_address = (self.device_ip, self.device_port)
