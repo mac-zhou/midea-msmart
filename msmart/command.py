@@ -25,7 +25,7 @@ class base_command:
             # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
             0x41,
             # Byte1
-            0x00,
+            0x81,
             # Byte2 - operational_mode
             0x00,
             # Byte3
