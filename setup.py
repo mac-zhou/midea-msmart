@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name='msmart',
-    version='0.1.17',
+    version='0.1.18',
     author="mac_zhou",
     author_email="mac.zfl@gmail.com",
     description="A library to control Midea appliances via the Local area network",
