@@ -1,10 +1,12 @@
 
 import hashlib
+import logging
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
 
 VERSION = '0.1.17'
+_LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
 
@@ -20,12 +22,16 @@ class security:
 
     def aes_decrypt(self, raw):
         cipher = AES.new(self.encKey, AES.MODE_ECB)
-        decrypted = cipher.decrypt(bytes(raw))
+        try:
+            decrypted = cipher.decrypt(bytes(raw))
 
-        # Remove the padding
-        decrypted = unpad(decrypted, self.blockSize)
-
-        return decrypted
+            # Remove the padding
+            decrypted = unpad(decrypted, self.blockSize)
+            return decrypted
+        except ValueError as e:
+            _LOGGER.error(
+                "aes_decrypt error: {} - data: {}".format(repr(e), raw.hex()))
+            return bytearray(0)
 
     def aes_encrypt(self, raw):
         # Make sure to pad the data
