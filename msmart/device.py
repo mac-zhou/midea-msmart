@@ -200,7 +200,7 @@ class air_conditioning_device(device):
             cmd.turbo_mode = self._turbo_mode
             pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
-#            cmd.fahrenheit = self.farenheit_unit
+            cmd.fahrenheit = self.farenheit_unit
             pkt_builder.set_command(cmd)
 
             data = pkt_builder.finalize()
