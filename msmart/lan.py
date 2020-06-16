@@ -29,11 +29,11 @@ class lan:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(8)
 
-        # Connect the Device
-        device_address = (self.device_ip, self.device_port)
-        sock.connect(device_address)
-
         try:
+            # Connect the Device
+            device_address = (self.device_ip, self.device_port)
+            sock.connect(device_address)
+
             # Send data
             _LOGGER.debug("Sending to %s:%s %s." %
                           (self.device_ip, self.device_port, message.hex()))
@@ -41,6 +41,10 @@ class lan:
 
             # Received data
             response = sock.recv(512)
+        except socket.error:
+            _LOGGER.info("Couldn't connect with Device %s:%s." %
+                (self.device_ip, self.device_port))
+            return bytearray(0)
         except socket.timeout:
             _LOGGER.info("Connect the Device %s:%s TimeOut for 10s. don't care about a small amount of this. if many maybe not support." % (
                 self.device_ip, self.device_port))
