@@ -184,7 +184,13 @@ class air_conditioning_device(device):
             response = appliance_response(data)
             self._defer_update = False
             self._support = True
-            self.update(response)
+            if data[0xa] != 0xc0:
+                _LOGGER.debug(
+                    "refresh - Not status(0xc0) respone, defer update. {}, {}: {}".format(self.ip, self.id, data[0xa:].hex()))
+                self._defer_update = True
+            if not self._defer_update:
+                self.update(response)
+                self._defer_update = False
 
     def apply(self):
         self._updating = True
@@ -210,6 +216,10 @@ class air_conditioning_device(device):
             if len(data) > 0:
                 response = appliance_response(data)
                 self._support = True
+                if data[0xa] != 0xc0:
+                    _LOGGER.debug(
+                        "apply - Not status(0xc0) respone, defer update. {}, {}: {}".format(self.ip, self.id, data[0xa:].hex()))
+                    self._defer_update = True
                 if not self._defer_update:
                     self.update(response)
         finally:
