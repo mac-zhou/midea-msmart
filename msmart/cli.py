@@ -1,3 +1,5 @@
+
+# -*- coding: UTF-8 -*-
 import click
 import logging
 import socket
@@ -56,21 +58,30 @@ def discover(debug: int):
             while True:
                 data, addr = sock.recvfrom(512)
                 m_ip = addr[0]
-                if len(data) >= 41 and m_ip not in found_devices:
+                m_id, m_type, m_sn, m_ssid = 'unknown', 'unknown', 'unknown', 'unknown'
+                if len(data) >= 104 and (data[:2].hex() == '5a5a' or data[8:10].hex() == '5a5a') and m_ip not in found_devices:
+                    _LOGGER.info("Midea Local Data {} {}".format(m_ip, data.hex()))
+                    if data[8:10].hex() == '5a5a':
+                        data = data[8:]
                     m_id = convert_device_id_int(data[20:26].hex())
                     found_devices[m_ip] = m_id
-                    data = data[40:40+64]
-                    reply = _security.aes_decrypt(data)
+                    if data[8:10].hex() == '5a5a':
+                        encrypt_data = data[40:]
+                    else:
+                        encrypt_data = data[40:40+64]
+                    reply = _security.aes_decrypt(encrypt_data)
 
                     m_sn = reply[14:14+26].decode("utf-8")
                     m_ssid = reply[14+27:].decode("utf-8")
                     m_type = m_ssid.split('_')[1]
-                    m_support = 'unknown'
+                    
                     if m_type == 'ac':
                         m_support = support_test(m_ip, int(m_id))
 
                     _LOGGER.info(
-                        "Found a {} '0x{}' at {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid))
+                        "*** Found a {} '0x{}' at {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid))
+                elif m_ip not in found_devices:
+                    _LOGGER.info("Maybe not midea local data {} {}".format(m_ip, data.hex()))
 
         except socket.timeout:
             continue
