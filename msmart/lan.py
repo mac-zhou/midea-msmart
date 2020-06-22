@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 import logging
 import requests
 import datetime
@@ -35,28 +36,24 @@ class lan:
             sock.connect(device_address)
 
             # Send data
-            _LOGGER.debug("Sending to %s:%s %s." %
-                          (self.device_ip, self.device_port, message.hex()))
+            _LOGGER.debug("Sending to {}:{} {}".format(
+                self.device_ip, self.device_port, message.hex()))
             sock.sendall(message)
 
             # Received data
             response = sock.recv(512)
         except socket.error:
-            _LOGGER.info("Couldn't connect with Device %s:%s." %
-                (self.device_ip, self.device_port))
+            _LOGGER.info("Couldn't connect with Device {}:{}".format(
+                self.device_ip, self.device_port))
             return bytearray(0)
         except socket.timeout:
-            _LOGGER.info("Connect the Device %s:%s TimeOut for 10s. don't care about a small amount of this. if many maybe not support." % (
+            _LOGGER.info("Connect the Device %s:%s TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
                 self.device_ip, self.device_port))
             return bytearray(0)
         finally:
             sock.close()
-        _LOGGER.debug("Received from %s:%s %s." %
-                      (self.device_ip, self.device_port, message.hex()))
-        if response.hex() == message.hex():
-            _LOGGER.debug("Something wrong! reply is same. %s:%s %s." % (
-                self.device_ip, self.device_port, message.hex()))
-            return bytearray(0)
+        _LOGGER.debug("Received from {}:{} {}".format(
+            self.device_ip, self.device_port, message.hex()))
         return response
 
     def encode(self, data: bytearray):
