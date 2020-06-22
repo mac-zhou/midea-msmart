@@ -9,7 +9,7 @@ from msmart.command import base_command as request_status_command
 from msmart.command import set_command
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.18'
+VERSION = '0.1.19'
 
 _LOGGER = logging.getLogger(__name__)
 
