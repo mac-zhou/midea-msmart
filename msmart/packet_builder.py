@@ -34,7 +34,6 @@ class packet_builder:
             # 14 bytes
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
-        _LOGGER.debug("add packet_time")
         self.packet[12:20] = self.packet_time()
         self.packet[20:26] = bytearray.fromhex(device_id)
 
@@ -58,7 +57,8 @@ class packet_builder:
         return self.security.encode32_data(data)
 
     def checksum(self, data):
-        return 255 - sum(data) % 256 + 1
+        c = (~ sum(data) + 1) & 0xff
+        return (~ sum(data) + 1) & 0xff
 
     def packet_time(self):
         t = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')[
