@@ -88,9 +88,12 @@ class set_command(base_command):
 
     @target_temperature.setter
     def target_temperature(self, temperature_celsius: float):
-        self.data[0x0c] &= ~ 0x0f  # Clear the temperature bits, except the 0.5 bit, which will be set properly in all cases
+        # Clear the temperature bits.
+        self.data[0x0c] &= ~ 0x0f
+        # Clear the temperature bits, except the 0.5 bit, which will be set properly in all cases
         self.data[0x0c] |= (int(temperature_celsius) & 0xf)
-        self.dot5 = (int(round(temperature_celsius*2)) % 2 != 0) # set the +0.5 bit if that will result in a closer match go the float value
+        # set the +0.5 bit
+        self.temperature_dot5 = (int(round(temperature_celsius*2)) % 2 != 0)
 
     @property
     def operational_mode(self):
@@ -135,37 +138,42 @@ class set_command(base_command):
         self.data[0x14] = 0x02 if turbo_mode_enabled else 0
 
     @property
-    def night_light(self):
+    def screen_display(self):
         return self.data[0x14] & 0x10 > 0
 
-    @night_light.setter
-    def night_light(self, on: bool):   # the LED lights on the AC. these display temperature and are often too bright during nights
-        if (on):
+    @screen_display.setter
+    def screen_display(self, screen_display_enabled: bool):
+        # the LED lights on the AC. these display temperature and are often too bright during nights
+        if screen_display_enabled:
             self.data[0x14] |= 0x10
         else:
             self.data[0x14] &= (~0x10)
 
     @property
-    def dot5(self):
+    def temperature_dot5(self):
         return self.data[0x0c] & 0x10 > 0
 
-    @dot5.setter
-    def dot5(self, on: bool):   # add 0.5C to the temperature value. not intended to be called directly. target_temperature setter calls this if needed
-        if (on):
+    @temperature_dot5.setter
+    def temperature_dot5(self, temperature_dot5_enabled: bool):
+        # add 0.5C to the temperature value. not intended to be called directly. target_temperature setter calls this if needed
+        if temperature_dot5_enabled:
             self.data[0x0c] |= 0x10
         else:
             self.data[0x0c] &= (~0x10)
 
     @property
-    def fahrenheit(self): # is the temperature unit fahrenheit? (celcius otherwise)
+    def fahrenheit(self):
+        # is the temperature unit fahrenheit? (celcius otherwise)
         return self.data[0x0c] & 0x10 > 0
 
-    @dot5.setter
-    def fahrenheit(self, on: bool): # set the unit to fahrenheit from celcius
-        if (on):
+    @fahrenheit.setter
+    def fahrenheit(self, fahrenheit_enabled: bool):
+        # set the unit to fahrenheit from celcius
+        if fahrenheit_enabled:
             self.data[0x14] |= 0x04
         else:
             self.data[0x14] &= (~0x04)
+
 
 class appliance_response:
 
@@ -310,16 +318,12 @@ class appliance_response:
     # Byte 0x0b
     @property
     def indoor_temperature(self):
-        indoor_temp = (self.data[0x0b] - 50) / 2.0
-        _LOGGER.debug("indoor_temperature: {} .".format(indoor_temp))
-        return indoor_temp
+        return (self.data[0x0b] - 50) / 2.0
 
     # Byte 0x0c
     @property
     def outdoor_temperature(self):
-        outdoor_temp = (self.data[0x0c] - 50) / 2.0
-        _LOGGER.debug("outdoor_temperature: {} .".format(outdoor_temp))
-        return outdoor_temp
+        return (self.data[0x0c] - 50) / 2.0
 
     # Byte 0x0d
     @property
