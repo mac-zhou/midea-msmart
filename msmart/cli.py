@@ -62,17 +62,15 @@ def discover(debug: int):
                 if len(data) >= 104 and (data[:2].hex() == '5a5a' or data[8:10].hex() == '5a5a') and m_ip not in found_devices:
                     _LOGGER.info("Midea Local Data {} {}".format(m_ip, data.hex()))
                     if data[8:10].hex() == '5a5a':
-                        data = data[8:]
+                        data = data[8:-16]
                     m_id = convert_device_id_int(data[20:26].hex())
                     found_devices[m_ip] = m_id
-                    if data[8:10].hex() == '5a5a':
-                        encrypt_data = data[40:]
-                    else:
-                        encrypt_data = data[40:40+64]
+                    encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
 
                     m_sn = reply[14:14+26].decode("utf-8")
-                    m_ssid = reply[14+27:].decode("utf-8")
+                    # ssid like midea_xx_xxxx net_xx_xxxx
+                    m_ssid = reply[14+27:14+27+13].decode("utf-8")
                     m_type = m_ssid.split('_')[1]
                     
                     if m_type == 'ac':
