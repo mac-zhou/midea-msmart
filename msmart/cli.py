@@ -73,8 +73,7 @@ def discover(debug: int):
                     m_ssid = reply[14+27:14+27+13].decode("utf-8")
                     m_type = m_ssid.split('_')[1]
                     
-                    if m_type == 'ac':
-                        m_support = support_test(m_ip, int(m_id))
+                    m_support = support_test(m_ip, int(m_id))
 
                     _LOGGER.info(
                         "*** Found a {} '0x{}' at {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid))
