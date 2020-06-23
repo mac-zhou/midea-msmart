@@ -50,6 +50,7 @@ def discover(debug: int):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.settimeout(5)
     found_devices = {}
+    _LOGGER.info("msmart version: {}".format(VERSION))
     _LOGGER.info(
         "Discovering devices with UDP Broadcast, press CTRL-C to quit...")
     for i in range(10):
