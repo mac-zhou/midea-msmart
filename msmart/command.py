@@ -167,7 +167,7 @@ class set_command(base_command):
     @property
     def fahrenheit(self):
         # is the temperature unit fahrenheit? (celcius otherwise)
-        return self.data[0x14] & 0x14 > 0
+        return self.data[0x14] & 0x04 > 0
 
     @fahrenheit.setter
     def fahrenheit(self, fahrenheit_enabled: bool):
@@ -176,6 +176,7 @@ class set_command(base_command):
             self.data[0x14] |= 0x04
         else:
             self.data[0x14] &= (~0x04)
+
 
 class appliance_response:
 
