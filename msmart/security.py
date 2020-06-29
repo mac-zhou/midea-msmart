@@ -1,4 +1,4 @@
-
+# -*- coding: UTF-8 -*-
 import hashlib
 import logging
 from Crypto.Cipher import AES
