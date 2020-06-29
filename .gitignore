@@ -112,3 +112,4 @@ test
 # vscode
 .vscode-upload.json
 .vscode/settings.json
+.travis/.temp
