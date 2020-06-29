@@ -37,6 +37,7 @@ class base_command:
             # Byte6
             0x00,
             # Byte7 - Room Temperature Request: 0x02 - indoor_temperature, 0x03 - outdoor_temperature
+            # when set, this is swing_mode
             0x02,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
@@ -126,8 +127,8 @@ class set_command(base_command):
 
     @swing_mode.setter
     def swing_mode(self, mode: int):
-        self.data[0x11] &= ~ 0x0f  # Clear the mode bit
-        self.data[0x11] |= mode & 0x0f
+        self.data[0x11] = 0x30  # Clear the mode bit
+        self.data[0x11] |= mode & 0x3f
 
     @property
     def turbo_mode(self):
@@ -318,7 +319,38 @@ class appliance_response:
     # Byte 0x0b
     @property
     def indoor_temperature(self):
-        return (self.data[0x0b] - 50) / 2.0
+        if self.data[0] == 0xc0:
+            if  int((self.data[11] - 50) /2) < -19  or int((self.data[11] - 50) /2) > 50:
+                return 0xff
+            else:
+                indoorTempInteger = int((self.data[11] - 50) /2)
+            indoorTemperatureDot = getBits(self.data, 15, 0, 3)
+            indoorTempDecimal = indoorTemperatureDot * 0.1
+            if self.data[11] > 49:
+                return indoorTempInteger + indoorTempDecimal
+            else:
+                return indoorTempInteger - indoorTempDecimal
+        if self.data[0] == 0xa0 or self.data[0] == 0xa1:
+            if self.data[0] == 0xa0:
+                if (self.data[1] >> 2) - 4 == 0:
+                    indoorTempInteger = -1
+                else:
+                    indoorTempInteger = (self.data[1] >> 2) + 12
+                if (self.data[1] >> 1) & 0x01 == 1:
+                    indoorTempDecimal = 0.5
+                else:
+                    indoorTempDecimal = 0
+            if self.data[0] == 0xa1:
+                if int((self.data[13] - 50) /2) < -19 or int((self.data[13] - 50) /2) > 50:
+                    return 0xff
+                else:
+                    indoorTempInteger = int((self.data[13] - 50) /2)
+                indoorTempDecimal = (self.data[18] & 0x0f) * 0.1
+            if int(self.data[13]) > 49:
+                return indoorTempInteger + indoorTempDecimal
+            else:
+                return indoorTempInteger - indoorTempDecimal
+        return 0xff
 
     # Byte 0x0c
     @property
@@ -329,3 +361,22 @@ class appliance_response:
     @property
     def humidity(self):
         return (self.data[0x0d] & 0x7f)
+
+
+def getBit(pByte, pIndex):
+    return (pByte >> pIndex) & 0x01
+
+
+def getBits(pBytes,pIndex,pStartIndex,pEndIndex):
+    if pStartIndex > pEndIndex: 
+        StartIndex = pEndIndex
+        EndIndex = pStartIndex
+    else:
+        StartIndex = pStartIndex
+        EndIndex = pEndIndex
+    tempVal = 0x00;
+    i = StartIndex
+    while (i <= EndIndex):
+        tempVal = tempVal | getBit(pBytes[pIndex],i) << (i-StartIndex)
+        i += 1 
+    return tempVal
