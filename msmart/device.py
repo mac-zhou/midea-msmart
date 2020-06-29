@@ -184,12 +184,15 @@ class air_conditioning_device(device):
             response = appliance_response(data)
             self._defer_update = False
             self._support = True
-            if data[0xa] != 0xc0:
-                _LOGGER.debug(
-                    "refresh - Not status(0xc0) respone, defer update. {}, {}: {}".format(self.ip, self.id, data[0xa:].hex()))
-                self._defer_update = True
             if not self._defer_update:
-                self.update(response)
+                if data[0xa] == 0xc0:
+                    self.update(response)
+                if data[0xa] == 0xa1 or data[0xa] == 0xa0:
+                    '''only update indoor_temperature and outdoor_temperature'''
+                    _LOGGER.debug("refresh - Special Respone. {}, {}: {}".format(
+                        self.ip, self.id, data[0xa:].hex()))
+                    pass
+                    # self.update_special(response)
                 self._defer_update = False
 
     def apply(self):
@@ -216,12 +219,15 @@ class air_conditioning_device(device):
             if len(data) > 0:
                 response = appliance_response(data)
                 self._support = True
-                if data[0xa] != 0xc0:
-                    _LOGGER.debug(
-                        "apply - Not status(0xc0) respone, defer update. {}, {}: {}".format(self.ip, self.id, data[0xa:].hex()))
-                    self._defer_update = True
                 if not self._defer_update:
-                    self.update(response)
+                    if data[0xa] == 0xc0:
+                        self.update(response)
+                    if data[0xa] == 0xa1 or data[0xa] == 0xa0:
+                        '''only update indoor_temperature and outdoor_temperature'''
+                        _LOGGER.debug("apply - Special Respone. {}, {}: {}".format(
+                            self.ip, self.id, data[0xa:].hex()))
+                        pass
+                        # self.update_special(response)
         finally:
             self._updating = False
             self._defer_update = False
@@ -237,10 +243,22 @@ class air_conditioning_device(device):
             res.swing_mode)
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
-        self._indoor_temperature = res.indoor_temperature
-        self._outdoor_temperature = res.outdoor_temperature
+        indoor_temperature = res.indoor_temperature 
+        if indoor_temperature != 0xff:
+            self._indoor_temperature = indoor_temperature
+        outdoor_temperature = res.outdoor_temperature
+        if outdoor_temperature != 0xff:
+            self._outdoor_temperature = outdoor_temperature
         self._timer_on = res.on_timer
         self._timer_off = res.off_timer
+    
+    def update_special(self, res: appliance_response):
+        indoor_temperature = res.indoor_temperature
+        if indoor_temperature != 0xff:
+            self._indoor_temperature = indoor_temperature
+        outdoor_temperature = res.outdoor_temperature
+        if outdoor_temperature != 0xff:
+            self._outdoor_temperature = outdoor_temperature
 
     @property
     def prompt_tone(self):
