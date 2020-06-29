@@ -136,7 +136,10 @@ class set_command(base_command):
 
     @turbo_mode.setter
     def turbo_mode(self, turbo_mode_enabled: bool):
-        self.data[0x14] = 0x02 if turbo_mode_enabled else 0
+        if (turbo_mode_enabled):
+            self.data[0x14] |= 0x02
+        else:
+            self.data[0x14] &= (~0x02)
 
     @property
     def screen_display(self):
@@ -165,7 +168,7 @@ class set_command(base_command):
     @property
     def fahrenheit(self):
         # is the temperature unit fahrenheit? (celcius otherwise)
-        return self.data[0x0c] & 0x10 > 0
+        return self.data[0x14] & 0x04 > 0
 
     @fahrenheit.setter
     def fahrenheit(self, fahrenheit_enabled: bool):
