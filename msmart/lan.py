@@ -1,15 +1,8 @@
 # -*- coding: UTF-8 -*-
 import logging
-import requests
 import datetime
-import json
 import socket
-import sys
-
 from msmart.security import security
-
-# The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
-# this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
 VERSION = '0.1.19'
 
@@ -18,7 +11,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class lan:
     def __init__(self, device_ip, device_id):
-        # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
         self.device_ip = device_ip
         self.device_id = device_id
         self.device_port = 6444
