@@ -8,6 +8,14 @@ But this library just allow communicating to a Midea AC via the Local area netwo
 
 Thanks for [yitsushi's project](https://github.com/yitsushi/midea-air-condition), [NeoAcheron's project](https://github.com/NeoAcheron/midea-ac-py), [andersonshatch's project](https://github.com/andersonshatch/midea-ac-py).
 
+## How to Use
+- you can use command ```midea-discover``` to discover midea devices on the host in the same Local area network. Note: This component only supports devices with model 0xac (air conditioner) and words ```supported``` in the output.
+    ```shell
+    pip3 install msmart
+    midea-discover
+    ```
+- then you can use a custom component for Home Assistant [here](https://github.com/mac-zhou/midea-ac-py)
+
 ## Buy me a cup of coffee to help maintain this project further?
 
 - [via Paypal](https://www.paypal.me/himaczhou)
