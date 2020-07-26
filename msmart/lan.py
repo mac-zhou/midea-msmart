@@ -58,4 +58,4 @@ class lan:
         response = self.request(data)
         if len(response) > 40 + 16:
             return self.security.aes_decrypt(response[40:-16])
-        return response
+        return [response]

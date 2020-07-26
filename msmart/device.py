@@ -172,8 +172,9 @@ class air_conditioning_device(device):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
-        data = self._lan_service.appliance_transparent_send(data)
-        self._process_response(data)
+        responses = self._lan_service.appliance_transparent_send(data)
+        for response in responses:
+            self._process_response(response)
 
     def _process_response(self, data):
         _LOGGER.debug(
