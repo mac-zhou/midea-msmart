@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
 import hashlib
 import logging
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
 
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import pad, unpad
 
 VERSION = '0.1.20'
 _LOGGER = logging.getLogger(__name__)
