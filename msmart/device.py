@@ -166,13 +166,18 @@ class air_conditioning_device(device):
 
     def refresh(self):
         cmd = request_status_command(self.type)
+        self._send_cmd(cmd)
+
+    def _send_cmd(self, cmd):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
-
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(data)
+        self._process_response(data)
+
+    def _process_response(self, data):
         _LOGGER.debug(
-            "refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
+            "update from {}, {}: {}".format(self.ip, self.id, data.hex()))
         if len(data) > 0:
             response = appliance_response(data)
             self._defer_update = False
@@ -182,7 +187,7 @@ class air_conditioning_device(device):
                     self.update(response)
                 if data[0xa] == 0xa1 or data[0xa] == 0xa0:
                     '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("refresh - Special Respone. {}, {}: {}".format(
+                    _LOGGER.debug("update - Special Respone. {}, {}: {}".format(
                         self.ip, self.id, data[0xa:].hex()))
                     pass
                     # self.update_special(response)
@@ -203,24 +208,7 @@ class air_conditioning_device(device):
             pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
             cmd.fahrenheit = self.farenheit_unit
-            pkt_builder.set_command(cmd)
-
-            data = pkt_builder.finalize()
-            data = self._lan_service.appliance_transparent_send(data)
-            _LOGGER.debug(
-                "apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
-            if len(data) > 0:
-                response = appliance_response(data)
-                self._support = True
-                if not self._defer_update:
-                    if data[0xa] == 0xc0:
-                        self.update(response)
-                    if data[0xa] == 0xa1 or data[0xa] == 0xa0:
-                        '''only update indoor_temperature and outdoor_temperature'''
-                        _LOGGER.debug("apply - Special Respone. {}, {}: {}".format(
-                            self.ip, self.id, data[0xa:].hex()))
-                        pass
-                        # self.update_special(response)
+            self._send_cmd(cmd)
         finally:
             self._updating = False
             self._defer_update = False
