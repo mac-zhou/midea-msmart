@@ -15,18 +15,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def convert_device_id_hex(device_id: int):
-    hex_string = hex(device_id)[2:]
-    if len(hex_string) % 2 != 0:
-        hex_string = '0' + hex_string
-    old = bytearray.fromhex(hex_string)
-    new = reversed(old)
-    return bytearray(new).hex()
+    return device_id.to_bytes(6, 'little').hex()
 
 
 def convert_device_id_int(device_id: str):
-    old = bytearray.fromhex(device_id)
-    new = reversed(old)
-    return int(bytearray(new).hex(), 16)
+    return int.from_bytes(bytes.fromhex(device_id), 'little')
 
 
 class device:
