@@ -34,11 +34,22 @@ class device:
         self._defer_update = False
         self._half_temp_step = False
         self._support = False
+        self._protocol_version = 2
 
     def setup(self):
         # self.air_conditioning_device.refresh()
         device = air_conditioning_device(self._ip, self._id)
         return device
+
+    def authenticate(self, mac: str, ssid: str, pw: str):
+        self._protocol_version = 3
+        self._mac = mac
+        self._wifi_ssid = ssid
+        self._wifi_pw = pw
+        self._authenticate()
+
+    def _authenticate(self):
+        self._lan_service.authenticate(self._mac, self._wifi_ssid, self._wifi_pw)
 
     def set_device_detail(self, device_detail: dict):
         self._id = device_detail['id']
@@ -172,7 +183,10 @@ class air_conditioning_device(device):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
-        responses = self._lan_service.appliance_transparent_send(data)
+        if self._protocol_version == 3:
+            responses = self._lan_service.appliance_transparent_send_8370(data)
+        else:
+            responses = self._lan_service.appliance_transparent_send(data)
         for response in responses:
             self._process_response(response)
 

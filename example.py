@@ -8,6 +8,9 @@ logging.basicConfig(level=logging.DEBUG)
 # pip3 install msmart; midea-discover
 c = midea_device('YOUR_AC_IP', YOUR_AC_ID)
 device = c.setup()
+# If the device is using protocol 3 (aka 8370), you must authenticate with your
+# WiFi network's credentials for local control
+device.authenticate('YOUR_AC_MAC', 'YOUR_WIFI_SSID', 'YOUR_WIFI_PW')
 # Refresh the object with the actual state by querying it
 device.refresh()
 print({
