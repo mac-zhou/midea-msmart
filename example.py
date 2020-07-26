@@ -1,13 +1,11 @@
 
-from msmart.device import device as midea_device
 from msmart.device import air_conditioning_device as ac
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
 # first take device's ip and id
 # pip3 install msmart; midea-discover
-c = midea_device('YOUR_AC_IP', YOUR_AC_ID)
-device = c.setup()
+device = ac('YOUR_AC_IP', YOUR_AC_ID)
 # If the device is using protocol 3 (aka 8370), you must authenticate with your
 # WiFi network's credentials for local control
 device.authenticate('YOUR_AC_MAC', 'YOUR_WIFI_SSID', 'YOUR_WIFI_PW')

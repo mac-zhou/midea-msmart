@@ -35,11 +35,6 @@ class device:
         self._support = False
         self._protocol_version = 2
 
-    def setup(self):
-        # self.air_conditioning_device.refresh()
-        device = air_conditioning_device(self._ip, self._id)
-        return device
-
     def authenticate(self, mac: str, ssid: str, pw: str):
         self._protocol_version = 3
         self._mac = mac
