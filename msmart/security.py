@@ -1,9 +1,9 @@
 # -*- coding: UTF-8 -*-
-import hashlib
 import logging
 
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
+from hashlib import md5, sha256
 
 VERSION = '0.1.20'
 _LOGGER = logging.getLogger(__name__)
@@ -14,8 +14,8 @@ signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
 class security:
 
     def __init__(self):
-        self.appKey = appKey
-        self.signKey = signKey
+        self.appKey = appKey.encode()
+        self.signKey = signKey.encode()
         self.blockSize = 16
         self.encKey = self.enc_key()
         self.dynamicKey = self.dynamic_key()
@@ -43,24 +43,11 @@ class security:
         return encrypted
 
     def enc_key(self):
-        m = hashlib.md5()
-        # Hash the signKey
-        m.update(self.signKey.encode('ascii'))
-        # Use the HEX output of the hash
-        key = bytes.fromhex(m.hexdigest())
-        return key
+        return md5(self.signKey).digest()
 
     def dynamic_key(self):
-        m = hashlib.md5()
-        # Hash the appKey
-        m.update(self.appKey.encode('ascii'))
-        # Use only half the HEX output of the hash
-        key = bytes.fromhex(m.hexdigest()[:16])
-        return key
+        # Use only half of the hash
+        return md5(self.appKey).digest()[:8]
 
     def encode32_data(self, raw):
-        combine = raw + signKey.encode()
-        m = hashlib.md5()
-        m.update(combine)
-        key = bytes.fromhex(m.hexdigest())
-        return key
+        return md5(raw + self.signKey).digest()
