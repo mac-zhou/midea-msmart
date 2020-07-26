@@ -24,8 +24,7 @@ def convert_device_id_int(device_id: str):
 
 class device:
 
-    def __init__(self, device_ip: str, device_id: int):
-        device_id = convert_device_id_hex(device_id)
+    def __init__(self, device_ip: int, device_id: int):
         self._lan_service = lan(device_ip, device_id)
         self._ip = device_ip
         self._id = device_id
@@ -158,8 +157,8 @@ class air_conditioning_device(device):
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
-    def __init__(self, device_ip: str, device_id: str):
-        super().__init__(device_ip, convert_device_id_int(device_id))
+    def __init__(self, *args, **kwargs):
+        super(air_conditioning_device, self).__init__(*args, **kwargs)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0

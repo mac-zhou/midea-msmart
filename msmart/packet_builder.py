@@ -35,7 +35,7 @@ class packet_builder:
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
         self.packet[12:20] = self.packet_time()
-        self.packet[20:26] = bytearray.fromhex(device_id)
+        self.packet[20:26] = device_id.to_bytes(6, 'little')
 
     def set_command(self, command: base_command):
         self.command = command.finalize()
