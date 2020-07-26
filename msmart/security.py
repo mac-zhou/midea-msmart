@@ -3,6 +3,8 @@ import logging
 
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
+from Cryptodome.Util.strxor import strxor
+from Cryptodome.Random import get_random_bytes
 from hashlib import md5, sha256
 
 VERSION = '0.1.20'
@@ -63,3 +65,25 @@ class security:
 
     def encode32_data(self, raw):
         return md5(raw + self.signKey).digest()
+
+    def local_key(self, mac: str, ssid: str, pw: str):
+        mac = bytes.fromhex(mac.replace(':', ''))
+        ssid = ssid.encode()
+        pw = pw.encode()
+        return sha256(ssid + pw + mac).digest()
+
+    def token_key_pair(self, mac: str, ssid: str, pw: str):
+        local_key = self.local_key(mac, ssid, pw)
+        rand = get_random_bytes(32)
+        key = strxor(rand, local_key)
+        token = self.aes_cbc_encrypt(key, local_key)
+        sign = sha256(key).digest()
+        return (token + sign, key)
+
+    def tcp_key(self, response, key):
+        payload = response[:-32]
+        sign = response[-32:]
+        plain = self.aes_cbc_decrypt(payload, key)
+        if sha256(plain).digest() != sign:
+            raise Exception("sign does not match")
+        return strxor(plain, key)
