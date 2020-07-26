@@ -17,6 +17,7 @@ class security:
         self.appKey = appKey.encode()
         self.signKey = signKey.encode()
         self.blockSize = 16
+        self.iv = b'\0' * 16
         self.encKey = self.enc_key()
         self.dynamicKey = self.dynamic_key()
 
@@ -41,6 +42,17 @@ class security:
         encrypted = cipher.encrypt(bytes(raw))
 
         return encrypted
+
+    def aes_cbc_decrypt(self, raw, key):
+        try:
+            return AES.new(key, AES.MODE_CBC, iv=self.iv).decrypt(raw)
+        except ValueError as e:
+            _LOGGER.error(
+                "aes_cbc_decrypt error: {} - data: {}".format(repr(e), raw.hex()))
+            return bytearray(0)
+
+    def aes_cbc_encrypt(self, raw, key):
+        return AES.new(key, AES.MODE_CBC, iv=self.iv).encrypt(raw)
 
     def enc_key(self):
         return md5(self.signKey).digest()
