@@ -69,15 +69,17 @@ def discover(debug: int):
                     encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
 
-                    m_sn = reply[14:14+26].decode("utf-8")
+                    m_sn = reply[14:14+26].decode()
                     # ssid like midea_xx_xxxx net_xx_xxxx
-                    m_ssid = reply[14+27:14+27+13].decode("utf-8")
-                    m_type = m_ssid.split('_')[1]
+                    m_ssid_len = reply[14+26]
+                    m_ssid = reply[14+27:14+27+m_ssid_len].decode()
+                    m_type = reply[66:67].hex()
+                    m_mac = reply[74:74+6].hex()
                     
                     m_support = support_test(m_ip, int(m_id))
 
                     _LOGGER.info(
-                        "*** Found a {} '0x{}' at {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid))
+                        "*** Found a {} '{}' at {} - id: {} - sn: {} - ssid: {} - mac: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid, m_mac))
                 elif m_ip not in found_devices:
                     _LOGGER.info("Maybe not midea local data {} {}".format(m_ip, data.hex()))
 
