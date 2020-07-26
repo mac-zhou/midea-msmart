@@ -194,6 +194,11 @@ class air_conditioning_device(device):
         _LOGGER.debug(
             "update from {}, {}: {}".format(self.ip, self.id, data.hex()))
         if len(data) > 0:
+            if data == b'ERROR':
+                _LOGGER.debug(
+                    "got ERROR from {}, {}".format(self.ip, self.id))
+                #self._authenticate()
+                return
             response = appliance_response(data)
             self._defer_update = False
             self._support = True
