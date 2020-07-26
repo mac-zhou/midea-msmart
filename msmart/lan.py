@@ -53,22 +53,6 @@ class lan:
             self.device_ip, self.device_port, response.hex()))
         return response
 
-    def encode(self, data: bytearray):
-        normalized = []
-        for b in data:
-            if b >= 128:
-                b = b - 256
-            normalized.append(str(b))
-
-        string = ','.join(normalized)
-        return bytearray(string.encode('ascii'))
-
-    def decode(self, data: bytearray):
-        data = [int(a) for a in data]
-        for i in range(len(data)):
-            if data[i] < 0:
-                data[i] = data[i] + 256
-        return bytearray(data)
 
     def appliance_transparent_send(self, data):
         response = self.request(data)
