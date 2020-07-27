@@ -63,7 +63,7 @@ def discover(debug: int):
                 if data[:2] == bytes([0x83, 0x70]):
                     data = data[8:-16]
                     m_protocol = 3
-                if len(data) >= 104:
+                if data[:2] == bytes([0x5a, 0x5a]) and len(data) >= 104:
                     _LOGGER.info("Midea Local Data {} {}".format(m_ip, data.hex()))
                     m_id = int.from_bytes(data[20:26], 'little')
                     found_devices[m_ip] = m_id
