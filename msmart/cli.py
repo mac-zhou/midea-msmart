@@ -71,12 +71,25 @@ def discover(debug: int):
                     encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
 
-                    m_sn = reply[14:14+26].decode()
+                    m_ip = '.'.join([str(i) for i in reply[3::-1]])
+                    m_port = int.from_bytes(reply[4:8], 'little')
+                    m_sn = reply[8:40].decode()
                     # ssid like midea_xx_xxxx net_xx_xxxx
-                    m_ssid_len = reply[14+26]
-                    m_ssid = reply[14+27:14+27+m_ssid_len].decode()
+                    m_ssid_len = reply[40]
+                    m_ssid = reply[41:41+m_ssid_len].decode()
+                    m_id_reserve = reply[43+m_ssid_len]
+                    b = reply[44+m_ssid_len]
+                    m_enable_extra = (b >> 7) == 1
+                    m_support_extra_auth = (b & 1) == 1
+                    m_support_extra_channel = (b & 2) == 2
+                    m_support_extra_last_error_code = (b & 4) == 4
+                    m_extra_high = reply[45+m_ssid_len]
+                    m_udp_version = int.from_bytes(reply[46+m_ssid_len:50+m_ssid_len], 'little')
                     m_type = reply[55+m_ssid_len:56+m_ssid_len].hex()
+                    m_subtype = int.from_bytes(reply[57+m_ssid_len:59+m_ssid_len], 'little')
                     m_mac = reply[63+m_ssid_len:69+m_ssid_len].hex()
+                    m_protocol_version = reply[69+m_ssid_len:75+m_ssid_len].hex()
+                    m_random_code = reply[78+m_ssid_len:94+m_ssid_len]
 
                     if m_protocol == 2:
                         m_support = support_test(m_ip, m_id)
@@ -84,7 +97,7 @@ def discover(debug: int):
                         m_support = 'supported'
 
                     _LOGGER.info(
-                        "*** Found a {} '{}' at {} - id: {} - sn: {} - ssid: {} - mac: {} - protocol: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid, m_mac, m_protocol))
+                        "*** Found a {} '{}' ({}) at {}:{} - id: {} - sn: {} - ssid: {} - mac: {} - protocol: {}".format(m_support, m_type, m_subtype, m_ip, m_port, m_id, m_sn, m_ssid, m_mac, m_protocol))
 
         except socket.timeout:
             continue
