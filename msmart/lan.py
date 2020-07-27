@@ -41,6 +41,8 @@ class lan:
         self._connect()
 
         try:
+            if self._socket == None:
+                raise socket.error
             # Send data
             _LOGGER.debug("Sending to {}:{} {}".format(
                 self.device_ip, self.device_port, message.hex()))
