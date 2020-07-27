@@ -83,8 +83,10 @@ class security:
         return (token + sign, key)
 
     def tcp_key(self, response, key):
-        payload = response[:-32]
-        sign = response[-32:]
+        if len(response) != 64:
+            raise Exception('unexpected data length')
+        payload = response[:32]
+        sign = response[32:]
         plain = self.aes_cbc_decrypt(payload, key)
         if sha256(plain).digest() != sign:
             raise Exception("sign does not match")

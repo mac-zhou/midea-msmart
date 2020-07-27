@@ -29,6 +29,8 @@ class lan:
 
     def _connect(self):
         if self._socket == None:
+            _LOGGER.debug("Attempting new connection to {}:{}".format(
+                self.device_ip, self.device_port))
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket.settimeout(8)
             try:
