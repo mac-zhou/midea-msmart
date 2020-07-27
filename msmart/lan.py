@@ -68,7 +68,7 @@ class lan:
         if not self._token or not self._key:
             self._token, self._key = self.security.token_key_pair(mac, ssid, pw)
         request = self.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST)
-        response = self.request(request)[8:]
+        response = self.request(request)[8:72]
         if response == b'ERROR':
             raise Exception('authentication failed')
         self._tcp_key = self.security.tcp_key(response, self._key)
