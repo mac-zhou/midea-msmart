@@ -57,7 +57,8 @@ def discover(debug: int):
             sock.sendto(BROADCAST_MSG, ("255.255.255.255", 6445))
             while True:
                 data, addr = sock.recvfrom(512)
-                m_ip = addr[0], m_protocol = 2
+                m_ip = addr[0]
+                m_protocol = 2
                 if m_ip in found_devices:
                     continue
                 if data[:2] == bytes([0x83, 0x70]):
