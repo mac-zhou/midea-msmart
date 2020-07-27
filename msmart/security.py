@@ -68,6 +68,8 @@ class security:
 
     def local_key(self, mac: str, ssid: str, pw: str):
         mac = bytes.fromhex(mac.replace(':', ''))
+        if len(mac) != 6:
+            raise Exception('bad MAC address')
         ssid = ssid.encode()
         pw = pw.encode()
         return sha256(ssid + pw + mac).digest()
