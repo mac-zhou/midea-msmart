@@ -75,8 +75,8 @@ def discover(debug: int):
                     # ssid like midea_xx_xxxx net_xx_xxxx
                     m_ssid_len = reply[14+26]
                     m_ssid = reply[14+27:14+27+m_ssid_len].decode()
-                    m_type = reply[66:67].hex()
-                    m_mac = reply[74:74+6].hex()
+                    m_type = reply[55+m_ssid_len:56+m_ssid_len].hex()
+                    m_mac = reply[63+m_ssid_len:69+m_ssid_len].hex()
 
                     if m_protocol == 2:
                         m_support = support_test(m_ip, m_id)
