@@ -1,17 +1,11 @@
 # -*- coding: UTF-8 -*-
 import logging
 import socket
-from msmart.security import security, get_random_bytes, sha256
+from msmart.security import security, MSGTYPE_HANDSHAKE_REQUEST, MSGTYPE_ENCRYPTED_REQUEST
 
 VERSION = '0.1.20'
 
 _LOGGER = logging.getLogger(__name__)
-
-MSGTYPE_HANDSHAKE_REQUEST = 0x0
-MSGTYPE_HANDSHAKE_RESPONSE = 0x1
-MSGTYPE_ENCRYPTED_RESPONSE = 0x3
-MSGTYPE_ENCRYPTED_REQUEST = 0x6
-MSGTYPE_TRANSPARENT = 0xf
 
 class lan:
     def __init__(self, device_ip, device_id):
@@ -24,8 +18,6 @@ class lan:
         self._token = None
         self._key = None
         self._tcp_key = None
-        self._request_count = 0
-        self._response_count = 0
 
     def _connect(self):
         if self._socket == None:
@@ -69,61 +61,16 @@ class lan:
     def authenticate(self, mac: str, ssid: str, pw: str):
         if not self._token or not self._key:
             self._token, self._key = self.security.token_key_pair(mac, ssid, pw)
-        request = self.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST)
+        request = self.security.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST)
         response = self.request(request)[8:72]
         if response == b'ERROR':
             raise Exception('authentication failed')
         self._tcp_key = self.security.tcp_key(response, self._key)
         _LOGGER.debug('Got TCP key for {}:{} {}'.format(self.device_ip, self.device_port, self._tcp_key.hex()))
-        self._request_count = 0
-        self._response_count = 0
-
-    def encode_8370(self, data, msgtype):
-        header = bytes([0x83, 0x70])
-        size, padding = len(data), 0
-        if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
-            if (size + 2) % 16 != 0:
-                padding = 16 - (size + 2 & 0xf)
-                size += padding + 32
-                data += get_random_bytes(padding)
-        header += size.to_bytes(2, 'big')
-        header += bytes([0x20, padding << 4 | msgtype])
-        data = self._request_count.to_bytes(2, 'big') + data
-        self._request_count += 1
-        if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
-            sign = sha256(header + data).digest()
-            data = self.security.aes_cbc_encrypt(data, self._tcp_key) + sign
-        return header + data
-
-    def decode_8370(self, data):
-        assert not len(data) < 6, 'not enough data'
-        header = data[:6]
-        assert not header[0] != 0x83 or header[1] != 0x70, 'not an 8370 message'
-        size = int.from_bytes(header[2:4], 'big')
-        leftover = None
-        if len(data) != size + 8:
-            leftover = data[size + 8:]
-            data = data[:size + 8]
-        assert not header[4] != 0x20, 'missing byte 4'
-        padding = header[5] >> 4
-        msgtype = header[5] & 0xf
-        data = data[6:]
-        if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
-            sign = data[-32:]
-            data = data[:-32]
-            data = self.security.aes_cbc_decrypt(data, self._tcp_key)
-            assert not sha256(header + data).digest() != sign, 'sign does not match'
-            if padding:
-                data = data[:-padding]
-        self._response_count = int.from_bytes(data[:2], 'big')
-        data = data[2:]
-        if leftover:
-            return [data] + self.decode_8370(leftover)
-        return [data]
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
-        data = self.encode_8370(data, msgtype)
-        responses = self.decode_8370(self.request(data))
+        data = self.security.encode_8370(data, msgtype, self._tcp_key)
+        responses = self.security.decode_8370(self.request(data), self._tcp_key)
         packets = []
         for response in responses:
             if len(response) > 40 + 16:

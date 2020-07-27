@@ -12,6 +12,11 @@ _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
 
+MSGTYPE_HANDSHAKE_REQUEST = 0x0
+MSGTYPE_HANDSHAKE_RESPONSE = 0x1
+MSGTYPE_ENCRYPTED_RESPONSE = 0x3
+MSGTYPE_ENCRYPTED_REQUEST = 0x6
+MSGTYPE_TRANSPARENT = 0xf
 
 class security:
 
@@ -22,6 +27,8 @@ class security:
         self.iv = b'\0' * 16
         self.encKey = self.enc_key()
         self.dynamicKey = self.dynamic_key()
+        self._request_count = 0
+        self._response_count = 0
 
     def aes_decrypt(self, raw):
         cipher = AES.new(self.encKey, AES.MODE_ECB)
@@ -90,4 +97,50 @@ class security:
         plain = self.aes_cbc_decrypt(payload, key)
         if sha256(plain).digest() != sign:
             raise Exception("sign does not match")
+        self._request_count = 0
+        self._response_count = 0
         return strxor(plain, key)
+
+    def encode_8370(self, data, msgtype, tcp_key=None):
+        header = bytes([0x83, 0x70])
+        size, padding = len(data), 0
+        if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
+            if (size + 2) % 16 != 0:
+                padding = 16 - (size + 2 & 0xf)
+                size += padding + 32
+                data += get_random_bytes(padding)
+        header += size.to_bytes(2, 'big')
+        header += bytes([0x20, padding << 4 | msgtype])
+        data = self._request_count.to_bytes(2, 'big') + data
+        self._request_count += 1
+        if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
+            sign = sha256(header + data).digest()
+            data = self.aes_cbc_encrypt(data, tcp_key) + sign
+        return header + data
+
+    def decode_8370(self, data, tcp_key=None):
+        assert not len(data) < 6, 'not enough data'
+        header = data[:6]
+        assert not header[0] != 0x83 or header[1] != 0x70, 'not an 8370 message'
+        size = int.from_bytes(header[2:4], 'big')
+        leftover = None
+        if len(data) != size + 8:
+            leftover = data[size + 8:]
+            data = data[:size + 8]
+        assert not header[4] != 0x20, 'missing byte 4'
+        padding = header[5] >> 4
+        msgtype = header[5] & 0xf
+        data = data[6:]
+        if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
+            sign = data[-32:]
+            data = data[:-32]
+            data = self.aes_cbc_decrypt(data, tcp_key)
+            assert not sha256(header + data).digest() != sign, 'sign does not match'
+            if padding:
+                data = data[:-padding]
+        self._response_count = int.from_bytes(data[:2], 'big')
+        data = data[2:]
+        if leftover:
+            return [data] + self.decode_8370(leftover)
+        return [data]
+
