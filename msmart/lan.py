@@ -17,7 +17,6 @@ class lan:
         self._socket = None
         self._token = None
         self._key = None
-        self._tcp_key = None
 
     def _connect(self):
         if self._socket == None:
@@ -65,12 +64,12 @@ class lan:
         response = self.request(request)[8:72]
         if response == b'ERROR':
             raise Exception('authentication failed')
-        self._tcp_key = self.security.tcp_key(response, self._key)
-        _LOGGER.debug('Got TCP key for {}:{} {}'.format(self.device_ip, self.device_port, self._tcp_key.hex()))
+        tcp_key = self.security.tcp_key(response, self._key)
+        _LOGGER.debug('Got TCP key for {}:{} {}'.format(self.device_ip, self.device_port, tcp_key.hex()))
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
-        data = self.security.encode_8370(data, msgtype, self._tcp_key)
-        responses = self.security.decode_8370(self.request(data), self._tcp_key)
+        data = self.security.encode_8370(data, msgtype)
+        responses = self.security.decode_8370(self.request(data))
         packets = []
         for response in responses:
             if len(response) > 40 + 16:

@@ -27,6 +27,7 @@ class security:
         self.iv = b'\0' * 16
         self.encKey = self.enc_key()
         self.dynamicKey = self.dynamic_key()
+        self._tcp_key = None
         self._request_count = 0
         self._response_count = 0
 
@@ -97,11 +98,12 @@ class security:
         plain = self.aes_cbc_decrypt(payload, key)
         if sha256(plain).digest() != sign:
             raise Exception("sign does not match")
+        self._tcp_key = strxor(plain, key)
         self._request_count = 0
         self._response_count = 0
-        return strxor(plain, key)
+        return self._tcp_key
 
-    def encode_8370(self, data, msgtype, tcp_key=None):
+    def encode_8370(self, data, msgtype):
         header = bytes([0x83, 0x70])
         size, padding = len(data), 0
         if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
@@ -115,10 +117,10 @@ class security:
         self._request_count += 1
         if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
             sign = sha256(header + data).digest()
-            data = self.aes_cbc_encrypt(data, tcp_key) + sign
+            data = self.aes_cbc_encrypt(data, self._tcp_key) + sign
         return header + data
 
-    def decode_8370(self, data, tcp_key=None):
+    def decode_8370(self, data):
         assert not len(data) < 6, 'not enough data'
         header = data[:6]
         assert not header[0] != 0x83 or header[1] != 0x70, 'not an 8370 message'
@@ -134,7 +136,7 @@ class security:
         if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
             sign = data[-32:]
             data = data[:-32]
-            data = self.aes_cbc_decrypt(data, tcp_key)
+            data = self.aes_cbc_decrypt(data, self._tcp_key)
             assert not sha256(header + data).digest() != sign, 'sign does not match'
             if padding:
                 data = data[:-padding]
