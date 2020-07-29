@@ -63,8 +63,12 @@ class lan:
         return response
 
     def authenticate(self, mac: str, ssid: str, pw: str):
+        self._token, self._key = self.security.token_key_pair(mac, ssid, pw)
+        self._authenticate()
+
+    def _authenticate(self):
         if not self._token or not self._key:
-            self._token, self._key = self.security.token_key_pair(mac, ssid, pw)
+            raise Exception('missing token key pair')
         request = self.security.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST)
         response = self.request(request)[8:72]
         try:
@@ -75,6 +79,8 @@ class lan:
             raise error
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
+        if self._socket == None:
+            self._authenticate()
         data = self.security.encode_8370(data, msgtype)
         responses = self.security.decode_8370(self.request(data))
         packets = []
