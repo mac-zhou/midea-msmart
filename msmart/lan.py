@@ -67,10 +67,12 @@ class lan:
             self._token, self._key = self.security.token_key_pair(mac, ssid, pw)
         request = self.security.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST)
         response = self.request(request)[8:72]
-        if response == b'ERROR':
-            raise Exception('authentication failed')
-        tcp_key = self.security.tcp_key(response, self._key)
-        _LOGGER.debug('Got TCP key for {}:{} {}'.format(self.device_ip, self.device_port, tcp_key.hex()))
+        try:
+            tcp_key = self.security.tcp_key(response, self._key)
+            _LOGGER.debug('Got TCP key for {}:{} {}'.format(self.device_ip, self.device_port, tcp_key.hex()))
+        except Exception as error:
+            self._disconnect()
+            raise error
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
         data = self.security.encode_8370(data, msgtype)

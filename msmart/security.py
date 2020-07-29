@@ -86,6 +86,8 @@ class security:
         return (token + sign, key)
 
     def tcp_key(self, response, key):
+        if response == b'ERROR':
+            raise Exception('authentication failed')
         if len(response) != 64:
             raise Exception('unexpected data length')
         payload = response[:32]
@@ -116,15 +118,20 @@ class security:
         return header + data
 
     def decode_8370(self, data):
-        assert not len(data) < 6, 'not enough data'
+        if len(data) < 6:
+            raise Exception('not enough data')
         header = data[:6]
-        assert not header[0] != 0x83 or header[1] != 0x70, 'not an 8370 message'
-        size = int.from_bytes(header[2:4], 'big')
+        if header[0] != 0x83 or header[1] != 0x70:
+            raise Exception('not an 8370 message')
+        size = int.from_bytes(header[2:4], 'big') + 8
         leftover = None
-        if len(data) != size + 8:
-            leftover = data[size + 8:]
-            data = data[:size + 8]
-        assert not header[4] != 0x20, 'missing byte 4'
+        if len(data) < size:
+            raise Exception('incomplete packet')
+        elif len(data) > size:
+            leftover = data[size:]
+            data = data[:size]
+        if header[4] != 0x20:
+            raise Exception('missing byte 4')
         padding = header[5] >> 4
         msgtype = header[5] & 0xf
         data = data[6:]
@@ -132,7 +139,8 @@ class security:
             sign = data[-32:]
             data = data[:-32]
             data = self.aes_cbc_decrypt(data, self._tcp_key)
-            assert not sha256(header + data).digest() != sign, 'sign does not match'
+            if sha256(header + data).digest() != sign:
+                raise Exception('sign does not match')
             if padding:
                 data = data[:-padding]
         self._response_count = int.from_bytes(data[:2], 'big')
