@@ -54,12 +54,7 @@ class security:
         return encrypted
 
     def aes_cbc_decrypt(self, raw, key):
-        try:
-            return AES.new(key, AES.MODE_CBC, iv=self.iv).decrypt(raw)
-        except ValueError as e:
-            _LOGGER.error(
-                "aes_cbc_decrypt error: {} - data: {}".format(repr(e), raw.hex()))
-            return bytearray(0)
+        return AES.new(key, AES.MODE_CBC, iv=self.iv).decrypt(raw)
 
     def aes_cbc_encrypt(self, raw, key):
         return AES.new(key, AES.MODE_CBC, iv=self.iv).encrypt(raw)
