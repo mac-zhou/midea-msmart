@@ -27,7 +27,12 @@ class lan:
             try:
                 self._socket.connect((self.device_ip, self.device_port))
             except:
-                self._socket = None
+                self._disconnect()
+
+    def _disconnect(self):
+        if self._socket:
+            self._socket.close()
+            self._socket = None
 
     def request(self, message):
         # Create a TCP/IP socket
@@ -46,12 +51,12 @@ class lan:
         except socket.error:
             _LOGGER.info("Couldn't connect with Device {}:{}".format(
                 self.device_ip, self.device_port))
-            self._socket = None
+            self._disconnect()
             return bytearray(0)
         except socket.timeout:
             _LOGGER.info("Connect the Device %s:%s TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
                 self.device_ip, self.device_port))
-            self._socket = None
+            self._disconnect()
             return bytearray(0)
         _LOGGER.debug("Received from {}:{} {}".format(
             self.device_ip, self.device_port, response.hex()))
