@@ -22,6 +22,7 @@ class lan:
         if self._socket == None:
             _LOGGER.debug("Attempting new connection to {}:{}".format(
                 self.device_ip, self.device_port))
+            self._buffer = b''
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._socket.settimeout(8)
             try:
@@ -82,7 +83,7 @@ class lan:
         if self._socket == None:
             self._authenticate()
         data = self.security.encode_8370(data, msgtype)
-        responses = self.security.decode_8370(self.request(data))
+        responses, self._buffer = self.security.decode_8370(self._buffer + self.request(data))
         packets = []
         for response in responses:
             if len(response) > 40 + 16:

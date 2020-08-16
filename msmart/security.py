@@ -126,7 +126,7 @@ class security:
         size = int.from_bytes(header[2:4], 'big') + 8
         leftover = None
         if len(data) < size:
-            raise Exception('incomplete packet')
+            return [], data
         elif len(data) > size:
             leftover = data[size:]
             data = data[:size]
@@ -146,6 +146,7 @@ class security:
         self._response_count = int.from_bytes(data[:2], 'big')
         data = data[2:]
         if leftover:
-            return [data] + self.decode_8370(leftover)
-        return [data]
+            packets, incomplete = self.decode_8370(leftover)
+            return [data] + packets, incomplete
+        return [data], b''
 
