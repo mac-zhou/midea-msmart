@@ -244,8 +244,8 @@ class air_conditioning_device(device):
         outdoor_temperature = res.outdoor_temperature
         if outdoor_temperature != 0xff:
             self._outdoor_temperature = outdoor_temperature
-        self._timer_on = res.on_timer
-        self._timer_off = res.off_timer
+        self._on_timer = res.on_timer
+        self._off_timer = res.off_timer
     
     def update_special(self, res: appliance_response):
         indoor_temperature = res.indoor_temperature
