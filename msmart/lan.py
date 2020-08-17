@@ -48,7 +48,7 @@ class lan:
             self._socket.send(message)
 
             # Received data
-            response = self._socket.recv(512)
+            response = self._socket.recv(1024)
         except socket.error:
             _LOGGER.info("Couldn't connect with Device {}:{}".format(
                 self.device_ip, self.device_port))
