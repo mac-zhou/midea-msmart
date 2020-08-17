@@ -119,7 +119,7 @@ class security:
 
     def decode_8370(self, data):
         if len(data) < 6:
-            raise Exception('not enough data')
+            return [], data
         header = data[:6]
         if header[0] != 0x83 or header[1] != 0x70:
             raise Exception('not an 8370 message')
