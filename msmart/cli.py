@@ -4,6 +4,8 @@ import click
 import logging
 import socket
 import sys
+import os
+import ctypes
 from msmart.security import security
 from msmart.device import convert_device_id_int
 from msmart.device import device as midea_device
@@ -46,8 +48,14 @@ def discover(debug: int):
     _security = security()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+    try:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    except AttributeError:
+        # Will be raised when executed in Windows. Safe to ignore.
+        pass
+
     sock.settimeout(5)
     found_devices = {}
     _LOGGER.info("msmart version: {}".format(VERSION))
