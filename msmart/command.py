@@ -47,11 +47,18 @@ class base_command:
         self.data[-1] = datetime.datetime.now().second
         self.data[0x02] = device_type
 
+    def checksum(self, data):
+        c = (~ sum(data) + 1) & 0xff
+        return (~ sum(data) + 1) & 0xff
+
     def finalize(self):
         # Add the CRC8
         self.data.append(crc8.calculate(self.data[10:]))
         # Set the length of the command data
         # self.data[0x01] = len(self.data)
+        # Add cheksum
+        self.data.append(self.checksum(self.data[1:]))
+        _LOGGER.debug("Finalize request data: {}".format(self.data.hex()))
         return self.data
 
 

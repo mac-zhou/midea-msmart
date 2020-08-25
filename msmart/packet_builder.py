@@ -41,9 +41,6 @@ class packet_builder:
         self.command = command.finalize()
 
     def finalize(self):
-        # Add cheksum
-        self.command.append(self.checksum(self.command[1:]))
-        _LOGGER.debug("Finalize request data: {}".format(self.command.hex()))
         # Append the command data(48 bytes) to the packet
         self.packet.extend(self.security.aes_encrypt(self.command)[:48])
         # Set the packet length in the packet!
