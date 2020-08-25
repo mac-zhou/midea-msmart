@@ -36,7 +36,7 @@ BROADCAST_MSG = bytearray([
 @click.option("-d", "--debug", default=False, count=True)
 # @click.pass_context
 def discover(debug: int):
-    """Discover Midea Devices with UDP Broadcast"""
+    """Send Device Scan Broadcast"""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
         _LOGGER.info("Debug mode active")
@@ -46,13 +46,13 @@ def discover(debug: int):
     _security = security()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+    # sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.settimeout(5)
     found_devices = {}
     _LOGGER.info("msmart version: {}".format(VERSION))
     _LOGGER.info(
-        "Discovering devices with UDP Broadcast, press CTRL-C to quit...")
+        "Sending Device Scan Broadcast, press CTRL-C to quit...")
     for i in range(10):
         try:
             sock.sendto(BROADCAST_MSG, ("255.255.255.255", 6445))
@@ -68,16 +68,21 @@ def discover(debug: int):
                     found_devices[m_ip] = m_id
                     encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
-
-                    m_sn = reply[14:14+26].decode("utf-8")
+                    _LOGGER.info("Decrypt Reply: {} {}".format(m_ip, reply.hex()))
+                    
+                    m_ip = str(reply[3]) + "." + str(reply[2]) + "." + str(reply[1]) + "." + str(reply[0])
+                    m_port = str(bytes2port(reply[4:8]))
+                    m_sn = reply[8:40].decode("utf-8")
                     # ssid like midea_xx_xxxx net_xx_xxxx
-                    m_ssid = reply[14+27:14+27+13].decode("utf-8")
+                    m_ssid = reply[41:41+reply[40]].decode("utf-8")
+                    # if len(reply) > 54:
+
                     m_type = m_ssid.split('_')[1]
                     
                     m_support = support_test(m_ip, int(m_id))
 
                     _LOGGER.info(
-                        "*** Found a {} '0x{}' at {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_id, m_sn, m_ssid))
+                        "*** Found a {} '0x{}' at {} - port: {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_port, m_id, m_sn, m_ssid))
                 elif m_ip not in found_devices:
                     _LOGGER.info("Maybe not midea local data {} {}".format(m_ip, data.hex()))
 
@@ -104,6 +109,18 @@ def remove_duplicates(device_list: list):
             newlist.append(i)
     return newlist
 
+def bytes2port(paramArrayOfbyte):
+    if paramArrayOfbyte == None:
+        return 0
+    b, i = 0, 0
+    while b < 4:
+        if b < len(paramArrayOfbyte):
+            b1 = paramArrayOfbyte[b] & 0xFF
+        else:
+            b1 = 0
+        i |= b1 << b * 8
+        b += 1
+    return i
 
 # if __name__ == '__main__':
 #     discover()
