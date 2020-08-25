@@ -67,9 +67,13 @@ def discover(debug: int):
             while True:
                 data, addr = sock.recvfrom(512)
                 m_ip = addr[0]
-                m_id, m_type, m_sn, m_ssid = 'unknown', 'unknown', 'unknown', 'unknown'
+                m_id, m_type, m_sn, m_ssid, m_version = 'unknown', 'unknown', 'unknown', 'unknown', 'unknown'
                 if len(data) >= 104 and (data[:2].hex() == '5a5a' or data[8:10].hex() == '5a5a') and m_ip not in found_devices:
                     _LOGGER.info("Midea Local Data {} {}".format(m_ip, data.hex()))
+                    if data[:2].hex() == '5a5a':
+                        m_version = 'V2'
+                    if data[:2].hex() == '8370':
+                        m_version = 'V3'
                     if data[8:10].hex() == '5a5a':
                         data = data[8:-16]
                     m_id = convert_device_id_int(data[20:26].hex())
@@ -90,7 +94,7 @@ def discover(debug: int):
                     m_support = support_test(m_ip, int(m_id))
 
                     _LOGGER.info(
-                        "*** Found a {} '0x{}' at {} - port: {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_ip, m_port, m_id, m_sn, m_ssid))
+                        "*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_sn, m_ssid))
                 elif m_ip not in found_devices:
                     _LOGGER.info("Maybe not midea local data {} {}".format(m_ip, data.hex()))
 
