@@ -42,6 +42,8 @@ class device:
         self._defer_update = False
         self._half_temp_step = False
         self._support = False
+        self._online = True
+        self._active = True
 
     def setup(self):
         # self.air_conditioning_device.refresh()
@@ -89,11 +91,11 @@ class device:
 
     @property
     def active(self):
-        return True
+        return self._active
 
     @property
     def online(self):
-        return True
+        return self._online
 
     @property
     def support(self):
@@ -169,6 +171,8 @@ class air_conditioning_device(device):
 
         self._on_timer = None
         self._off_timer = None
+        self._online = True
+        self._active = True
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
 
@@ -182,6 +186,7 @@ class air_conditioning_device(device):
         _LOGGER.debug(
             "refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
         if len(data) > 0:
+            self._online = True
             response = appliance_response(data)
             self._defer_update = False
             self._support = True
@@ -195,6 +200,8 @@ class air_conditioning_device(device):
                     pass
                     # self.update_special(response)
                 self._defer_update = False
+        else:
+            self._online = False
 
     def apply(self):
         self._updating = True
@@ -218,6 +225,7 @@ class air_conditioning_device(device):
             _LOGGER.debug(
                 "apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
             if len(data) > 0:
+                self._online = True
                 response = appliance_response(data)
                 self._support = True
                 if not self._defer_update:
@@ -229,6 +237,8 @@ class air_conditioning_device(device):
                             self.ip, self.id, data[0xa:].hex()))
                         pass
                         # self.update_special(response)
+            else:
+                self._online = False
         finally:
             self._updating = False
             self._defer_update = False
@@ -371,6 +381,7 @@ class unknown_device(device):
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(self.id, data)
         if len(data) > 0:
+            self._online = True
             response = appliance_response(data)
             _LOGGER.debug("Decoded Data: {}".format({
                 'prompt_tone': response.prompt_tone,
@@ -383,6 +394,8 @@ class unknown_device(device):
                 'eco_mode': response.eco_mode,
                 'turbo_mode': response.turbo_mode
             }))
+        else:
+            self._online = False
 
     def apply(self):
         _LOGGER.debug("Cannot apply, device not fully supported yet")
