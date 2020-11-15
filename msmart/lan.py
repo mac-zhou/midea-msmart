@@ -4,16 +4,16 @@ import datetime
 import socket
 from msmart.security import security
 
-VERSION = '0.1.20'
+VERSION = '0.1.23'
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class lan:
-    def __init__(self, device_ip, device_id):
+    def __init__(self, device_ip, device_id, device_port=6444):
         self.device_ip = device_ip
         self.device_id = device_id
-        self.device_port = 6444
+        self.device_port = device_port
         self.security = security()
         self._retries = 0
 
@@ -45,7 +45,7 @@ class lan:
         finally:
             sock.close()
         _LOGGER.debug("Received from {}:{} {}".format(
-            self.device_ip, self.device_port, message.hex()))
+            self.device_ip, self.device_port, response.hex()))
         return response
 
     def encode(self, data: bytearray):

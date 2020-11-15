@@ -9,7 +9,7 @@ from msmart.command import base_command as request_status_command
 from msmart.command import set_command
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.20'
+VERSION = '0.1.23'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,11 +31,12 @@ def convert_device_id_int(device_id: str):
 
 class device:
 
-    def __init__(self, device_ip: str, device_id: int):
+    def __init__(self, device_ip: str, device_id: int, device_port: int):
         device_id = convert_device_id_hex(device_id)
-        self._lan_service = lan(device_ip, device_id)
+        self._lan_service = lan(device_ip, device_id, device_port)
         self._ip = device_ip
         self._id = device_id
+        self._port = device_port
         self._type = 0xac
         self._updating = False
         self._defer_update = False
@@ -44,7 +45,7 @@ class device:
 
     def setup(self):
         # self.air_conditioning_device.refresh()
-        device = air_conditioning_device(self._ip, self._id)
+        device = air_conditioning_device(self._ip, self._id, self._port)
         return device
 
     def set_device_detail(self, device_detail: dict):
@@ -154,8 +155,8 @@ class air_conditioning_device(device):
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
-    def __init__(self, device_ip: str, device_id: str):
-        super().__init__(device_ip, convert_device_id_int(device_id))
+    def __init__(self, device_ip: str, device_id: str, device_port: int):
+        super().__init__(device_ip, convert_device_id_int(device_id), device_port)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
