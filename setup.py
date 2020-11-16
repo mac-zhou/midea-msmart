@@ -12,6 +12,7 @@ setuptools.setup(
     description="A library to control Midea appliances via the Local area network",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    license="MIT",
     url="https://github.com/mac-zhou/midea-msmart",
     packages=setuptools.find_packages(),
     classifiers=[
