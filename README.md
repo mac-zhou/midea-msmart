@@ -1,6 +1,9 @@
 This is a library to allow communicating to a Midea AC via the Local area network.
 
 # midea-msmart
+[![Build Status](https://travis-ci.org/mac-zhou/midea-msmart.svg?branch=master)](https://travis-ci.org/mac-zhou/midea-msmart)
+[![PyPI](https://img.shields.io/pypi/v/msmart.svg?maxAge=3600)](https://pypi.org/project/msmart/)
+
 
 This a mirror from the repo at [NeoAcheron/midea-ac-py](https://github.com/NeoAcheron/midea-ac-py).
 
