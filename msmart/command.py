@@ -3,7 +3,7 @@ import logging
 import datetime
 import msmart.crc8 as crc8
 
-VERSION = '0.1.23'
+VERSION = '0.1.24'
 
 _LOGGER = logging.getLogger(__name__)
 

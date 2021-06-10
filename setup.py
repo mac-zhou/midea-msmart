@@ -6,12 +6,13 @@ with open("README.md", "r", encoding='utf-8') as fh:
 
 setuptools.setup(
     name='msmart',
-    version='0.1.23',
+    version='0.1.24',
     author="mac_zhou",
     author_email="mac.zfl@gmail.com",
     description="A library to control Midea appliances via the Local area network",
     long_description=long_description,
     long_description_content_type="text/markdown",
+    license="MIT",
     url="https://github.com/mac-zhou/midea-msmart",
     packages=setuptools.find_packages(),
     classifiers=[
