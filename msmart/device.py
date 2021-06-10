@@ -31,12 +31,13 @@ def convert_device_id_int(device_id: str):
 
 class device:
 
-    def __init__(self, device_ip: str, device_id: int, device_port: int):
+    def __init__(self, device_ip: str, device_id: int, device_port: int, device_unavailableoverride = False):
         device_id = convert_device_id_hex(device_id)
         self._lan_service = lan(device_ip, device_id, device_port)
         self._ip = device_ip
         self._id = device_id
         self._port = device_port
+        self._unavailableoverride = device_unavailableoverride
         self._type = 0xac
         self._updating = False
         self._defer_update = False
@@ -157,8 +158,8 @@ class air_conditioning_device(device):
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
-    def __init__(self, device_ip: str, device_id: str, device_port: int):
-        super().__init__(device_ip, convert_device_id_int(device_id), device_port)
+    def __init__(self, device_ip: str, device_id: str, device_port: int, device_unavailableoverride = False):
+        super().__init__(device_ip, convert_device_id_int(device_id), device_port, device_unavailableoverride)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
@@ -200,7 +201,7 @@ class air_conditioning_device(device):
                     pass
                     # self.update_special(response)
                 self._defer_update = False
-        else:
+        elif not self._device_unavailableoverride:
             self._online = False
 
     def apply(self):
@@ -237,7 +238,7 @@ class air_conditioning_device(device):
                             self.ip, self.id, data[0xa:].hex()))
                         pass
                         # self.update_special(response)
-            else:
+            elif not self._device_unavailableoverride:
                 self._online = False
         finally:
             self._updating = False
@@ -394,7 +395,7 @@ class unknown_device(device):
                 'eco_mode': response.eco_mode,
                 'turbo_mode': response.turbo_mode
             }))
-        else:
+        elif not self._device_unavailableoverride:
             self._online = False
 
     def apply(self):
