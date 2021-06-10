@@ -201,7 +201,7 @@ class air_conditioning_device(device):
                     pass
                     # self.update_special(response)
                 self._defer_update = False
-        elif not self._device_unavailableoverride:
+        elif not self._unavailableoverride:
             self._online = False
 
     def apply(self):
@@ -238,7 +238,7 @@ class air_conditioning_device(device):
                             self.ip, self.id, data[0xa:].hex()))
                         pass
                         # self.update_special(response)
-            elif not self._device_unavailableoverride:
+            elif not self._unavailableoverride:
                 self._online = False
         finally:
             self._updating = False
@@ -395,7 +395,7 @@ class unknown_device(device):
                 'eco_mode': response.eco_mode,
                 'turbo_mode': response.turbo_mode
             }))
-        elif not self._device_unavailableoverride:
+        elif not self._unavailableoverride:
             self._online = False
 
     def apply(self):
