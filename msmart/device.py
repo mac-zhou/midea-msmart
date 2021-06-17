@@ -37,6 +37,7 @@ class device:
         self._ip = device_ip
         self._id = device_id
         self._port = device_port
+        self._keep_last_known_online_state = False
         self._type = 0xac
         self._updating = False
         self._defer_update = False
@@ -100,6 +101,14 @@ class device:
     @property
     def support(self):
         return self._support
+
+    @property
+    def keep_last_known_online_state(self):
+        return self._keep_last_known_online_state
+
+    @keep_last_known_online_state.setter
+    def keep_last_known_online_state(self, feedback: bool):
+        self._keep_last_known_online_state = feedback
 
 
 class air_conditioning_device(device):
@@ -200,7 +209,7 @@ class air_conditioning_device(device):
                     pass
                     # self.update_special(response)
                 self._defer_update = False
-        else:
+        elif not self._keep_last_known_online_state:
             self._online = False
 
     def apply(self):
@@ -237,7 +246,7 @@ class air_conditioning_device(device):
                             self.ip, self.id, data[0xa:].hex()))
                         pass
                         # self.update_special(response)
-            else:
+            elif not self._keep_last_known_online_state:
                 self._online = False
         finally:
             self._updating = False
@@ -394,7 +403,7 @@ class unknown_device(device):
                 'eco_mode': response.eco_mode,
                 'turbo_mode': response.turbo_mode
             }))
-        else:
+        elif not self._keep_last_known_online_state:
             self._online = False
 
     def apply(self):
