@@ -70,6 +70,8 @@ class set_command(base_command):
         self.data[0x09] = 0x02
         # Set up Mode
         self.data[0x0a] = 0x40
+        # prompt_tone
+        self.data[0x0b] = 0x40
         self.data.extend(bytearray([0x00, 0x00, 0x00]))
 
     @property
