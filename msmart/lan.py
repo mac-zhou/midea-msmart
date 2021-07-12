@@ -4,7 +4,7 @@ import datetime
 import socket
 from msmart.security import security
 
-VERSION = '0.1.24'
+VERSION = '0.1.25'
 
 _LOGGER = logging.getLogger(__name__)
 
