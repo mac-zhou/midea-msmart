@@ -15,18 +15,11 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def convert_device_id_hex(device_id: int):
-    hex_string = hex(device_id)[2:]
-    if len(hex_string) % 2 != 0:
-        hex_string = '0' + hex_string
-    old = bytearray.fromhex(hex_string)
-    new = reversed(old)
-    return bytearray(new).hex()
+    return device_id.to_bytes(6, 'little').hex()
 
 
 def convert_device_id_int(device_id: str):
-    old = bytearray.fromhex(device_id)
-    new = reversed(old)
-    return int(bytearray(new).hex(), 16)
+    return int.from_bytes(bytes.fromhex(device_id), 'little')
 
 
 class device:
@@ -43,6 +36,19 @@ class device:
         self._defer_update = False
         self._half_temp_step = False
         self._support = False
+        self._online = True
+        self._active = True
+        self._protocol_version = 2
+
+    def authenticate(self, mac: str, ssid: str, pw: str):
+        self._protocol_version = 3
+        self._mac = mac
+        self._wifi_ssid = ssid
+        self._wifi_pw = pw
+        self._authenticate()
+
+    def _authenticate(self):
+        self._lan_service.authenticate(self._mac, self._wifi_ssid, self._wifi_pw)
         self._online = True
         self._active = True
 
@@ -187,15 +193,29 @@ class air_conditioning_device(device):
 
     def refresh(self):
         cmd = request_status_command(self.type)
+        self._send_cmd(cmd)
+
+    def _send_cmd(self, cmd):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
-
         data = pkt_builder.finalize()
-        data = self._lan_service.appliance_transparent_send(data)
+        if self._protocol_version == 3:
+            responses = self._lan_service.appliance_transparent_send_8370(data)
+        else:
+            responses = self._lan_service.appliance_transparent_send(data)
+        for response in responses:
+            self._process_response(response)
+
+    def _process_response(self, data):
         _LOGGER.debug(
-            "refresh - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
+            "update from {}, {}: {}".format(self.ip, self.id, data.hex()))
         if len(data) > 0:
             self._online = True
+            if data == b'ERROR':
+                _LOGGER.debug(
+                    "got ERROR from {}, {}".format(self.ip, self.id))
+                #self._authenticate()
+                return
             response = appliance_response(data)
             self._defer_update = False
             self._support = True
@@ -204,7 +224,7 @@ class air_conditioning_device(device):
                     self.update(response)
                 if data[0xa] == 0xa1 or data[0xa] == 0xa0:
                     '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("refresh - Special Respone. {}, {}: {}".format(
+                    _LOGGER.debug("update - Special Respone. {}, {}: {}".format(
                         self.ip, self.id, data[0xa:].hex()))
                     pass
                     # self.update_special(response)
@@ -227,27 +247,7 @@ class air_conditioning_device(device):
             pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
             cmd.fahrenheit = self.farenheit_unit
-            pkt_builder.set_command(cmd)
-
-            data = pkt_builder.finalize()
-            data = self._lan_service.appliance_transparent_send(data)
-            _LOGGER.debug(
-                "apply - Recieved from {}, {}: {}".format(self.ip, self.id, data.hex()))
-            if len(data) > 0:
-                self._online = True
-                response = appliance_response(data)
-                self._support = True
-                if not self._defer_update:
-                    if data[0xa] == 0xc0:
-                        self.update(response)
-                    if data[0xa] == 0xa1 or data[0xa] == 0xa0:
-                        '''only update indoor_temperature and outdoor_temperature'''
-                        _LOGGER.debug("apply - Special Respone. {}, {}: {}".format(
-                            self.ip, self.id, data[0xa:].hex()))
-                        pass
-                        # self.update_special(response)
-            elif not self._keep_last_known_online_state:
-                self._online = False
+            self._send_cmd(cmd)
         finally:
             self._updating = False
             self._defer_update = False
@@ -269,8 +269,8 @@ class air_conditioning_device(device):
         outdoor_temperature = res.outdoor_temperature
         if outdoor_temperature != 0xff:
             self._outdoor_temperature = outdoor_temperature
-        self._timer_on = res.on_timer
-        self._timer_off = res.off_timer
+        self._on_timer = res.on_timer
+        self._off_timer = res.off_timer
     
     def update_special(self, res: appliance_response):
         indoor_temperature = res.indoor_temperature
