@@ -3,15 +3,15 @@ import logging
 import socket
 from msmart.security import security, MSGTYPE_HANDSHAKE_REQUEST, MSGTYPE_ENCRYPTED_REQUEST
 
-VERSION = '0.1.20'
+VERSION = '0.1.25'
 
 _LOGGER = logging.getLogger(__name__)
 
 class lan:
-    def __init__(self, device_ip, device_id):
+    def __init__(self, device_ip, device_id, device_port=6444):
         self.device_ip = device_ip
         self.device_id = device_id
-        self.device_port = 6444
+        self.device_port = device_port
         self.security = security()
         self._retries = 0
         self._socket = None

@@ -9,7 +9,7 @@ from msmart.command import base_command as request_status_command
 from msmart.command import set_command
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.20'
+VERSION = '0.1.25'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,15 +24,20 @@ def convert_device_id_int(device_id: str):
 
 class device:
 
-    def __init__(self, device_ip: int, device_id: int):
-        self._lan_service = lan(device_ip, device_id)
+    def __init__(self, device_ip: str, device_id: int, device_port: int):
+        device_id = convert_device_id_hex(device_id)
+        self._lan_service = lan(device_ip, device_id, device_port)
         self._ip = device_ip
         self._id = device_id
+        self._port = device_port
+        self._keep_last_known_online_state = False
         self._type = 0xac
         self._updating = False
         self._defer_update = False
         self._half_temp_step = False
         self._support = False
+        self._online = True
+        self._active = True
         self._protocol_version = 2
 
     def authenticate(self, mac: str, ssid: str, pw: str):
@@ -44,6 +49,13 @@ class device:
 
     def _authenticate(self):
         self._lan_service.authenticate(self._mac, self._wifi_ssid, self._wifi_pw)
+        self._online = True
+        self._active = True
+
+    def setup(self):
+        # self.air_conditioning_device.refresh()
+        device = air_conditioning_device(self._ip, self._id, self._port)
+        return device
 
     def set_device_detail(self, device_detail: dict):
         self._id = device_detail['id']
@@ -86,15 +98,23 @@ class device:
 
     @property
     def active(self):
-        return True
+        return self._active
 
     @property
     def online(self):
-        return True
+        return self._online
 
     @property
     def support(self):
         return self._support
+
+    @property
+    def keep_last_known_online_state(self):
+        return self._keep_last_known_online_state
+
+    @keep_last_known_online_state.setter
+    def keep_last_known_online_state(self, feedback: bool):
+        self._keep_last_known_online_state = feedback
 
 
 class air_conditioning_device(device):
@@ -152,8 +172,8 @@ class air_conditioning_device(device):
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
-    def __init__(self, *args, **kwargs):
-        super(air_conditioning_device, self).__init__(*args, **kwargs)
+    def __init__(self, device_ip: str, device_id: str, device_port: int):
+        super().__init__(device_ip, convert_device_id_int(device_id), device_port)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
@@ -166,6 +186,8 @@ class air_conditioning_device(device):
 
         self._on_timer = None
         self._off_timer = None
+        self._online = True
+        self._active = True
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
 
@@ -188,6 +210,7 @@ class air_conditioning_device(device):
         _LOGGER.debug(
             "update from {}, {}: {}".format(self.ip, self.id, data.hex()))
         if len(data) > 0:
+            self._online = True
             if data == b'ERROR':
                 _LOGGER.debug(
                     "got ERROR from {}, {}".format(self.ip, self.id))
@@ -206,6 +229,8 @@ class air_conditioning_device(device):
                     pass
                     # self.update_special(response)
                 self._defer_update = False
+        elif not self._keep_last_known_online_state:
+            self._online = False
 
     def apply(self):
         self._updating = True
@@ -365,6 +390,7 @@ class unknown_device(device):
         data = pkt_builder.finalize()
         data = self._lan_service.appliance_transparent_send(self.id, data)
         if len(data) > 0:
+            self._online = True
             response = appliance_response(data)
             _LOGGER.debug("Decoded Data: {}".format({
                 'prompt_tone': response.prompt_tone,
@@ -377,6 +403,8 @@ class unknown_device(device):
                 'eco_mode': response.eco_mode,
                 'turbo_mode': response.turbo_mode
             }))
+        elif not self._keep_last_known_online_state:
+            self._online = False
 
     def apply(self):
         _LOGGER.debug("Cannot apply, device not fully supported yet")

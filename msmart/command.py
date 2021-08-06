@@ -3,7 +3,7 @@ import logging
 import datetime
 import msmart.crc8 as crc8
 
-VERSION = '0.1.20'
+VERSION = '0.1.25'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,11 +47,18 @@ class base_command:
         self.data[-1] = datetime.datetime.now().second
         self.data[0x02] = device_type
 
+    def checksum(self, data):
+        c = (~ sum(data) + 1) & 0xff
+        return (~ sum(data) + 1) & 0xff
+
     def finalize(self):
         # Add the CRC8
         self.data.append(crc8.calculate(self.data[10:]))
         # Set the length of the command data
         # self.data[0x01] = len(self.data)
+        # Add cheksum
+        self.data.append(self.checksum(self.data[1:]))
+        _LOGGER.debug("Finalize request data: {}".format(self.data.hex()))
         return self.data
 
 
@@ -63,6 +70,8 @@ class set_command(base_command):
         self.data[0x09] = 0x02
         # Set up Mode
         self.data[0x0a] = 0x40
+        # prompt_tone
+        self.data[0x0b] = 0x40
         self.data.extend(bytearray([0x00, 0x00, 0x00]))
 
     @property
