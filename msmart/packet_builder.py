@@ -11,7 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class packet_builder:
 
-    def __init__(self, device_id):
+    def __init__(self, device_id: int):
         self.command = None
         self.security = security()
         # aa20ac00000000000003418100ff03ff000200000000000000000000000006f274
@@ -30,12 +30,12 @@ class packet_builder:
             # 8 bytes - Date&Time
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             # 6 bytes - mDeviceID
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            # 14 bytes
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            # 12 bytes
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ])
         self.packet[12:20] = self.packet_time()
-        self.packet[20:26] = device_id.to_bytes(6, 'little')
+        self.packet[20:28] = device_id.to_bytes(8, 'little')
 
     def set_command(self, command: base_command):
         self.command = command.finalize()
@@ -49,12 +49,11 @@ class packet_builder:
         self.packet.extend(self.encode32(self.packet))
         return self.packet
 
-    def encode32(self, data):
+    def encode32(self, data: bytearray):
         # 16 bytes encode32
         return self.security.encode32_data(data)
 
     def checksum(self, data):
-        c = (~ sum(data) + 1) & 0xff
         return (~ sum(data) + 1) & 0xff
 
     def packet_time(self):
