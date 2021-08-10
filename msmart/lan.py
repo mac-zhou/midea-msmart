@@ -7,6 +7,7 @@ VERSION = '0.1.25'
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class lan:
     def __init__(self, device_ip, device_id, device_port=6444):
         self.device_ip = device_ip
@@ -19,7 +20,7 @@ class lan:
         self._key = None
 
     def _connect(self):
-        if self._socket == None:
+        if self._socket is None:
             _LOGGER.debug("Attempting new connection to {}:{}".format(
                 self.device_ip, self.device_port))
             self._buffer = b''
@@ -27,8 +28,9 @@ class lan:
             self._socket.settimeout(8)
             try:
                 self._socket.connect((self.device_ip, self.device_port))
-            except:
+            except Exception as error:
                 self._disconnect()
+                raise error
 
     def _disconnect(self):
         if self._socket:
@@ -40,7 +42,7 @@ class lan:
         self._connect()
 
         try:
-            if self._socket == None:
+            if self._socket is None:
                 raise socket.error
             # Send data
             _LOGGER.debug("Sending to {}:{} {}".format(
@@ -55,7 +57,7 @@ class lan:
             self._disconnect()
             return bytearray(0)
         except socket.timeout:
-            _LOGGER.info("Connect the Device %s:%s TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
+            _LOGGER.info("Connect the Device {}:{} TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
                 self.device_ip, self.device_port))
             self._disconnect()
             return bytearray(0)
@@ -63,27 +65,32 @@ class lan:
             self.device_ip, self.device_port, response.hex()))
         return response
 
-    def authenticate(self, mac: str, ssid: str, pw: str):
-        self._token, self._key = self.security.token_key_pair(mac, ssid, pw)
-        self._authenticate()
-
-    def _authenticate(self):
+    def authenticate(self, token: bytearray, key: bytearray):
+        self._token, self._key = token, key
         if not self._token or not self._key:
             raise Exception('missing token key pair')
-        request = self.security.encode_8370(self._token, MSGTYPE_HANDSHAKE_REQUEST)
+        request = self.security.encode_8370(
+            self._token, MSGTYPE_HANDSHAKE_REQUEST)
         response = self.request(request)[8:72]
         try:
             tcp_key = self.security.tcp_key(response, self._key)
-            _LOGGER.debug('Got TCP key for {}:{} {}'.format(self.device_ip, self.device_port, tcp_key.hex()))
+            _LOGGER.debug('Got TCP key for {}:{} {}'.format(
+                self.device_ip, self.device_port, tcp_key.hex()))
         except Exception as error:
             self._disconnect()
             raise error
+    
+    def _authenticate(self):
+        if not self._token or not self._key:
+            raise Exception('missing token key pair')
+        self.authenticate(self._token, self._key)
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
-        if self._socket == None:
+        if self._socket is None:
             self._authenticate()
         data = self.security.encode_8370(data, msgtype)
-        responses, self._buffer = self.security.decode_8370(self._buffer + self.request(data))
+        responses, self._buffer = self.security.decode_8370(
+            self._buffer + self.request(data))
         packets = []
         for response in responses:
             if len(response) > 40 + 16:
