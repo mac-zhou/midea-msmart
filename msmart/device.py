@@ -41,10 +41,12 @@ class device:
         self._protocol_version = 2
 
     def authenticate(self, key: str, token: str):
-        self._protocol_version = 3
-        self._token = bytearray.fromhex(token)
-        self._key = bytearray.fromhex(key)
-        self._authenticate()
+        # compatible example.py
+        if key != "YOUR_AC_K1" and token != "YOUR_AC_TOKEN":
+            self._protocol_version = 3
+            self._token = bytearray.fromhex(token)
+            self._key = bytearray.fromhex(key)
+            self._authenticate()
 
     def _authenticate(self):
         self._lan_service.authenticate(self._token, self._key)
