@@ -18,6 +18,7 @@ MSGTYPE_ENCRYPTED_RESPONSE = 0x3
 MSGTYPE_ENCRYPTED_REQUEST = 0x6
 MSGTYPE_TRANSPARENT = 0xf
 
+
 class security:
 
     def __init__(self):
@@ -149,4 +150,3 @@ class security:
             packets, incomplete = self.decode_8370(leftover)
             return [data] + packets, incomplete
         return [data], b''
-
