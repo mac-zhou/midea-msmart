@@ -7,7 +7,7 @@ from Cryptodome.Util.strxor import strxor
 from Cryptodome.Random import get_random_bytes
 from hashlib import md5, sha256
 
-VERSION = '0.1.26'
+VERSION = '0.1.27'
 _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
