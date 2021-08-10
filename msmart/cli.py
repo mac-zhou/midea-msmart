@@ -23,7 +23,7 @@ if sys.version_info < (3, 5):
     )
     sys.exit(1)
 
-VERSION = '0.1.25'
+VERSION = '0.1.26'
 
 _LOGGER = logging.getLogger(__name__)
 
