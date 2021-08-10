@@ -4,11 +4,13 @@ import click
 import logging
 import socket
 import sys
+import hashlib
 import os
 import ctypes
 from msmart.security import security
 from msmart.device import convert_device_id_int
 from msmart.device import device as midea_device
+from msmart.device import air_conditioning_device as ac
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -86,8 +88,9 @@ def discover(debug: int):
                     continue
                 m_id, m_type, m_sn, m_ssid, m_version, m_support = 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown'
                 if len(data) >= 104 and (data[:2].hex() == '5a5a' or data[8:10].hex() == '5a5a'):
-                    _LOGGER.info("Midea Local Data {} {}".format(m_ip, data.hex()))
-                    data_string = data.decode("utf-8", errors="replace")
+                    _LOGGER.info(
+                        "Midea Local Data {} {}".format(m_ip, data.hex()))
+                    # data_string = data.decode("utf-8", errors="replace")
                     # _LOGGER.info(data.decode("utf-8", errors="replace"))
                     # root=ET.fromstring(data.decode(encoding="utf-8", errors="replace"))
                     if data[:2].hex() == '5a5a':
@@ -97,11 +100,13 @@ def discover(debug: int):
                     if data[8:10].hex() == '5a5a':
                         data = data[8:-16]
                     m_id = convert_device_id_int(data[20:26].hex())
+                    m_udpid = id2udpid(data[20:28])
                     found_devices[m_ip] = m_id
                     encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
-                    _LOGGER.info("Decrypt Reply: {} {}".format(m_ip, reply.hex()))
-                    
+                    _LOGGER.info(
+                        "Decrypt Reply: {} {}".format(m_ip, reply.hex()))
+
                     m_ip = '.'.join([str(i) for i in reply[3::-1]])
                     m_port = str(bytes2port(reply[4:8]))
                     m_sn = reply[8:40].decode("utf-8")
@@ -110,39 +115,44 @@ def discover(debug: int):
                     # if len(reply) > 54:
 
                     m_type = m_ssid.split('_')[1]
-                    
+
                     m_support = support_test(m_ip, int(m_id), int(m_port))
 
                     _LOGGER.info(
-                        "*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_sn, m_ssid))
+                        "\033[94m\033[1m*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - upid: {} - sn: {} - ssid: {} \033[0m".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_udpid.hex(), m_sn, m_ssid))
+                    if m_type == "db" and m_version == "V3" :
+                        _LOGGER.info("\033[91m\033[1m+++ This device( {} ) needs more information to support, open https://github.com/mac-zhou/midea-ac-py \033[0m".format(m_ip))
 
                 if data[:6].hex() == '3c3f786d6c20':
                     m_version = 'V1'
-                    root=ET.fromstring(data.decode(encoding="utf-8", errors="replace"))
+                    root = ET.fromstring(data.decode(
+                        encoding="utf-8", errors="replace"))
                     child = root.find('body/device')
-                    m=child.attrib
-                    m_port, m_sn, m_type  = m['port'], m['apc_sn'], str(hex(int(m['apc_type'])))[2:]
+                    m = child.attrib
+                    m_port, m_sn, m_type = m['port'], m['apc_sn'], str(
+                        hex(int(m['apc_type'])))[2:]
                     response = get_device_info(m_ip, int(m_port))
                     m_id = get_id_from_response(response)
 
                     _LOGGER.info(
-                    "*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - sn: {} - ssid: {}".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_sn, m_ssid))
-  
+                        "\033[94m\033[1m*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - sn: {} - ssid: {} \033[0m".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_sn, m_ssid))
 
         except socket.timeout:
             continue
         except KeyboardInterrupt:
             sys.exit(0)
 
+
 def get_id_from_response(response):
     if response[64:-16][:6].hex() == '3c3f786d6c20':
         xml = response[64:-16]
-        root=ET.fromstring(xml.decode(encoding="utf-8", errors="replace"))
+        root = ET.fromstring(xml.decode(encoding="utf-8", errors="replace"))
         child = root.find('smartDevice')
-        m=child.attrib
+        m = child.attrib
         return int.from_bytes(bytearray.fromhex(m['devId']), 'little')
     else:
         return 0
+
 
 def get_device_info(device_ip, device_port: int):
     # Create a TCP/IP socket
@@ -166,7 +176,7 @@ def get_device_info(device_ip, device_port: int):
             device_ip, device_port))
         return bytearray(0)
     except socket.timeout:
-        _LOGGER.info("Connect the Device %s:%s TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
+        _LOGGER.info("Connect the Device {}:{} TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
             device_ip, device_port))
         return bytearray(0)
     finally:
@@ -175,9 +185,9 @@ def get_device_info(device_ip, device_port: int):
         device_ip, device_port, message.hex()))
     return response
 
+
 def support_test(device_ip, device_id: int, device_port: int):
-    _device = midea_device(device_ip, device_id, device_port)
-    device = _device.setup()
+    device = ac(device_ip, device_id, device_port)
     device.refresh()
     if device.support:
         return 'supported'
@@ -192,8 +202,9 @@ def remove_duplicates(device_list: list):
             newlist.append(i)
     return newlist
 
+
 def bytes2port(paramArrayOfbyte):
-    if paramArrayOfbyte == None:
+    if paramArrayOfbyte is None:
         return 0
     b, i = 0, 0
     while b < 4:
@@ -204,6 +215,18 @@ def bytes2port(paramArrayOfbyte):
         i |= b1 << b * 8
         b += 1
     return i
+
+
+def id2udpid(data):
+    b = hashlib.sha256(data).digest()
+    b1, b2 = b[:16], b[16:]
+    b3 = bytearray(16)
+    i = 0
+    while i < len(b1):
+        b3[i] = b1[i] ^ b2[i]
+        i += 1
+    return b3
+
 
 # if __name__ == '__main__':
 #     discover()
