@@ -120,7 +120,7 @@ def discover(debug: int):
 
                     _LOGGER.info(
                         "\033[94m\033[1m*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - upid: {} - sn: {} - ssid: {} \033[0m".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_udpid.hex(), m_sn, m_ssid))
-                    if m_type == "db" and m_version == "V3" :
+                    if m_type == "ac" and m_version == "V3" :
                         _LOGGER.info("\033[91m\033[1m+++ This device( {} ) needs more information to support, open https://github.com/mac-zhou/midea-ac-py \033[0m".format(m_ip))
 
                 if data[:6].hex() == '3c3f786d6c20':
