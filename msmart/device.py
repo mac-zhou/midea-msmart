@@ -25,7 +25,7 @@ def convert_device_id_int(device_id: str):
 class device:
 
     def __init__(self, device_ip: str, device_id: int, device_port: int):
-        device_id = convert_device_id_hex(device_id)
+        # device_id = convert_device_id_hex(device_id)
         self._lan_service = lan(device_ip, device_id, device_port)
         self._ip = device_ip
         self._id = device_id
@@ -40,22 +40,14 @@ class device:
         self._active = True
         self._protocol_version = 2
 
-    def authenticate(self, mac: str, ssid: str, pw: str):
+    def authenticate(self, key: str, token: str):
         self._protocol_version = 3
-        self._mac = mac
-        self._wifi_ssid = ssid
-        self._wifi_pw = pw
+        self._token = bytearray.fromhex(token)
+        self._key = bytearray.fromhex(key)
         self._authenticate()
 
     def _authenticate(self):
-        self._lan_service.authenticate(self._mac, self._wifi_ssid, self._wifi_pw)
-        self._online = True
-        self._active = True
-
-    def setup(self):
-        # self.air_conditioning_device.refresh()
-        device = air_conditioning_device(self._ip, self._id, self._port)
-        return device
+        self._lan_service.authenticate(self._token, self._key)
 
     def set_device_detail(self, device_detail: dict):
         self._id = device_detail['id']
@@ -78,6 +70,10 @@ class device:
 
     @property
     def ip(self):
+        return self._ip
+
+    @property
+    def port(self):
         return self._ip
 
     @property
@@ -121,6 +117,7 @@ class air_conditioning_device(device):
 
     class fan_speed_enum(Enum):
         Auto = 102
+        Full = 100
         High = 80
         Medium = 60
         Low = 40
@@ -172,8 +169,8 @@ class air_conditioning_device(device):
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
             return air_conditioning_device.swing_mode_enum.Off
 
-    def __init__(self, device_ip: str, device_id: str, device_port: int):
-        super().__init__(device_ip, convert_device_id_int(device_id), device_port)
+    def __init__(self, *args, **kwargs):
+        super(air_conditioning_device, self).__init__(*args, **kwargs)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
@@ -182,7 +179,7 @@ class air_conditioning_device(device):
         self._swing_mode = air_conditioning_device.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
-        self.farenheit_unit = False # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
+        self.farenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
 
         self._on_timer = None
         self._off_timer = None
@@ -208,13 +205,13 @@ class air_conditioning_device(device):
 
     def _process_response(self, data):
         _LOGGER.debug(
-            "update from {}, {}: {}".format(self.ip, self.id, data.hex()))
+            "Update from {}:{} {}".format(self.ip, self.port, data.hex()))
         if len(data) > 0:
             self._online = True
             if data == b'ERROR':
                 _LOGGER.debug(
                     "got ERROR from {}, {}".format(self.ip, self.id))
-                #self._authenticate()
+                # self._authenticate()
                 return
             response = appliance_response(data)
             self._defer_update = False
@@ -224,8 +221,8 @@ class air_conditioning_device(device):
                     self.update(response)
                 if data[0xa] == 0xa1 or data[0xa] == 0xa0:
                     '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("update - Special Respone. {}, {}: {}".format(
-                        self.ip, self.id, data[0xa:].hex()))
+                    _LOGGER.debug("Update - Special Respone. {}:{} {}".format(
+                        self.ip, self.port, data[0xa:].hex()))
                     pass
                     # self.update_special(response)
                 self._defer_update = False
@@ -244,7 +241,7 @@ class air_conditioning_device(device):
             cmd.swing_mode = self._swing_mode.value
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
-            pkt_builder = packet_builder(self.id)
+            # pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
             cmd.fahrenheit = self.farenheit_unit
             self._send_cmd(cmd)
@@ -263,7 +260,7 @@ class air_conditioning_device(device):
             res.swing_mode)
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
-        indoor_temperature = res.indoor_temperature 
+        indoor_temperature = res.indoor_temperature
         if indoor_temperature != 0xff:
             self._indoor_temperature = indoor_temperature
         outdoor_temperature = res.outdoor_temperature
@@ -271,7 +268,7 @@ class air_conditioning_device(device):
             self._outdoor_temperature = outdoor_temperature
         self._on_timer = res.on_timer
         self._off_timer = res.off_timer
-    
+
     def update_special(self, res: appliance_response):
         indoor_temperature = res.indoor_temperature
         if indoor_temperature != 0xff:
