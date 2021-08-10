@@ -3,12 +3,13 @@ from msmart.device import air_conditioning_device as ac
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-# first take device's ip and id
+# first take device's ip and id, port is generally 6444
 # pip3 install msmart; midea-discover
-device = ac('YOUR_AC_IP', YOUR_AC_ID)
-# If the device is using protocol 3 (aka 8370), you must authenticate with your
-# WiFi network's credentials for local control
-device.authenticate('YOUR_AC_MAC', 'YOUR_WIFI_SSID', 'YOUR_WIFI_PW')
+device = ac('YOUR_AC_IP', 'YOUR_AC_ID', 6444)
+# If the device is using protocol 3 (aka 8370)
+# you must authenticate with device's k1 and token.
+# adb logcat | grep doKeyAgree
+device.authenticate('YOUR_AC_K1', 'YOUR_AC_TOKEN')
 # Refresh the object with the actual state by querying it
 device.refresh()
 print({
@@ -27,6 +28,7 @@ print({
     })
 
 # Set the state of the device and 
+device.prompt_tone = True
 device.power_state = True
 device.prompt_tone = False
 device.target_temperature = 25
