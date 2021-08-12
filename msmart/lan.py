@@ -99,7 +99,17 @@ class lan:
         return packets
 
     def appliance_transparent_send(self, data):
-        response = self.request(data)
-        if len(response) > 40 + 16:
-            return [self.security.aes_decrypt(response[40:-16])]
-        return [response]
+        responses = self.request(data)
+        packets = []
+        if responses[:2].hex() == "5a5a":
+            # maybe multiple response
+            for response in responses.split(bytearray.fromhex('5a5a')):
+                # 5a5a been removed, so (40-2)+16
+                if len(response) > 38 + 16:
+                    packets.append(self.security.aes_decrypt(response[38:-16]))
+        elif responses[0] == 0xaa:
+            for response in responses.split(bytearray.fromhex('aa')):
+                packets.append(bytearray.fromhex('aa') + response)
+        else:
+            _LOGGER.error("Unknown responses {}".format(responses.hex()))
+        return packets
