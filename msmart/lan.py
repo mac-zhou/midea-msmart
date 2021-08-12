@@ -79,7 +79,7 @@ class lan:
         except Exception as error:
             self._disconnect()
             raise error
-    
+
     def _authenticate(self):
         if not self._token or not self._key:
             raise Exception('missing token key pair')
@@ -100,6 +100,7 @@ class lan:
 
     def appliance_transparent_send(self, data):
         responses = self.request(data)
+        _LOGGER.debug("Got responses len: {}".format(len(responses)))
         packets = []
         if responses[:2].hex() == "5a5a":
             # maybe multiple response
