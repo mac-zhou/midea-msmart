@@ -100,7 +100,7 @@ def discover(debug: int):
                     if data[8:10].hex() == '5a5a':
                         data = data[8:-16]
                     m_id = convert_device_id_int(data[20:26].hex())
-                    m_udpid = id2udpid(data[20:28])
+                    # m_udpid = id2udpid(data[20:28])
                     found_devices[m_ip] = m_id
                     encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
@@ -118,10 +118,10 @@ def discover(debug: int):
 
                     m_support = support_test(m_ip, int(m_id), int(m_port))
 
-                    _LOGGER.info(
-                        "\033[94m\033[1m*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - upid: {} - sn: {} - ssid: {} \033[0m".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_udpid.hex(), m_sn, m_ssid))
-                    if m_type == "ac" and m_version == "V3" :
-                        _LOGGER.info("\033[91m\033[1m+++ This device( {} ) needs more information to support, open https://github.com/mac-zhou/midea-ac-py \033[0m".format(m_ip))
+                    result = "\033[94m\033[1m*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - sn: {} - ssid: {}. \033[0m".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_sn, m_ssid)
+                    if m_version == "V3":
+                        result += "\033[91m\033[1mThis device needs Token and K1, open https://github.com/mac-zhou/midea-ac-py/blob/master/README.md to see How to Get Token and K1. \033[0m"
+                    _LOGGER.info(result)
 
                 if data[:6].hex() == '3c3f786d6c20':
                     m_version = 'V1'
