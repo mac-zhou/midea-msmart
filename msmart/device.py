@@ -198,10 +198,14 @@ class air_conditioning_device(device):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
+        _LOGGER.debug(
+            "pkt_builder: {}:{} {}".format(self.ip, self.port, data.hex()))
         if self._protocol_version == 3:
             responses = self._lan_service.appliance_transparent_send_8370(data)
         else:
             responses = self._lan_service.appliance_transparent_send(data)
+        _LOGGER.debug(
+            "Got responses from {}:{} Version: {} Count: {}".format(self.ip, self.port, self._protocol_version, len(responses)))
         for response in responses:
             self._process_response(response)
 
@@ -212,7 +216,7 @@ class air_conditioning_device(device):
             self._online = True
             if data == b'ERROR':
                 _LOGGER.debug(
-                    "got ERROR from {}, {}".format(self.ip, self.id))
+                    "Got ERROR from {}, {}".format(self.ip, self.id))
                 # self._authenticate()
                 return
             response = appliance_response(data)
