@@ -199,7 +199,7 @@ class air_conditioning_device(device):
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
         _LOGGER.debug(
-            "pkt_builder: {}:{} {}".format(self.ip, self.port, data.hex()))
+            "pkt_builder: {}:{} len: {} data: {}".format(self.ip, self.port, len(data), data.hex()))
         if self._protocol_version == 3:
             responses = self._lan_service.appliance_transparent_send_8370(data)
         else:
