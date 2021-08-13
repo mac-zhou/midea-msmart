@@ -29,8 +29,9 @@ class lan:
             try:
                 self._socket.connect((self.device_ip, self.device_port))
             except Exception as error:
+                _LOGGER.error("Connect Error: {}:{} {}".format(
+                    self.device_ip, self.device_port, error))
                 self._disconnect()
-                raise error
 
     def _disconnect(self):
         if self._socket:
@@ -43,7 +44,9 @@ class lan:
 
         try:
             if self._socket is None:
-                raise socket.error
+                _LOGGER.error("Sokcet is None: {}:{}".format(
+                    self.device_ip, self.device_port))
+                return bytearray(0)
             # Send data
             _LOGGER.debug("Sending to {}:{} {}".format(
                 self.device_ip, self.device_port, message.hex()))
@@ -51,13 +54,13 @@ class lan:
 
             # Received data
             response = self._socket.recv(1024)
-        except socket.error:
-            _LOGGER.info("Couldn't connect with Device {}:{}".format(
-                self.device_ip, self.device_port))
+        except socket.error as error:
+            _LOGGER.error("Couldn't connect with Device {}:{} {}".format(
+                self.device_ip, self.device_port, error))
             self._disconnect()
             return bytearray(0)
         except socket.timeout:
-            _LOGGER.info("Connect the Device {}:{} TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
+            _LOGGER.error("Connect the Device {}:{} TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
                 self.device_ip, self.device_port))
             self._disconnect()
             return bytearray(0)
@@ -74,7 +77,7 @@ class lan:
         response = self.request(request)[8:72]
         try:
             tcp_key = self.security.tcp_key(response, self._key)
-            _LOGGER.debug('Got TCP key for {}:{} {}'.format(
+            _LOGGER.info('Got TCP key for {}:{} {}'.format(
                 self.device_ip, self.device_port, tcp_key.hex()))
         except Exception as error:
             self._disconnect()
@@ -101,6 +104,8 @@ class lan:
     def appliance_transparent_send(self, data):
         responses = self.request(data)
         _LOGGER.debug("Got responses len: {}".format(len(responses)))
+        if responses == bytearray(0):
+            return responses
         packets = []
         if responses[:2].hex() == "5a5a":
             # maybe multiple response
