@@ -76,7 +76,7 @@ class device:
 
     @property
     def port(self):
-        return self._ip
+        return self._port
 
     @property
     def name(self):
@@ -209,7 +209,7 @@ class air_conditioning_device(device):
         for response in responses:
             self._process_response(response)
 
-    def _process_response(self, data):
+    def _process_response(self, data):  
         _LOGGER.debug(
             "Update from {}:{} {}".format(self.ip, self.port, data.hex()))
         if len(data) > 0:
