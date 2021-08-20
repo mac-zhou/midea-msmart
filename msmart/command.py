@@ -13,15 +13,25 @@ class base_command:
     def __init__(self, device_type=0xAC):
         # More magic numbers. I'm sure each of these have a purpose, but none of it is documented in english. I might make an effort to google translate the SDK
         self.data = bytearray([
+            # 0 header
             0xaa,
-            # request is 0x20; setting is 0x23
+            # 1 command lenght: N+10
             0x20,
-            # device type
+            # 2 device type
             0xac,
-            0x00, 0x00, 0x00, 0x00, 0x00,
+            # 3 Frame SYN CheckSum
+            0x00, 
+            # 4-5 Reserved 
+            0x00, 0x00, 
+            # 6 Message ID 
+            0x00, 
+            # 7 Frame Protocol Version
             0x00,
-            # request is 0x03; setting is 0x02
+            # 8 Device Protocol Version 
+            0x00,
+            # 9 Messgae Type: request is 0x03; setting is 0x02
             0x03,
+            
             # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
             0x41,
             # Byte1
