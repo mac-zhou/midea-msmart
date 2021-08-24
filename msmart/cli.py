@@ -74,10 +74,12 @@ class scandevice:
 
 @click.command()
 @click.option("-d", "--debug", default=False, count=True)
+@click.option("-c", "--count", default=1, help='Number of broadcast paktes, default is 1.\
+                                                if you have many devices, you may change this vaule.')
 @click.option("-a", "--account", default='midea_is_best@outlook.com', help='Your email address for your Midea account.')
 @click.option("-p", "--password", default='lovemidea4ever', help='Your password for your Midea account.')
 # @click.pass_context
-def discover(debug: int, account:str, password:str):
+def discover(debug: int, count: int, account:str, password:str):
     global Account, Password
     Account, Password = account, password
     """Send Device Scan Broadcast"""
@@ -104,7 +106,7 @@ def discover(debug: int, account:str, password:str):
     _LOGGER.info("msmart version: {} Currently only supports ac devices.".format(VERSION))
     _LOGGER.info(
         "Sending Device Scan Broadcast...")
-    for i in range(10):
+    for i in range(int(count)):
         try:
             sock.sendto(BROADCAST_MSG, ("255.255.255.255", 6445))
             sock.sendto(BROADCAST_MSG, ("255.255.255.255", 20086))
