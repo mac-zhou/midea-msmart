@@ -46,10 +46,10 @@ class device:
             self._protocol_version = 3
             self._token = bytearray.fromhex(token)
             self._key = bytearray.fromhex(key)
-            self._authenticate()
-
+            return self._authenticate()
+        return False
     def _authenticate(self):
-        self._lan_service.authenticate(self._token, self._key)
+        return self._lan_service.authenticate(self._token, self._key)
 
     def set_device_detail(self, device_detail: dict):
         self._id = device_detail['id']
@@ -206,18 +206,24 @@ class air_conditioning_device(device):
             responses = self._lan_service.appliance_transparent_send(data)
         _LOGGER.debug(
             "Got responses from {}:{} Version: {} Count: {}".format(self.ip, self.port, self._protocol_version, len(responses)))
+        if len(responses) == 0:
+            if not self._keep_last_known_online_state:
+                self._online = False
+            self._support = False
         for response in responses:
             self._process_response(response)
 
-    def _process_response(self, data):  
+    def _process_response(self, data):
         _LOGGER.debug(
             "Update from {}:{} {}".format(self.ip, self.port, data.hex()))
         if len(data) > 0:
             self._online = True
             if data == b'ERROR':
-                _LOGGER.debug(
+                self._support = False
+                _LOGGER.warn(
                     "Got ERROR from {}, {}".format(self.ip, self.id))
-                # self._authenticate()
+                if not self._keep_last_known_online_state:
+                    self._online = False
                 return
             response = appliance_response(data)
             self._defer_update = False
