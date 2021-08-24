@@ -8,9 +8,9 @@ import hashlib
 import os
 import ctypes
 from msmart.security import security
-from msmart.device import convert_device_id_int
-from msmart.device import device as midea_device
+from msmart.security import get_udpid
 from msmart.device import air_conditioning_device as ac
+from msmart.cloud import cloud
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -24,6 +24,10 @@ if sys.version_info < (3, 5):
     sys.exit(1)
 
 VERSION = '0.1.30'
+
+Client = None
+Account = ''
+Password = ''
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,10 +54,32 @@ DEVICE_INFO_MSG = bytearray([
 ])
 
 
+class scandevice:
+
+    def __init__(self):
+        self.type = 'unknown'
+        self.support = False
+        self.version = 0
+        self.ip = None
+        self.id = None
+        self.port = None
+        self.token = None
+        self.key = None
+        self.ssid = None
+        
+        
+    def __str__(self):
+        return str(self.__dict__)
+
+
 @click.command()
 @click.option("-d", "--debug", default=False, count=True)
+@click.option("-a", "--account", default='midea_is_best@outlook.com', help='Your email address for your Midea account.')
+@click.option("-p", "--password", default='lovemidea4ever', help='Your password for your Midea account.')
 # @click.pass_context
-def discover(debug: int):
+def discover(debug: int, account:str, password:str):
+    global Account, Password
+    Account, Password = account, password
     """Send Device Scan Broadcast"""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -62,6 +88,7 @@ def discover(debug: int):
         logging.basicConfig(level=logging.INFO)
 
     _security = security()
+    
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -74,7 +101,7 @@ def discover(debug: int):
 
     sock.settimeout(5)
     found_devices = {}
-    _LOGGER.info("msmart version: {}".format(VERSION))
+    _LOGGER.info("msmart version: {} Currently only supports ac devices.".format(VERSION))
     _LOGGER.info(
         "Sending Device Scan Broadcast...")
     for i in range(10):
@@ -86,42 +113,30 @@ def discover(debug: int):
                 m_ip = addr[0]
                 if m_ip in found_devices:
                     continue
-                m_id, m_type, m_sn, m_ssid, m_version, m_support = 'unknown', 'unknown', 'unknown', 'unknown', 'unknown', 'unknown'
                 if len(data) >= 104 and (data[:2].hex() == '5a5a' or data[8:10].hex() == '5a5a'):
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Midea Local Data {} {}".format(m_ip, data.hex()))
-                    # data_string = data.decode("utf-8", errors="replace")
-                    # _LOGGER.info(data.decode("utf-8", errors="replace"))
-                    # root=ET.fromstring(data.decode(encoding="utf-8", errors="replace"))
+                    device = scandevice()
                     if data[:2].hex() == '5a5a':
-                        m_version = 'V2'
+                        device.version = 2
                     if data[:2].hex() == '8370':
-                        m_version = 'V3'
+                        device.version = 3
                     if data[8:10].hex() == '5a5a':
                         data = data[8:-16]
-                    m_id = convert_device_id_int(data[20:26].hex())
-                    # m_udpid = id2udpid(data[20:28])
-                    found_devices[m_ip] = m_id
+
+                    device.id = int.from_bytes(data[20:26], 'little')
+                    found_devices[m_ip] = device.id
                     encrypt_data = data[40:-16]
                     reply = _security.aes_decrypt(encrypt_data)
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Decrypt Reply: {} {}".format(m_ip, reply.hex()))
-
-                    m_ip = '.'.join([str(i) for i in reply[3::-1]])
-                    m_port = str(bytes2port(reply[4:8]))
-                    m_sn = reply[8:40].decode("utf-8")
+                    device.ip = '.'.join([str(i) for i in reply[3::-1]])
+                    device.port = int.from_bytes(reply[4:8], 'little')
                     # ssid like midea_xx_xxxx net_xx_xxxx
-                    m_ssid = reply[41:41+reply[40]].decode("utf-8")
-                    # if len(reply) > 54:
-
-                    m_type = m_ssid.split('_')[1]
-
-                    m_support = support_test(m_ip, int(m_id), int(m_port))
-
-                    result = "\033[94m\033[1m*** Found a {} device - type: '0x{}' - version: {} - ip: {} - port: {} - id: {} - sn: {} - ssid: {}. \033[0m".format(m_support, m_type, m_version, m_ip, m_port, m_id, m_sn, m_ssid)
-                    if m_version == "V3":
-                        result += "\033[91m\033[1mThis device needs Token and K1, open https://github.com/mac-zhou/midea-ac-py/blob/master/README.md to see How to Get Token and K1. \033[0m"
-                    _LOGGER.info(result)
+                    device.ssid = reply[41:41+reply[40]].decode("utf-8")
+                    device.type = device.ssid.split('_')[1]
+                    support_test(device)
+                    _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(device))
 
                 if data[:6].hex() == '3c3f786d6c20':
                     m_version = 'V1'
@@ -167,7 +182,7 @@ def get_device_info(device_ip, device_port: int):
         # Send data
         _LOGGER.debug("Sending to {}:{} {}".format(
             device_ip, device_port, DEVICE_INFO_MSG.hex()))
-        sock.sendall(message)
+        sock.sendall(DEVICE_INFO_MSG)
 
         # Received data
         response = sock.recv(512)
@@ -182,18 +197,37 @@ def get_device_info(device_ip, device_port: int):
     finally:
         sock.close()
     _LOGGER.debug("Received from {}:{} {}".format(
-        device_ip, device_port, message.hex()))
+        device_ip, device_port, response.hex()))
     return response
 
 
-def support_test(device_ip, device_id: int, device_port: int):
-    device = ac(device_ip, device_id, device_port)
-    device.refresh()
-    if device.support:
-        return 'supported'
+def support_test(device: scandevice):
+    if device.version == 3:
+        _device = support_testv3(device)
     else:
-        return 'unsupported'
+        _device = ac(device.ip, device.id, device.port)
+    if device.type == 'ac':
+        _device.refresh()
+        device.support = _device.support
 
+def support_testv3(device: scandevice):
+    _device = ac(device.ip, device.id, device.port)
+    for udpid in [get_udpid(device.id.to_bytes(6, 'little')), get_udpid(device.id.to_bytes(6, 'big'))]:
+        token, key = gettoken(udpid)
+        auth = _device.authenticate(key, token)
+        if auth:
+            device.token, device.key = token, key
+            return _device
+    return _device
+
+def gettoken(udpid):
+    global Client
+    if Client is None:
+        Client = cloud(Account, Password)
+    if Client.session == {}:
+        Client.login()
+    return Client.gettoken(udpid)
+    
 
 def remove_duplicates(device_list: list):
     newlist = []
@@ -201,20 +235,6 @@ def remove_duplicates(device_list: list):
         if i not in newlist:
             newlist.append(i)
     return newlist
-
-
-def bytes2port(paramArrayOfbyte):
-    if paramArrayOfbyte is None:
-        return 0
-    b, i = 0, 0
-    while b < 4:
-        if b < len(paramArrayOfbyte):
-            b1 = paramArrayOfbyte[b] & 0xFF
-        else:
-            b1 = 0
-        i |= b1 << b * 8
-        b += 1
-    return i
 
 
 def id2udpid(data):
