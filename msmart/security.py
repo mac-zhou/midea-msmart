@@ -6,11 +6,14 @@ from Cryptodome.Util.Padding import pad, unpad
 from Cryptodome.Util.strxor import strxor
 from Cryptodome.Random import get_random_bytes
 from hashlib import md5, sha256
+import urllib
+from urllib.parse import urlparse
 
 VERSION = '0.1.30'
 _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
+loginKey = '3742e9e5842d4ad59c2db887e12449f9'
 
 MSGTYPE_HANDSHAKE_REQUEST = 0x0
 MSGTYPE_HANDSHAKE_RESPONSE = 0x1
@@ -88,18 +91,21 @@ class security:
 
     def tcp_key(self, response, key):
         if response == b'ERROR':
-            raise Exception('authentication failed')
+            _LOGGER.error('authentication failed')
+            return b'', False
         if len(response) != 64:
-            raise Exception('unexpected data length')
+            _LOGGER.error('unexpected data length')
+            return b'', False
         payload = response[:32]
         sign = response[32:]
         plain = self.aes_cbc_decrypt(payload, key)
         if sha256(plain).digest() != sign:
-            raise Exception("sign does not match")
+            _LOGGER.error("sign does not match")
+            return b'', False
         self._tcp_key = strxor(plain, key)
         self._request_count = 0
         self._response_count = 0
-        return self._tcp_key
+        return self._tcp_key, True
 
     def encode_8370(self, data, msgtype):
         header = bytes([0x83, 0x70])
@@ -150,3 +156,41 @@ class security:
             packets, incomplete = self.decode_8370(leftover)
             return [data] + packets, incomplete
         return [data], b''
+
+    def sign(self, url, payload):
+        # We only need the path
+        path = urlparse(url).path
+
+        # This next part cares about the field ordering in the payload signature
+        query = sorted(payload.items(), key=lambda x: x[0])
+        
+        # Create a query string (?!?) and make sure to unescape the URL encoded characters (!!!)
+        query = urllib.parse.unquote_plus(urllib.parse.urlencode(query))
+        
+        # Combine all the sign stuff to make one giant string, then SHA256 it
+        sign = path + query + loginKey
+        m = sha256()
+        m.update(sign.encode('ASCII'))
+        
+        return m.hexdigest()
+
+    def encryptPassword(self, loginId, password):         
+        # Hash the password
+        m = sha256()
+        m.update(password.encode('ascii'))
+        
+        # Create the login hash with the loginID + password hash + appKey, then hash it all AGAIN       
+        loginHash = loginId + m.hexdigest() + loginKey
+        m = sha256()
+        m.update(loginHash.encode('ascii'))
+        return m.hexdigest()
+
+def get_udpid(data):
+    b = sha256(data).digest()
+    b1, b2 = b[:16], b[16:]
+    b3 = bytearray(16)
+    i = 0
+    while i < len(b1):
+        b3[i] = b1[i] ^ b2[i]
+        i += 1
+    return b3.hex()
