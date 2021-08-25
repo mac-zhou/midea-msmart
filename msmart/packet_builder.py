@@ -4,7 +4,7 @@ from msmart.command import base_command
 from msmart.security import security
 import datetime
 
-VERSION = '0.1.30'
+VERSION = '0.1.31'
 
 _LOGGER = logging.getLogger(__name__)
 
