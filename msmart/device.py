@@ -189,6 +189,9 @@ class air_conditioning_device(device):
         self._active = True
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
+    
+    def __str__(self):
+        return str(self.__dict__)
 
     def refresh(self):
         cmd = request_status_command(self.type)
