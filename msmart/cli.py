@@ -210,6 +210,7 @@ def support_test(device: scandevice):
         _device = ac(device.ip, device.id, device.port)
     if device.type == 'ac':
         _device.refresh()
+        _LOGGER.debug("{}".format(_device))
         device.support = _device.support
 
 def support_testv3(device: scandevice):
