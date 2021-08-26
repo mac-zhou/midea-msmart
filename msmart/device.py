@@ -1,5 +1,6 @@
 
 import logging
+import time
 from enum import Enum
 
 import msmart.crc8 as crc8
@@ -48,6 +49,7 @@ class device:
             self._key = bytearray.fromhex(key)
             return self._authenticate()
         return False
+        
     def _authenticate(self):
         return self._lan_service.authenticate(self._token, self._key)
 
@@ -203,18 +205,19 @@ class air_conditioning_device(device):
         data = pkt_builder.finalize()
         _LOGGER.debug(
             "pkt_builder: {}:{} len: {} data: {}".format(self.ip, self.port, len(data), data.hex()))
+        send_time = time.time()
         if self._protocol_version == 3:
             responses = self._lan_service.appliance_transparent_send_8370(data)
         else:
             responses = self._lan_service.appliance_transparent_send(data)
         _LOGGER.debug(
-            "Got responses from {}:{} Version: {} Count: {}".format(self.ip, self.port, self._protocol_version, len(responses)))
+            "Got responses from {}:{} Version: {} Count: {} Time: {}".format(self.ip, self.port, self._protocol_version, len(responses), (time.time() - send_time)))
         if len(responses) == 0:
-            if not self._keep_last_known_online_state:
-                self._online = False
+            self._active = False
             self._support = False
         for response in responses:
             self._process_response(response)
+        self._active = True
 
     def _process_response(self, data):
         _LOGGER.debug(
@@ -225,8 +228,6 @@ class air_conditioning_device(device):
                 self._support = False
                 _LOGGER.warn(
                     "Got ERROR from {}, {}".format(self.ip, self.id))
-                if not self._keep_last_known_online_state:
-                    self._online = False
                 return
             response = appliance_response(data)
             self._defer_update = False
