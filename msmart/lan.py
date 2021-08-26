@@ -32,7 +32,7 @@ class lan:
             self._buffer = b''
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # set timeout
-            self._socket.settimeout(2)
+            self._socket.settimeout(4)
             try:
                 self._socket.connect((self.device_ip, self.device_port))
                 self._timestamp = time.time()
@@ -140,7 +140,9 @@ class lan:
         for response in responses:
             if len(response) > 40 + 16:
                 response = self.security.aes_decrypt(response[40:-16])
-            packets.append(response)
+            # header lenght is 10
+            if len(response) > 10:
+                packets.append(response)
         return packets
 
     def appliance_transparent_send(self, data):
@@ -161,13 +163,19 @@ class lan:
             # maybe multiple response
             while i < dlen:
                 size = responses[i+4]
-                packets.append(self.security.aes_decrypt(responses[i:i+size][40:-16]))
+                data = self.security.aes_decrypt(responses[i:i+size][40:-16])
+                # header lenght is 10
+                if len(data) > 10:
+                    packets.append(data)
                 i += size
         elif responses[0] == 0xaa and dlen > 2:
             i = 0 
             while i < dlen:
                 size = responses[i+1]
-                packets.append(responses[i:i+size+1])
+                data = responses[i:i+size+1]
+                # header lenght is 10
+                if len(data) > 10:
+                    packets.append(data)
                 i += size + 1
         else:
             _LOGGER.error("Unknown responses {}".format(responses.hex()))
