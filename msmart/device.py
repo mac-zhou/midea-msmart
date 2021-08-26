@@ -217,13 +217,13 @@ class air_conditioning_device(device):
             self._support = False
         for response in responses:
             self._process_response(response)
-        self._active = True
 
     def _process_response(self, data):
         _LOGGER.debug(
             "Update from {}:{} {}".format(self.ip, self.port, data.hex()))
         if len(data) > 0:
             self._online = True
+            self._active = True
             if data == b'ERROR':
                 self._support = False
                 _LOGGER.warn(
