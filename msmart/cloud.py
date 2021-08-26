@@ -15,6 +15,7 @@ VERSION = '0.1.31'
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class cloud:
     SERVER_URL = "https://mapp.appsmb.com/v1/"
     CLIENT_TYPE = 1                 # Android
