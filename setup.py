@@ -27,6 +27,7 @@ setuptools.setup(
     install_requires=[
         "pycryptodome",
         "click",
-        "pycryptodomex"
+        "pycryptodomex",
+        "requests",
     ],
 )
