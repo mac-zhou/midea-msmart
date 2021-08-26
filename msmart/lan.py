@@ -32,7 +32,7 @@ class lan:
             self._buffer = b''
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # set timeout
-            self._socket.settimeout(8)
+            self._socket.settimeout(2)
             try:
                 self._socket.connect((self.device_ip, self.device_port))
                 self._timestamp = time.time()
@@ -147,7 +147,7 @@ class lan:
         # time sleep retries second befor send data, default is 0
         time.sleep(self._retries)
         responses, b = self.request(data)
-        _LOGGER.debug("Got responses len: {}".format(len(responses)))
+        _LOGGER.debug("Get responses len: {}".format(len(responses)))
         if responses == bytearray(0) and self._retries < 2 and b:
             packets = self.appliance_transparent_send(data)
             self._retries = 0
@@ -155,15 +155,20 @@ class lan:
         packets = []
         if responses == bytearray(0):
             return packets
-        if responses[:2].hex() == "5a5a":
+        dlen = len(responses)
+        if responses[:2].hex() == "5a5a" and dlen > 5:
+            i = 0
             # maybe multiple response
-            for response in responses.split(bytearray.fromhex('5a5a')):
-                # 5a5a been removed, so (40-2)+16
-                if len(response) > 38 + 16:
-                    packets.append(self.security.aes_decrypt(response[38:-16]))
-        elif responses[0] == 0xaa:
-            for response in responses.split(bytearray.fromhex('aa')):
-                packets.append(bytearray.fromhex('aa') + response)
+            while i < dlen:
+                size = responses[i+4]
+                packets.append(self.security.aes_decrypt(responses[i:i+size][40:-16]))
+                i += size
+        elif responses[0] == 0xaa and dlen > 2:
+            i = 0 
+            while i < dlen:
+                size = responses[i+1]
+                packets.append(responses[i:i+size+1])
+                i += size + 1
         else:
             _LOGGER.error("Unknown responses {}".format(responses.hex()))
         return packets
