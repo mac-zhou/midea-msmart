@@ -184,7 +184,7 @@ class air_conditioning_device(device):
         self._swing_mode = air_conditioning_device.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
-        self.farenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
+        self.fahrenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
 
         self._on_timer = None
         self._off_timer = None
@@ -263,7 +263,7 @@ class air_conditioning_device(device):
             cmd.turbo_mode = self._turbo_mode
             # pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
-            cmd.fahrenheit = self.farenheit_unit
+            cmd.fahrenheit = self.fahrenheit_unit
             self._send_cmd(cmd)
         finally:
             self._updating = False
