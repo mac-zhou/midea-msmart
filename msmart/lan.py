@@ -32,7 +32,7 @@ class lan:
             self._buffer = b''
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # set timeout
-            self._socket.settimeout(4)
+            self._socket.settimeout(2)
             try:
                 self._socket.connect((self.device_ip, self.device_port))
                 self._timestamp = time.time()
@@ -48,48 +48,53 @@ class lan:
             self._socket.close()
             self._socket = None
             self._tcp_key = None
+    
+    def get_socket_info(self):
+        socket_time = time.time() - self._timestamp
+        return "{} -> {} retries: {} time: {}".format(self._local, self._remote, self._retries, socket_time)
 
     def request(self, message):
         # Create a TCP/IP socket
         self._connect()
-
+        if self._socket is None:
+            _LOGGER.error("Sokcet is None: {}".format(self._remote))
+            return bytearray(0), False
+        _LOGGER.debug("Socket {} tcp_key: {}".format(self.get_socket_info(), self._tcp_key))
+        # Send data
         try:
-            if self._socket is None:
-                _LOGGER.error("Sokcet is None: {}:{}".format(
-                    self.device_ip, self.device_port))
-                return bytearray(0), False
-            _LOGGER.debug("Socket {} -> {} tcp_key: {}".format(
-                self._local, self._remote, self._tcp_key))
-            # Send data
             _LOGGER.debug(
-                "Sending to {} -> {} retries: {} message: {}".format(self._local, self._remote, self._retries, message.hex()))
+                "Sending {} message: {}".format(self.get_socket_info(), message.hex()))
             self._socket.sendall(message)
+        except Exception as error:
+            self._retries += 1
+            _LOGGER.error("Send {} Error: {}".format(self.get_socket_info(), error))
 
-            # Received data
+        # Received data
+        try:
             response = self._socket.recv(1024)
+        except socket.timeout as error:
+            self._retries += 1
+            if error.args[0] == 'timed out':
+                _LOGGER.debug("Recv {}, timed out".format(self.get_socket_info()))
+                return bytearray(0), True
+            else:
+                _LOGGER.debug("Recv {} TimeOut: {}".format(self.get_socket_info(), error))
+                self._disconnect()
+                return bytearray(0), True
         except socket.error as error:
             self._disconnect()
             self._retries += 1
-            if self._retries < 2:
-                _LOGGER.warn("About to send data again with Device {}:{} error: {}".format(
-                    self.device_ip, self.device_port, error))
+            _LOGGER.debug("Recv {} Error: {}".format(self.get_socket_info(), error))
+            return bytearray(0), True
+        else:
+            _LOGGER.debug("Recv {} Response: {}".format(self.get_socket_info(), response.hex()))
+            if len(response) == 0:
+                _LOGGER.debug("Recv {} Server Closed Socket".format(self.get_socket_info()))
+                self._disconnect()
+                self._retries += 1
+                return bytearray(0), True
             else:
-                _LOGGER.error("Couldn't connect with Device {}:{} retries: {} error: {}".format(
-                    self.device_ip, self.device_port, self._retries, error))
-            return bytearray(0), True
-        except socket.timeout:
-            _LOGGER.error("Connect the Device {}:{} TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
-                self.device_ip, self.device_port))
-            self._disconnect()
-            return bytearray(0), True
-        _LOGGER.debug("Received from {}:{} {}".format(
-            self.device_ip, self.device_port, response.hex()))
-        if response == bytearray(0):
-            _LOGGER.warn("About to send data again with Device {}:{} response is null".format(
-                    self.device_ip, self.device_port))
-            self._disconnect()
-            self._retries += 1
-        return response, True
+                return response, True
 
     def authenticate(self, token: bytearray, key: bytearray):
         self._token, self._key = token, key
@@ -103,12 +108,10 @@ class lan:
         tcp_key, success = self.security.tcp_key(response, self._key)
         if success:
             self._tcp_key = tcp_key.hex()
-            _LOGGER.info('Got TCP key for {}:{} {}'.format(
-            self.device_ip, self.device_port, tcp_key.hex()))
+            _LOGGER.info('Got TCP key for {} {}'.format(self.get_socket_info(), tcp_key.hex()))
             # After authentication, don’t send data immediately, so sleep 1s.
             time.sleep(1)
         return success
-
 
     def _authenticate(self):
         if not self._token or not self._key:
@@ -116,11 +119,11 @@ class lan:
         self.authenticate(self._token, self._key)
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
-        socket_time = time.time() - self._timestamp
-        _LOGGER.debug("Data: {} msgtype: {} len: {} socket time: {}".format(data.hex(), msgtype, len(data), socket_time))
-        if self._socket is None or socket_time > 120:
-            if socket_time > 120:
-                _LOGGER.debug("Socket {} -> {} is TimeOut, Create New Socket ".format(self._local, self._remote))
+        # socket_time = time.time() - self._timestamp
+        # _LOGGER.debug("Data: {} msgtype: {} len: {} socket time: {}".format(data.hex(), msgtype, len(data), socket_time))
+        if self._socket is None:
+            _LOGGER.debug(
+                "Socket {} Closed, Create New Socket".format(self.get_socket_info()))
             self._disconnect()
             self._authenticate()
         # copy from data in order to resend data
@@ -131,7 +134,8 @@ class lan:
         responses, b = self.request(data)
         _LOGGER.debug("Got responses len: {}".format(len(responses)))
         if responses == bytearray(0) and self._retries < 2 and b:
-            packets = self.appliance_transparent_send_8370(original_data, msgtype)
+            packets = self.appliance_transparent_send_8370(
+                original_data, msgtype)
             self._retries = 0
             return packets
         responses, self._buffer = self.security.decode_8370(
@@ -169,7 +173,7 @@ class lan:
                     packets.append(data)
                 i += size
         elif responses[0] == 0xaa and dlen > 2:
-            i = 0 
+            i = 0
             while i < dlen:
                 size = responses[i+1]
                 data = responses[i:i+size+1]
