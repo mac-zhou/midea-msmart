@@ -2,7 +2,8 @@
 import logging
 import socket
 import time
-from msmart.security import security, MSGTYPE_HANDSHAKE_REQUEST, MSGTYPE_ENCRYPTED_REQUEST
+from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_HANDSHAKE_REQUEST
+from msmart.security import security
 
 VERSION = '0.1.33'
 

@@ -2,13 +2,10 @@
 # This library is based off the work by Yitsushi. The original work was a ruby based commandline utility.
 # The orignal Ruby version can be found here https://github.com/yitsushi/midea-air-condition
 # License MIT - Use as you please and at your own risk
-
-from typing import Dict, List
-
+from typing import Dict
+from msmart.cloud import cloud
+from msmart.device import air_conditioning_device, dehumidifier_device, unknown_device
 from msmart.lan import lan
-from msmart.device import air_conditioning_device
-from msmart.device import dehumidifier_device
-from msmart.device import unknown_device
 
 VERSION = '0.1.33'
 
