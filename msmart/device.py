@@ -1,6 +1,5 @@
 
 import logging
-from mysocket import request
 import time
 from enum import Enum
 
