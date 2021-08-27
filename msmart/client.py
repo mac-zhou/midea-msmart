@@ -7,7 +7,7 @@ from msmart.cloud import cloud
 from msmart.device import air_conditioning_device, dehumidifier_device, unknown_device
 from msmart.lan import lan
 
-VERSION = '0.1.31'
+VERSION = '0.1.33'
 
 DEVICE_TYPES = {
     0xAC: air_conditioning_device,

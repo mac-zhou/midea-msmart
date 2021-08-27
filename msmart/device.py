@@ -8,7 +8,7 @@ from msmart.command import set_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.31'
+VERSION = '0.1.33'
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -181,7 +181,7 @@ class air_conditioning_device(device):
         self._swing_mode = air_conditioning_device.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
-        self.farenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
+        self.fahrenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
 
         self._on_timer = None
         self._off_timer = None
@@ -208,9 +208,12 @@ class air_conditioning_device(device):
             responses = self._lan_service.appliance_transparent_send_8370(data)
         else:
             responses = self._lan_service.appliance_transparent_send(data)
+        request_time = round(time.time() - send_time, 2)
         _LOGGER.debug(
-            "Got responses from {}:{} Version: {} Count: {} Time: {}".format(self.ip, self.port, self._protocol_version, len(responses), (time.time() - send_time)))
+            "Got responses from {}:{} Version: {} Count: {} Time(s): {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
         if len(responses) == 0:
+            _LOGGER.warn(
+            "Got Null from {}:{} Version: {} Count: {} Time(s): {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
             self._active = False
             self._support = False
         for response in responses:
@@ -257,7 +260,7 @@ class air_conditioning_device(device):
             cmd.turbo_mode = self._turbo_mode
             # pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
-            cmd.fahrenheit = self.farenheit_unit
+            cmd.fahrenheit = self.fahrenheit_unit
             self._send_cmd(cmd)
         finally:
             self._updating = False

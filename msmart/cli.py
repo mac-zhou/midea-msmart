@@ -6,8 +6,6 @@ import logging
 import sys
 from msmart.scanner import MideaDiscovery
 
-VERSION = '0.1.31'
-
 if sys.version_info < (3, 5):
     print(
         "To use this script you need python 3.5 or newer, got %s" % (
@@ -15,6 +13,7 @@ if sys.version_info < (3, 5):
     )
     sys.exit(1)
 
+VERSION = '0.1.33'
 
 Account = ''
 Password = ''
