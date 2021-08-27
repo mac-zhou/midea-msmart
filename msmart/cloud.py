@@ -1,17 +1,16 @@
 # -*- coding: UTF-8 -*-
-import logging
-import requests
 import datetime
 import json
+import logging
+import requests
 
 from threading import Lock
-
 from msmart.security import security
 
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
-VERSION = '0.1.31'
+VERSION = '0.1.33'
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -2,12 +2,10 @@
 import logging
 import time
 from enum import Enum
-
-import msmart.crc8 as crc8
-from msmart.lan import lan
 from msmart.command import appliance_response
 from msmart.command import base_command as request_status_command
 from msmart.command import set_command
+from msmart.lan import lan
 from msmart.packet_builder import packet_builder
 
 VERSION = '0.1.31'
