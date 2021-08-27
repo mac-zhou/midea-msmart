@@ -4,7 +4,7 @@ import socket
 import time
 from msmart.security import security, MSGTYPE_HANDSHAKE_REQUEST, MSGTYPE_ENCRYPTED_REQUEST
 
-VERSION = '0.1.32'
+VERSION = '0.1.33'
 
 _LOGGER = logging.getLogger(__name__)
 
