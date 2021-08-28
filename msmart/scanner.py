@@ -36,7 +36,7 @@ class scandevice:
     
     async def support_test(self, account=OPEN_MIDEA_APP_ACCOUNT, password=OPEN_MIDEA_APP_PASSWORD):
         if self.version == 3:
-            _device = await self.support_testv3(self, account, password)
+            _device = await self.support_testv3(account, password)
         else:
             _device = ac(self.ip, self.id, self.port)
         if self.type == 'ac':
