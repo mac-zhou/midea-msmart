@@ -166,8 +166,11 @@ class MideaDiscovery:
                 tasks.add(task)
             else:
                 break
-        await asyncio.wait(tasks)
-        return [task.result() for task in tasks]
+        if len(tasks) > 0:
+            await asyncio.wait(tasks)
+            return [task.result() for task in tasks]
+        else:
+            return []
 
     def get(self, ip):
         self._send_message(ip)
