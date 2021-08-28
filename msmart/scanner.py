@@ -3,7 +3,7 @@ import asyncio
 import logging
 import socket
 from msmart.cloud import cloud
-from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG
+from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 from msmart.device import air_conditioning_device as ac
 from msmart.security import get_udpid, security
 try:
@@ -34,7 +34,7 @@ class scandevice:
     def __str__(self):
         return str(self.__dict__)
     
-    async def support_test(self, account, password):
+    async def support_test(self, account=OPEN_MIDEA_APP_ACCOUNT, password=OPEN_MIDEA_APP_PASSWORD):
         if self.version == 3:
             _device = await self.support_testv3(self, account, password)
         else:

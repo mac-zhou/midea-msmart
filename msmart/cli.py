@@ -1,6 +1,7 @@
 
 # -*- coding: UTF-8 -*-
 import asyncio
+from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 import click
 import logging
 import sys
@@ -15,19 +16,14 @@ if sys.version_info < (3, 5):
 
 VERSION = '0.1.33'
 
-Account = ''
-Password = ''
-
 _LOGGER = logging.getLogger(__name__)
-
-
 
 @click.command()
 @click.option("-d", "--debug", default=False, count=True)
 @click.option("-c", "--count", default=1, help='Number of broadcast paktes, default is 1.\
                                                 if you have many devices, you may change this vaule.')
-@click.option("-a", "--account", default='midea_is_best@outlook.com', help='Your email address for your Midea account.')
-@click.option("-p", "--password", default='lovemidea4ever', help='Your password for your Midea account.')
+@click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your email address for your Midea account.')
+@click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password for your Midea account.')
 # @click.pass_context
 def discover(debug: int, count: int, account:str, password:str):
     """Send Device Scan Broadcast"""
