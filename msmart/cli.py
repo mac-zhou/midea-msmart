@@ -39,7 +39,9 @@ def discover(debug: int, count: int, account:str, password:str):
     
     try:
         discovery = MideaDiscovery(account=account, password=password)
-        found_devices = asyncio.run(discovery.get_all())
+        loop = asyncio.new_event_loop()
+        found_devices = loop.run_until_complete(discovery.get_all())
+        loop.close()
         
         for device in found_devices:
             _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(device)) 
