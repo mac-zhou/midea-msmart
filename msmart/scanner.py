@@ -204,17 +204,16 @@ class MideaDiscovery:
         nets = await _get_networks()
         for i in range(amount):
             for net in nets:
-                if net.broadcast_address:
-                    try:
-                        self.socket.sendto(
-                            BROADCAST_MSG, (str(net.broadcast_address), 6445)
-                        )
-                        self.socket.sendto(
-                            BROADCAST_MSG, (str(net.broadcast_address), 20086)
-                        )
-                        _LOGGER.debug("Broadcast message sent: " + str(i))
-                    except:
-                        _LOGGER.debug("Unable to send broadcast to: " + str(net.broadcast_address))
+                try:
+                    self.socket.sendto(
+                        BROADCAST_MSG, (str(net.broadcast_address), 6445)
+                    )
+                    self.socket.sendto(
+                        BROADCAST_MSG, (str(net.broadcast_address), 20086)
+                    )
+                    _LOGGER.debug("Broadcast message sent: " + str(i))
+                except:
+                    _LOGGER.debug("Unable to send broadcast to: " + str(net.broadcast_address))
 
     async def _send_message(self, address):
         self.socket.sendto(
@@ -249,7 +248,7 @@ async def _get_networks():
                 localNet = ipaddress.IPv4Network(f"{ip.ip}/{ip.network_prefix}", strict=False)
             elif ip.is_IPv6:
                 localNet = ipaddress.IPv6Network(f"{ip.ip[0]}/{ip.network_prefix}", strict=False)
-            if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local:
+            if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local and len(localNet.hosts) > 1:
                 nets.append(localNet)
     if not nets:        
         _LOGGER.debug("No valid networks detected to send broadcast")
