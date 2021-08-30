@@ -10,7 +10,7 @@ from msmart.device import air_conditioning_device
 from msmart.device import dehumidifier_device
 from msmart.device import unknown_device
 
-VERSION = '0.1.33'
+VERSION = '0.1.34'
 
 DEVICE_TYPES = {
     0xAC: air_conditioning_device,
