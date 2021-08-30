@@ -1,7 +1,10 @@
 # -*- coding: UTF-8 -*-
 import asyncio
+import ipaddress
+import ifaddr
 import logging
 import socket
+
 from msmart.cloud import cloud
 from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 from msmart.device import air_conditioning_device as ac
@@ -40,16 +43,19 @@ class scandevice:
         else:
             _device = ac(self.ip, self.id, self.port)
         if self.type == 'ac':
-            _device.refresh()
+            loop = asyncio.get_running_loop()
+            await loop.run_in_executor(None, _device.refresh)
             _LOGGER.debug("{}".format(_device))
             self.support = _device.support
+        _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(self)) 
         return self
 
     async def support_testv3(self, account, password):
         _device = ac(self.ip, self.id, self.port)
         for udpid in [get_udpid(self.id.to_bytes(6, 'little')), get_udpid(self.id.to_bytes(6, 'big'))]:
-            token, key = gettoken(udpid, account, password)
-            auth = _device.authenticate(key, token)
+            loop = asyncio.get_running_loop()
+            token, key = await loop.run_in_executor(None, gettoken, (udpid, account, password))
+            auth = await loop.run_in_executor(None, _device.authenticate, (key, token))
             if auth:
                 self.token, self.key = token, key
                 return _device
@@ -174,7 +180,11 @@ class MideaDiscovery:
 
     def get(self, ip):
         self._send_message(ip)
-        return asyncio.run(self._get_response(), ip)
+        loop = asyncio.new_event_loop()
+        try:
+            return loop.run_until_complete(self._get_response(ip))
+        finally:
+            loop.close()
 
     async def _get_response(self, ip=None):
         try:
@@ -187,18 +197,24 @@ class MideaDiscovery:
             device = await scandevice.load(ip, data)
             return asyncio.create_task(device.support_test(self.account, self.password))
         except socket.timeout:
-            _LOGGER.info("Socket timeout")
+            _LOGGER.debug("Socket timeout")
             return None
 
     async def _broadcast_message(self, amount):
+        nets = await _get_networks()
         for i in range(amount):
-            self.socket.sendto(
-                BROADCAST_MSG, ("255.255.255.255", 6445)
-            )
-            self.socket.sendto(
-                BROADCAST_MSG, ("255.255.255.255", 20086)
-            )
-            _LOGGER.debug("Broadcast message sent: " + str(i))
+            for net in nets:
+                if net.broadcast_address:
+                    try:
+                        self.socket.sendto(
+                            BROADCAST_MSG, (str(net.broadcast_address), 6445)
+                        )
+                        self.socket.sendto(
+                            BROADCAST_MSG, (str(net.broadcast_address), 20086)
+                        )
+                        _LOGGER.debug("Broadcast message sent: " + str(i))
+                    except:
+                        _LOGGER.debug("Unable to send broadcast to: " + str(net.broadcast_address))
 
     async def _send_message(self, address):
         self.socket.sendto(
@@ -222,3 +238,19 @@ def _get_socket():
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.settimeout(5)
     return sock
+
+async def _get_networks():
+    nets :list() = []
+    adapters = ifaddr.get_adapters()
+    for adapter in adapters:
+        for ip in adapter.ips:
+            localNet = None
+            if ip.is_IPv4:
+                localNet = ipaddress.IPv4Network(f"{ip.ip}/{ip.network_prefix}", strict=False)
+            elif ip.is_IPv6:
+                localNet = ipaddress.IPv6Network(f"{ip.ip[0]}/{ip.network_prefix}", strict=False)
+            if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local:
+                nets.append(localNet)
+    if not nets:        
+        _LOGGER.debug("No valid networks detected to send broadcast")
+    return nets
