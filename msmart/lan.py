@@ -67,7 +67,9 @@ class lan:
             self._socket.sendall(message)
         except Exception as error:
             self._retries += 1
+            self._disconnect()
             _LOGGER.error("Send {} Error: {}".format(self.get_socket_info(), error))
+            return bytearray(0), True
 
         # Received data
         try:
