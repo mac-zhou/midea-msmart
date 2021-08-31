@@ -50,7 +50,7 @@ class lan:
             self._tcp_key = None
     
     def get_socket_info(self):
-        socket_time = time.time() - self._timestamp
+        socket_time = round(time.time() - self._timestamp, 2)
         return "{} -> {} retries: {} time: {}".format(self._local, self._remote, self._retries, socket_time)
 
     def request(self, message):
