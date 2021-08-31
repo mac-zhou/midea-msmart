@@ -1,12 +1,12 @@
 # -*- coding: UTF-8 -*-
 import logging
-
+import urllib
 from Cryptodome.Cipher import AES
 from Cryptodome.Util.Padding import pad, unpad
 from Cryptodome.Util.strxor import strxor
 from Cryptodome.Random import get_random_bytes
 from hashlib import md5, sha256
-import urllib
+from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_ENCRYPTED_RESPONSE
 from urllib.parse import urlparse
 
 VERSION = '0.1.34'
@@ -14,13 +14,6 @@ _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
 loginKey = '3742e9e5842d4ad59c2db887e12449f9'
-
-MSGTYPE_HANDSHAKE_REQUEST = 0x0
-MSGTYPE_HANDSHAKE_RESPONSE = 0x1
-MSGTYPE_ENCRYPTED_RESPONSE = 0x3
-MSGTYPE_ENCRYPTED_REQUEST = 0x6
-MSGTYPE_TRANSPARENT = 0xf
-
 
 class security:
 
