@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 import asyncio
-import ipaddress
+from ipaddress import IPv4Network
 import ifaddr
 import logging
 import socket
@@ -43,7 +43,7 @@ class scandevice:
         else:
             _device = ac(self.ip, self.id, self.port)
         if self.type == 'ac':
-            loop = asyncio.get_running_loop()
+            loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, _device.refresh)
             _LOGGER.debug("{}".format(_device))
             self.support = _device.support
@@ -53,9 +53,9 @@ class scandevice:
     async def support_testv3(self, account, password):
         _device = ac(self.ip, self.id, self.port)
         for udpid in [get_udpid(self.id.to_bytes(6, 'little')), get_udpid(self.id.to_bytes(6, 'big'))]:
-            loop = asyncio.get_running_loop()
-            token, key = await loop.run_in_executor(None, gettoken, (udpid, account, password))
-            auth = await loop.run_in_executor(None, _device.authenticate, (key, token))
+            loop = asyncio.get_event_loop()
+            token, key = await loop.run_in_executor(None, gettoken, udpid, account, password)
+            auth = await loop.run_in_executor(None, _device.authenticate, key, token)
             if auth:
                 self.token, self.key = token, key
                 return _device
@@ -195,7 +195,8 @@ class MideaDiscovery:
                 ip = addr[0]
             _LOGGER.debug("Midea Local Data {} {}".format(ip, data.hex()))
             device = await scandevice.load(ip, data)
-            return asyncio.create_task(device.support_test(self.account, self.password))
+            loop = asyncio.get_event_loop()
+            return loop.create_task(device.support_test(self.account, self.password))
         except socket.timeout:
             _LOGGER.debug("Socket timeout")
             return None
@@ -239,17 +240,14 @@ def _get_socket():
     return sock
 
 async def _get_networks():
-    nets :list() = []
+    nets = []
     adapters = ifaddr.get_adapters()
     for adapter in adapters:
         for ip in adapter.ips:
-            localNet = None
             if ip.is_IPv4:
-                localNet = ipaddress.IPv4Network(f"{ip.ip}/{ip.network_prefix}", strict=False)
-            elif ip.is_IPv6:
-                localNet = ipaddress.IPv6Network(f"{ip.ip[0]}/{ip.network_prefix}", strict=False)
-            if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local and len(localNet.hosts) > 1:
-                nets.append(localNet)
+                localNet = IPv4Network(f"{ip.ip}/{ip.network_prefix}", strict=False)
+                if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local and sum(1 for _ in localNet.hosts()) > 1:
+                    nets.append(localNet)
     if not nets:        
         _LOGGER.debug("No valid networks detected to send broadcast")
     return nets
