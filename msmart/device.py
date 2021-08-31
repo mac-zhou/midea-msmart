@@ -212,10 +212,10 @@ class air_conditioning_device(device):
             responses = self._lan_service.appliance_transparent_send(data)
         request_time = round(time.time() - send_time, 2)
         _LOGGER.debug(
-            "Got responses from {}:{} Version: {} Count: {} Time(s): {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
+            "Got responses from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
         if len(responses) == 0:
             _LOGGER.warn(
-            "Got Null from {}:{} Version: {} Count: {} Time(s): {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
+            "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
             self._active = False
             self._support = False
         for response in responses:
