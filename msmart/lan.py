@@ -124,7 +124,7 @@ class lan:
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
         # socket_time = time.time() - self._timestamp
         # _LOGGER.debug("Data: {} msgtype: {} len: {} socket time: {}".format(data.hex(), msgtype, len(data), socket_time))
-        if self._socket is None:
+        if self._socket is None or self._tcp_key is None:
             _LOGGER.debug(
                 "Socket {} Closed, Create New Socket".format(self.get_socket_info()))
             self._disconnect()
