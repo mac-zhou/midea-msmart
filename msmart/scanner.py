@@ -244,9 +244,9 @@ async def _get_networks():
     adapters = ifaddr.get_adapters()
     for adapter in adapters:
         for ip in adapter.ips:
-            if ip.is_IPv4:
+            if ip.is_IPv4 and ip.network_prefix < 32:
                 localNet = IPv4Network(f"{ip.ip}/{ip.network_prefix}", strict=False)
-                if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local and sum(1 for _ in localNet.hosts()) > 1:
+                if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local:
                     nets.append(localNet)
     if not nets:        
         _LOGGER.debug("No valid networks detected to send broadcast")
