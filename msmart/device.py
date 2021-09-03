@@ -8,7 +8,7 @@ from msmart.command import set_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder
 
-VERSION = '0.1.34'
+VERSION = '0.1.35'
 
 _LOGGER = logging.getLogger(__name__)
 
