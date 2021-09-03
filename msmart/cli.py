@@ -20,12 +20,12 @@ _LOGGER = logging.getLogger(__name__)
 
 @click.command()
 @click.option("-d", "--debug", default=False, count=True)
-@click.option("-c", "--count", default=1, help='Number of broadcast paktes, default is 1.\
+@click.option("-c", "--amount", default=1, help='Number of broadcast paktes, default is 1.\
                                                 if you have many devices, you may change this vaule.')
 @click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your email address for your Midea account.')
 @click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password for your Midea account.')
 # @click.pass_context
-def discover(debug: int, count: int, account:str, password:str):
+def discover(debug: int, amount: int, account:str, password:str):
     """Send Device Scan Broadcast"""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
@@ -38,7 +38,7 @@ def discover(debug: int, count: int, account:str, password:str):
         "Sending Device Scan Broadcast...")
     
     try:
-        discovery = MideaDiscovery(account=account, password=password)
+        discovery = MideaDiscovery(account=account, password=password, amount=amount)
         loop = asyncio.new_event_loop()
         found_devices = loop.run_until_complete(discovery.get_all())
         loop.close()
