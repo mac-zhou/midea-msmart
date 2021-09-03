@@ -67,27 +67,28 @@ class lan:
                 "Sending {} message: {}".format(self.get_socket_info(), message.hex()))
             self._socket.sendall(message)
         except Exception as error:
-            self._retries += 1
-            self._disconnect()
             _LOGGER.error("Send {} Error: {}".format(self.get_socket_info(), error))
+            self._disconnect()
+            self._retries += 1
             return bytearray(0), True
 
         # Received data
         try:
             response = self._socket.recv(1024)
         except socket.timeout as error:
-            self._retries += 1
             if error.args[0] == 'timed out':
                 _LOGGER.debug("Recv {}, timed out".format(self.get_socket_info()))
+                self._retries += 1
                 return bytearray(0), True
             else:
                 _LOGGER.debug("Recv {} TimeOut: {}".format(self.get_socket_info(), error))
                 self._disconnect()
+                self._retries += 1
                 return bytearray(0), True
         except socket.error as error:
+            _LOGGER.debug("Recv {} Error: {}".format(self.get_socket_info(), error))
             self._disconnect()
             self._retries += 1
-            _LOGGER.debug("Recv {} Error: {}".format(self.get_socket_info(), error))
             return bytearray(0), True
         else:
             _LOGGER.debug("Recv {} Response: {}".format(self.get_socket_info(), response.hex()))
@@ -97,6 +98,7 @@ class lan:
                 self._retries += 1
                 return bytearray(0), True
             else:
+                self._retries = 0
                 return response, True
 
     def authenticate(self, token: bytearray, key: bytearray):
