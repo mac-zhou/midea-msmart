@@ -47,7 +47,7 @@ class scandevice:
             await loop.run_in_executor(None, _device.refresh)
             _LOGGER.debug("{}".format(_device))
             self.support = _device.support
-        _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(self)) 
+        _LOGGER.debug("*** Found a device: \033[94m\033[1m{} \033[0m".format(self)) 
         return self
 
     async def support_testv3(self, account, password):
@@ -148,14 +148,15 @@ class scandeviceV1(scandevice):
         return response
 
 class MideaDiscovery:
-    count = 1
-    socket = None
 
-    def __init__(self, account=None, password=None):
+    def __init__(self, account=None, password=None, amount=1):
         """Init discovery."""
         self.account = account
         self.password = password
+        self.amount = amount
         self.socket = _get_socket()
+        self.result = set()
+        self.found_devices = set()
 
     async def find(self, ip=None):
         if ip is not None:
@@ -163,20 +164,20 @@ class MideaDiscovery:
         return await self.get_all()
 
     async def get_all(self):
-        await self._broadcast_message(self.count)
-        tasks = set()
-        while True:
-            
-            task = await self._get_response()
-            if task:
-                tasks.add(task)
-            else:
-                break
-        if len(tasks) > 0:
-            await asyncio.wait(tasks)
-            return [task.result() for task in tasks]
-        else:
-            return []
+        for i in range(self.amount):
+            _LOGGER.debug("Broadcast message sent: " + str(i))
+            await self._broadcast_message()
+            tasks = set()
+            while True:
+                task = await self._get_response()
+                if task:
+                    tasks.add(task)
+                else:
+                    break
+            if len(tasks) > 0:
+                await asyncio.wait(tasks)
+                [self.result.add(task.result()) for task in tasks]
+        return self.result
 
     def get(self, ip):
         self._send_message(ip)
@@ -193,28 +194,28 @@ class MideaDiscovery:
                 return None
             else:
                 ip = addr[0]
-            _LOGGER.debug("Midea Local Data {} {}".format(ip, data.hex()))
-            device = await scandevice.load(ip, data)
-            loop = asyncio.get_event_loop()
-            return loop.create_task(device.support_test(self.account, self.password))
+            if ip not in self.found_devices:
+                _LOGGER.debug("Midea Local Data {} {}".format(ip, data.hex()))
+                self.found_devices.add(ip)
+                device = await scandevice.load(ip, data)
+                loop = asyncio.get_event_loop()
+                return loop.create_task(device.support_test(self.account, self.password))
         except socket.timeout:
             _LOGGER.debug("Socket timeout")
             return None
 
-    async def _broadcast_message(self, amount):
+    async def _broadcast_message(self):
         nets = await _get_networks()
-        for i in range(amount):
-            for net in nets:
-                try:
-                    self.socket.sendto(
-                        BROADCAST_MSG, (str(net.broadcast_address), 6445)
-                    )
-                    self.socket.sendto(
-                        BROADCAST_MSG, (str(net.broadcast_address), 20086)
-                    )
-                    _LOGGER.debug("Broadcast message sent: " + str(i))
-                except:
-                    _LOGGER.debug("Unable to send broadcast to: " + str(net.broadcast_address))
+        for net in nets:
+            try:
+                self.socket.sendto(
+                    BROADCAST_MSG, (str(net.broadcast_address), 6445)
+                )
+                self.socket.sendto(
+                    BROADCAST_MSG, (str(net.broadcast_address), 20086)
+                )
+            except:
+                _LOGGER.debug("Unable to send broadcast to: " + str(net.broadcast_address))
 
     async def _send_message(self, address):
         self.socket.sendto(
