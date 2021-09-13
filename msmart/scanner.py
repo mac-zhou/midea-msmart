@@ -4,6 +4,7 @@ from ipaddress import IPv4Network
 import ifaddr
 import logging
 import socket
+from threading import Lock
 
 from msmart.cloud import cloud
 from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
@@ -20,6 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 
 Client = None
 _security = security()
+_lock = Lock()
 
 class scandevice:
 
@@ -227,11 +229,15 @@ class MideaDiscovery:
         _LOGGER.debug("Message sent")
 
 def gettoken(udpid, account, password):
-    global Client
-    if Client is None:
-        Client = cloud(account, password)
-    if Client.session == {}:
-        Client.login()
+    global Client, _lock
+    _lock.acquire()
+    try:
+        if Client is None:
+            Client = cloud(account, password)
+        if not Client.session:
+            Client.login()
+    finally:
+        _lock.release()
     return Client.gettoken(udpid)
     
 def _get_socket():
