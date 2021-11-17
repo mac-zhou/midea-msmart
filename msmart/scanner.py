@@ -65,6 +65,8 @@ class scandevice:
 
     @staticmethod
     async def load(ip, data):
+        if data is None:
+            return None
         if len(data) >= 104 and (data[:2].hex() == '5a5a' or data[8:10].hex() == '5a5a'):
             return scandeviceV2V3(data)
         if data[:6].hex() == '3c3f786d6c20':
@@ -176,18 +178,19 @@ class MideaDiscovery:
                     tasks.add(task)
                 else:
                     break
-            if len(tasks) > 0:
-                await asyncio.wait(tasks)
-                [self.result.add(task.result()) for task in tasks]
+            await self._process_tasks(tasks)
         return self.result
 
-    def get(self, ip):
-        self._send_message(ip)
-        loop = asyncio.new_event_loop()
-        try:
-            return loop.run_until_complete(self._get_response(ip))
-        finally:
-            loop.close()
+    async def _process_tasks(self, tasks):
+        if len(tasks) > 0:
+            await asyncio.wait(tasks)
+            [self.result.add(task.result()) for task in tasks]
+
+    async def get(self, ip):
+        await self._send_message(ip)
+        task = await self._get_response(ip)
+        await self._process_tasks([task])
+        return self.result
 
     async def _get_response(self, ip=None):
         try:
