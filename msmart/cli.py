@@ -19,12 +19,12 @@ VERSION = '0.1.35'
 _LOGGER = logging.getLogger(__name__)
 
 @click.command()
-@click.option("-d", "--debug", default=False, count=True)
+@click.option("-d", "--debug", default=False, count=True, help='Enable debug logging')
 @click.option("-c", "--amount", default=1, help='Number of broadcast packets, default is 1.\
                                                 if you have many devices, you may change this value.')
 @click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your email address for your Midea account.')
 @click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password for your Midea account.')
-@click.option("-i", "--ip", default='', help='IP address of your Midea device (optional).')
+@click.option("-i", "--ip", default='', help="IP address of your Midea device (optional). Needed when broadcasts don't work.")
 # @click.pass_context
 def discover(debug: bool, amount: int, account:str, password:str, ip: str):
     """Send Device Scan Broadcast"""
