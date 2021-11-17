@@ -49,5 +49,5 @@ def discover(debug: bool, amount: int, account:str, password:str, ip: str):
     except KeyboardInterrupt:
         sys.exit(0)
 
-if __name__ == '__main__':
-    discover()
+# if __name__ == '__main__':
+#     discover()
