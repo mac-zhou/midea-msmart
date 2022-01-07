@@ -189,7 +189,8 @@ class MideaDiscovery:
     async def get(self, ip):
         await self._send_message(ip)
         task = await self._get_response(ip)
-        await self._process_tasks([task])
+        if task:
+            await self._process_tasks([task])
         return self.result
 
     async def _get_response(self, ip=None):
