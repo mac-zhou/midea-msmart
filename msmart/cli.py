@@ -45,7 +45,7 @@ def discover(debug: bool, amount: int, account:str, password:str, ip: str):
         found_devices = loop.run_until_complete(discovery.get_all() if ip == '' else discovery.get(ip))
         loop.close()
         if not found_devices:
-            _LOGGER.error("*** \033[0;31mDevice not found, please check \033[0m")
+            _LOGGER.error("*** \033[0;31mDevice not found, please read: https://github.com/mac-zhou/midea-ac-py#how-to-get-configuration-variables \033[0m")
         else:
             for device in found_devices:
                 _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(device))
