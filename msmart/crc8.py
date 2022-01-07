@@ -1,4 +1,4 @@
-VERSION = '0.1.35'
+VERSION = '0.1.36'
 
 # The huge CRC table! Aparently this can be generated, but storage space is cheap...
 crc8_854_table = [

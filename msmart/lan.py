@@ -5,7 +5,7 @@ import time
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_HANDSHAKE_REQUEST
 from msmart.security import security
 
-VERSION = '0.1.35'
+VERSION = '0.1.36'
 
 _LOGGER = logging.getLogger(__name__)
 
