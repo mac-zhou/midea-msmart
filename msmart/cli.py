@@ -24,10 +24,13 @@ _LOGGER = logging.getLogger(__name__)
                                                 if you have many devices, you may change this value.')
 @click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your email address for your Midea account.')
 @click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password for your Midea account.')
-@click.option("-i", "--ip", default='', help="IP address of your Midea device (optional). Needed when broadcasts don't work.")
+@click.option("-i", "--ip", default='', help="IP address of Midea device. you can use: \
+                                                - broadcasts don't work. \
+                                                - just get one device's info. \
+                                                - an error occurred.")
 # @click.pass_context
 def discover(debug: bool, amount: int, account:str, password:str, ip: str):
-    """Send Device Scan Broadcast"""
+    """Discover Midea Deivces and Get Device's info"""
     if debug:
         logging.basicConfig(level=logging.DEBUG)
         _LOGGER.info("Debug mode active")
@@ -35,17 +38,17 @@ def discover(debug: bool, amount: int, account:str, password:str, ip: str):
         logging.basicConfig(level=logging.INFO)
 
     _LOGGER.info("msmart version: {} Currently only supports ac devices.".format(VERSION))
-    _LOGGER.info(
-        "Sending Device Scan Broadcast...")
     
     try:
         discovery = MideaDiscovery(account=account, password=password, amount=amount)
         loop = asyncio.new_event_loop()
-        found_devices = loop.run_until_complete(discovery.get_all() if ip is '' else discovery.get(ip))
+        found_devices = loop.run_until_complete(discovery.get_all() if ip == '' else discovery.get(ip))
         loop.close()
-        
-        for device in found_devices:
-            _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(device)) 
+        if not found_devices:
+            _LOGGER.error("*** \033[0;31mDevice not found, please check \033[0m")
+        else:
+            for device in found_devices:
+                _LOGGER.info("*** Found a device: \033[94m\033[1m{} \033[0m".format(device))
     except KeyboardInterrupt:
         sys.exit(0)
 
