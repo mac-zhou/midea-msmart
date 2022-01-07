@@ -25,7 +25,6 @@ setuptools.setup(
         midea-discover=msmart.cli:discover
     ''',
     install_requires=[
-        "pycryptodome",
         "click",
         "pycryptodomex",
         "requests",
