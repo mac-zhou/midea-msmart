@@ -1,10 +1,10 @@
 # -*- coding: UTF-8 -*-
 import logging
 import urllib
-from Cryptodome.Cipher import AES
-from Cryptodome.Util.Padding import pad, unpad
-from Cryptodome.Util.strxor import strxor
-from Cryptodome.Random import get_random_bytes
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Util.strxor import strxor
+from Crypto.Random import get_random_bytes
 from hashlib import md5, sha256
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_ENCRYPTED_RESPONSE
 from urllib.parse import urlparse
