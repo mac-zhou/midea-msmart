@@ -169,7 +169,7 @@ class MideaDiscovery:
 
     async def get_all(self):
         for i in range(self.amount):
-            _LOGGER.debug("Broadcast message sent: " + str(i))
+            _LOGGER.debug("Broadcast message sent: " + str(i+1))
             await self._broadcast_message()
             tasks = set()
             while True:
