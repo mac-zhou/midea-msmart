@@ -116,6 +116,8 @@ class lan:
             _LOGGER.info('Got TCP key for {} {}'.format(self.get_socket_info(), tcp_key.hex()))
             # After authentication, don’t send data immediately, so sleep 1s.
             time.sleep(1)
+        else:
+            _LOGGER.error('Authentication failed for {} {}'.format(self.get_socket_info(), tcp_key.hex()))
         return success
 
     def _authenticate(self):
