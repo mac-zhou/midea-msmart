@@ -121,7 +121,7 @@ class lan:
     def _authenticate(self):
         if not self._token or not self._key:
             raise Exception('missing token key pair')
-        self.authenticate(self._token, self._key)
+        return self.authenticate(self._token, self._key)
 
     def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
         # socket_time = time.time() - self._timestamp
@@ -130,7 +130,8 @@ class lan:
             _LOGGER.debug(
                 "Socket {} Closed, Create New Socket".format(self.get_socket_info()))
             self._disconnect()
-            self._authenticate()
+            if self._authenticate() == False:
+                return []
         # copy from data in order to resend data
         original_data = bytearray.copy(data)
         data = self.security.encode_8370(data, msgtype)
