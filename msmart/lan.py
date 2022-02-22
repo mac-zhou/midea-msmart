@@ -130,7 +130,7 @@ class lan:
         # _LOGGER.debug("Data: {} msgtype: {} len: {} socket time: {}".format(data.hex(), msgtype, len(data), socket_time))
         if self._socket is None or self._tcp_key is None:
             _LOGGER.debug(
-                "Socket {} Closed, Create New Socket".format(self.get_socket_info()))
+                "Socket {} invalid, Create New Socket and Get New tcp_key {}".format(self.get_socket_info(), self._tcp_key))
             self._disconnect()
             if self._authenticate() == False:
                 return []
@@ -141,6 +141,9 @@ class lan:
         time.sleep(self._retries)
         responses, b = self.request(data)
         _LOGGER.debug("Got responses len: {}".format(len(responses)))
+        if responses[8:13] == b'ERROR':
+            self._disconnect()
+            return [b'ERROR']
         if responses == bytearray(0) and self._retries < 2 and b:
             packets = self.appliance_transparent_send_8370(
                 original_data, msgtype)
