@@ -1,6 +1,6 @@
 language: python
 python:
-- '3.6'
+- '3.7'
 install:
 - pip install -r requirements.txt
 script:
@@ -12,6 +12,6 @@ deploy:
   password:
     secure: tCn6XGzMej9tUnORgqQEouwbZnqYkewGowG7agwuGrsrFJFj/MtgAzQDsLKGIsmnGx/1BjchN4t/AP6KysnCVG7ipLBbIWOFhdvKWl6+/PqyXtp50TtXYE1AasQRy5aLZiVMvJT1FGKe+YFuqZ/27L4ASVtfT8SVOmwG9TUKSNc4uxdESpkBmcXDaIgNWABf6SydtLyKeCVMnR3MPW0RtrykIoTNLJ93Fxy+ZLbe82SEVyEbMg5szdogUHrHA0qhB7kXnu75II3nay4Ov0jRlkX3d9X8i9/Pd2/28YWV35rT5KyrLIunFwuOpd5i8UDbPjYIQ1e6bjWIyEAjAuABke+3XVwTZBQNbnl9OW12MwrUm8FOxNuxDxPMKczr3PPILdFzJcBOF7b4qQb3dt86NXCqsLTjjUfwu0T+JK7bEf2KXdT4HbOTw5x+DQ28gfejcTjqafSmyYvTc95Bk6SBNq8sGukNj4U7odTq+ikg2WnyQpPuS3icf4djs9UFI6272qo+rsNZ53TRffxdKtndMCwN3TSc1yGr6yaVCdwBa2/NZugEJ4sVd5af/y83kfzwumQJ6ArgDD84a4EjJQY9PCoRTPvxHgVGIgsUB7eVpqUekjE3H8SaVk3/JPywqYk4CxTvqU7xTbkWyS7ly/hS6H1Kd0LHWU8rTs/Aytp8xZA=
   on:
-    python: 3.6
+    python: 3.7
     tags: true
     branch: master
