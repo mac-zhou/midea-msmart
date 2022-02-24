@@ -38,6 +38,8 @@ class device:
         self._online = True
         self._active = True
         self._protocol_version = 2
+        self._token = None
+        self._key = None
 
     def authenticate(self, key: str, token: str):
         # compatible example.py
@@ -69,6 +71,10 @@ class device:
     @property
     def id(self):
         return self._id
+    
+    @property
+    def type(self):
+        return self._type
 
     @property
     def ip(self):
