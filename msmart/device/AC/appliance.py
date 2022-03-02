@@ -14,7 +14,7 @@ VERSION = '0.2.2'
 _LOGGER = logging.getLogger(__name__)
 
 
-class air_conditioning_device(device):
+class air_conditioning(device):
 
     class fan_speed_enum(Enum):
         Auto = 102
@@ -26,14 +26,14 @@ class air_conditioning_device(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning_device.fan_speed_enum))
+            return list(map(lambda c: c.name, air_conditioning.fan_speed_enum))
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning_device.fan_speed_enum._value2member_map_):
-                return air_conditioning_device.fan_speed_enum(value)
+            if(value in air_conditioning.fan_speed_enum._value2member_map_):
+                return air_conditioning.fan_speed_enum(value)
             _LOGGER.debug("Unknown Fan Speed: {}".format(value))
-            return air_conditioning_device.fan_speed_enum.Auto
+            return air_conditioning.fan_speed_enum.Auto
 
     class operational_mode_enum(Enum):
         auto = 1
@@ -44,14 +44,14 @@ class air_conditioning_device(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning_device.operational_mode_enum))
+            return list(map(lambda c: c.name, air_conditioning.operational_mode_enum))
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning_device.operational_mode_enum._value2member_map_):
-                return air_conditioning_device.operational_mode_enum(value)
+            if(value in air_conditioning.operational_mode_enum._value2member_map_):
+                return air_conditioning.operational_mode_enum(value)
             _LOGGER.debug("Unknown Operational Mode: {}".format(value))
-            return air_conditioning_device.operational_mode_enum.fan_only
+            return air_conditioning.operational_mode_enum.fan_only
 
     class swing_mode_enum(Enum):
         Off = 0x0
@@ -61,23 +61,23 @@ class air_conditioning_device(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning_device.swing_mode_enum))
+            return list(map(lambda c: c.name, air_conditioning.swing_mode_enum))
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning_device.swing_mode_enum._value2member_map_):
-                return air_conditioning_device.swing_mode_enum(value)
+            if(value in air_conditioning.swing_mode_enum._value2member_map_):
+                return air_conditioning.swing_mode_enum(value)
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
-            return air_conditioning_device.swing_mode_enum.Off
+            return air_conditioning.swing_mode_enum.Off
 
     def __init__(self, *args, **kwargs):
-        super(air_conditioning_device, self).__init__(*args, **kwargs)
+        super(air_conditioning, self).__init__(*args, **kwargs)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
-        self._operational_mode = air_conditioning_device.operational_mode_enum.auto
-        self._fan_speed = air_conditioning_device.fan_speed_enum.Auto
-        self._swing_mode = air_conditioning_device.swing_mode_enum.Off
+        self._operational_mode = air_conditioning.operational_mode_enum.auto
+        self._fan_speed = air_conditioning.fan_speed_enum.Auto
+        self._swing_mode = air_conditioning.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
         self.fahrenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
@@ -168,11 +168,11 @@ class air_conditioning_device(device):
     def update(self, res: appliance_response):
         self._power_state = res.power_state
         self._target_temperature = res.target_temperature
-        self._operational_mode = air_conditioning_device.operational_mode_enum.get(
+        self._operational_mode = air_conditioning.operational_mode_enum.get(
             res.operational_mode)
-        self._fan_speed = air_conditioning_device.fan_speed_enum.get(
+        self._fan_speed = air_conditioning.fan_speed_enum.get(
             res.fan_speed)
-        self._swing_mode = air_conditioning_device.swing_mode_enum.get(
+        self._swing_mode = air_conditioning.swing_mode_enum.get(
             res.swing_mode)
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode

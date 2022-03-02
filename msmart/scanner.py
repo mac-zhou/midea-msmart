@@ -8,7 +8,7 @@ from threading import Lock
 
 from msmart.cloud import cloud
 from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
-from msmart.device import air_conditioning_device as ac
+from msmart.device import air_conditioning as ac
 from msmart.security import get_udpid, security
 try:
     import xml.etree.cElementTree as ET
