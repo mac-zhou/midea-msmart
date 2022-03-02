@@ -2,6 +2,7 @@
 import logging
 import datetime
 import msmart.crc8 as crc8
+from msmart.utils import getBit, getBits
 
 VERSION = '0.2.2'
 
@@ -61,9 +62,10 @@ class base_command:
         c = (~ sum(data) + 1) & 0xff
         return (~ sum(data) + 1) & 0xff
 
-    def finalize(self):
+    def finalize(self, addd_crc8=True):
         # Add the CRC8
-        self.data.append(crc8.calculate(self.data[10:]))
+        if addd_crc8:
+            self.data.append(crc8.calculate(self.data[10:]))
         # Set the length of the command data
         # self.data[0x01] = len(self.data)
         # Add cheksum
@@ -383,22 +385,3 @@ class appliance_response:
     @property
     def humidity(self):
         return (self.data[0x0d] & 0x7f)
-
-
-def getBit(pByte, pIndex):
-    return (pByte >> pIndex) & 0x01
-
-
-def getBits(pBytes,pIndex,pStartIndex,pEndIndex):
-    if pStartIndex > pEndIndex: 
-        StartIndex = pEndIndex
-        EndIndex = pStartIndex
-    else:
-        StartIndex = pStartIndex
-        EndIndex = pEndIndex
-    tempVal = 0x00;
-    i = StartIndex
-    while (i <= EndIndex):
-        tempVal = tempVal | getBit(pBytes[pIndex],i) << (i-StartIndex)
-        i += 1 
-    return tempVal
