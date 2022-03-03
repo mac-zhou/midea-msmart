@@ -36,8 +36,8 @@ class packet_builder:
         self.packet[12:20] = self.packet_time()
         self.packet[20:28] = device_id.to_bytes(8, 'little')
 
-    def set_command(self, command: base_command):
-        self.command = command.finalize()
+    def set_command(self, command: base_command, add_crc8: bool = True):
+        self.command = command.finalize(add_crc8)
 
     def finalize(self):
         # Append the command data(48 bytes) to the packet
