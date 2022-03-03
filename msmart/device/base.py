@@ -34,6 +34,7 @@ class device:
         self._protocol_version = 2
         self._token = None
         self._key = None
+        self._last_responses = []
 
     def authenticate(self, key: str, token: str):
         # compatible example.py
@@ -113,3 +114,7 @@ class device:
     @keep_last_known_online_state.setter
     def keep_last_known_online_state(self, feedback: bool):
         self._keep_last_known_online_state = feedback
+    
+    @property
+    def last_responses(self):
+        return ','.join(b.hex() for b in self._last_responses)
