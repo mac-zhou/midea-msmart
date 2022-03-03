@@ -6,7 +6,7 @@ def getBit(pByte, pIndex):
     return (pByte >> pIndex) & 0x01
 
 
-def getBits(pBytes,pIndex,pStartIndex,pEndIndex):
+def getBits(pBytes, pIndex, pStartIndex, pEndIndex):
     if pStartIndex > pEndIndex: 
         StartIndex = pEndIndex
         EndIndex = pStartIndex
