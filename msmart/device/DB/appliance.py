@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 class front_load_washer(device):
 
     class cycle_program_enum(Enum):
-        Unknown = 255
+        UNKNOWN = 255
         Cotton = 0
         ECO = 1
         Quick = 2
@@ -44,7 +44,7 @@ class front_load_washer(device):
             if(value in front_load_washer.cycle_program_enum._value2member_map_):
                 return front_load_washer.cycle_program_enum(value)
             _LOGGER.debug("Unknown cycle_program: {}".format(value))
-            return front_load_washer.cycle_program_enum.Unknown
+            return front_load_washer.cycle_program_enum.UNKNOWN
 
     class machine_status_enum(Enum):
         UNKNOWN = 255
@@ -71,9 +71,9 @@ class front_load_washer(device):
         super(front_load_washer, self).__init__(*args, **kwargs)
 
         self._power = False
-        self._machine_status = False
+        self._machine_status = front_load_washer.machine_status_enum.IDLE
         self._work_mode = False
-        self._cycle_program = False 
+        self._cycle_program = front_load_washer.cycle_program_enum.Cotton
         self._water_line = 0
         self._dring_state = 0
         self._rinse_times = 0
@@ -157,7 +157,7 @@ class front_load_washer(device):
         self._remainder_time = res.remainder_time
         self._wash_experts = res.wash_experts
         self._appliance_type = res.appliance_type
-        self._type = res.appliance_type
+        # self._type = res.appliance_type
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
 
