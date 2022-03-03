@@ -137,7 +137,7 @@ class air_conditioning(device):
                     self.update(response)
                 if data[0xa] == 0xa1 or data[0xa] == 0xa0:
                     '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("Update - Special Respone. {}:{} {}".format(
+                    _LOGGER.debug("Update - Special response. {}:{} {}".format(
                         self.ip, self.port, data[0xa:].hex()))
                     pass
                     # self.update_special(response)
@@ -288,42 +288,3 @@ class air_conditioning(device):
     @property
     def off_timer(self):
         return self._off_timer
-
-
-class unknown_device(device):
-
-    def __init__(self, lan_service: lan):
-        super().__init__(lan_service)
-
-    def refresh(self):
-        cmd = request_status_command(self.type)
-        pkt_builder = packet_builder()
-        pkt_builder.set_command(cmd)
-
-        data = pkt_builder.finalize()
-        data = self._lan_service.appliance_transparent_send(self.id, data)
-        if len(data) > 0:
-            self._online = True
-            response = appliance_response(data)
-            _LOGGER.debug("Decoded Data: {}".format({
-                'prompt_tone': response.prompt_tone,
-                'target_temperature': response.target_temperature,
-                'indoor_temperature': response.indoor_temperature,
-                'outdoor_temperature': response.outdoor_temperature,
-                'operational_mode': response.operational_mode,
-                'fan_speed': response.fan_speed,
-                'swing_mode': response.swing_mode,
-                'eco_mode': response.eco_mode,
-                'turbo_mode': response.turbo_mode
-            }))
-        elif not self._keep_last_known_online_state:
-            self._online = False
-
-    def apply(self):
-        _LOGGER.debug("Cannot apply, device not fully supported yet")
-
-
-class dehumidifier_device(unknown_device):
-
-    def __init__(self, lan_service: lan):
-        super().__init__(lan_service)
