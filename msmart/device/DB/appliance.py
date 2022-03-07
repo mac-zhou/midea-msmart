@@ -119,6 +119,8 @@ class front_load_washer(device):
             "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
             self._active = False
             self._support = False
+        # sort, put CMD_TYPE_QUERRY last, so we can get END(machine_status) from the last response
+        responses.sort()
         self._last_responses = responses
         for response in responses:
             self._process_response(response)
@@ -139,27 +141,28 @@ class front_load_washer(device):
             self._support = True
             self.update(response)
 
-    def update(self, res: appliance_response):        
-        self._power = res.power
-        self._machine_status = front_load_washer.machine_status_enum.get(res.machine_status)
-        self._work_mode = res.work_mode
-        self._cycle_program = front_load_washer.cycle_program_enum.get(res.cycle_program)
-        self._water_line = res.water_line
-        self._dring_state = res.dring_state
-        self._rinse_times = res.rinse_times
-        self._temperature = res.temperature
-        self._dehydrate_speed = res.dehydrate_speed
-        self._wash_times = res.wash_times
-        self._dehydrate_time = res.dehydrate_time
-        self._wash_dose = res.wash_dose
-        self._memory = res.memory
-        self._supple_dose = res.supple_dose
-        self._remainder_time = res.remainder_time
-        self._wash_experts = res.wash_experts
-        self._appliance_type = res.appliance_type
-        # self._type = res.appliance_type
-        # self._on_timer = res.on_timer
-        # self._off_timer = res.off_timer
+    def update(self, res: appliance_response):   
+        if res.update:     
+            self._power = res.power
+            self._machine_status = front_load_washer.machine_status_enum.get(res.machine_status)
+            self._work_mode = res.work_mode
+            self._cycle_program = front_load_washer.cycle_program_enum.get(res.cycle_program)
+            self._water_line = res.water_line
+            self._dring_state = res.dring_state
+            self._rinse_times = res.rinse_times
+            self._temperature = res.temperature
+            self._dehydrate_speed = res.dehydrate_speed
+            self._wash_times = res.wash_times
+            self._dehydrate_time = res.dehydrate_time
+            self._wash_dose = res.wash_dose
+            self._memory = res.memory
+            self._supple_dose = res.supple_dose
+            self._remainder_time = res.remainder_time
+            self._wash_experts = res.wash_experts
+            self._appliance_type = res.appliance_type
+            # self._type = res.appliance_type
+            # self._on_timer = res.on_timer
+            # self._off_timer = res.off_timer
 
 
     @property
