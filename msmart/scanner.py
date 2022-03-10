@@ -34,7 +34,9 @@ class scandevice:
         self.version = 0
         self.token = None
         self.key = None
-        self.type = 'ff'
+        self.type = 0xff
+        self.sn = None
+        self.model = None
 
         self.support = False
         self.run_test = True
@@ -94,9 +96,14 @@ class scandeviceV2V3(scandevice):
         self.ip = '.'.join([str(i) for i in reply[3::-1]])
         _LOGGER.debug("Decrypt Reply: {} {}".format(self.ip, reply.hex()))
         self.port = int.from_bytes(reply[4:8], 'little')
+        self.sn = reply[11:40].decode("utf-8")
+        self.model = self.sn[9:14]
         # ssid like midea_xx_xxxx net_xx_xxxx
-        self.ssid = reply[41:41+reply[40]].decode("utf-8")
+        ssid = reply[41:41+reply[40]].decode("utf-8")
+        self.ssid = ssid
+        self.name = ssid
         self.type = self.ssid.split('_')[1]
+        
 
 class scandeviceV1(scandevice):
     def __init__(self, ip, data):
