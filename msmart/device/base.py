@@ -18,7 +18,7 @@ def convert_device_id_int(device_id: str):
 class device:
     
     def __init__(self, device_ip: str, device_id: int, device_port: int):
-        # device_id = convert_device_id_hex(device_id)
+        self._name = None
         self._lan_service = lan(device_ip, device_id, device_port)
         self._ip = device_ip
         self._id = device_id
@@ -35,7 +35,7 @@ class device:
         self._token = None
         self._key = None
         self._last_responses = []
-
+        
     def authenticate(self, key: str, token: str):
         # compatible example.py
         if key != "YOUR_AC_K1" and token != "YOUR_AC_TOKEN":
@@ -49,13 +49,21 @@ class device:
         return self._lan_service.authenticate(self._token, self._key)
 
     def set_device_detail(self, device_detail: dict):
-        self._id = device_detail['id']
-        self._name = device_detail['name']
-        self._model_number = device_detail['modelNumber']
-        self._serial_number = device_detail['sn']
-        self._type = int(device_detail['type'], 0)
-        self._active = device_detail['activeStatus'] == '1'
-        self._online = device_detail['onlineStatus'] == '1'
+        if 'id' in device_detail:
+            self._id = device_detail['id']
+        if 'name' in device_detail:
+            self._name = device_detail['name']
+        if 'ssid' in device_detail:
+            self._name = device_detail['ssid']
+        if self._name is None and 'ssid' in device_detail:
+            self._name = device_detail['ssid']
+        if 'model' in device_detail:
+            self._model = device_detail['model']
+        if 'sn' in device_detail:
+            self._sn = device_detail['sn']
+        # self._type = int(device_detail['type'], 0)
+        # self._active = device_detail['activeStatus'] == '1'
+        # self._online = device_detail['onlineStatus'] == '1'
 
     def refresh(self):
         pass
@@ -82,14 +90,18 @@ class device:
     @property
     def name(self):
         return self._name
+    
+    @property
+    def ssid(self):
+        return self._ssid
 
     @property
-    def model_number(self):
-        return self._model_number
+    def model(self):
+        return self._model
 
     @property
-    def serial_number(self):
-        return self._serial_number
+    def sn(self):
+        return self._sn
 
     @property
     def type(self):
