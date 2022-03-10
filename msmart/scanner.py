@@ -26,29 +26,33 @@ _lock = Lock()
 class scandevice:
 
     def __init__(self):
-        self.type = 'unknown'
-        self.support = False
-        self.version = 0
+        self.name = None
+        self.ssid = None
         self.ip = None
-        self.id = None
         self.port = None
+        self.id = None
+        self.version = 0
         self.token = None
         self.key = None
-        self.ssid = None
+        self.type = 'ff'
+
+        self.support = False
+        self.run_test = True
 
     def __str__(self):
         return str(self.__dict__)
     
     async def support_test(self, account=OPEN_MIDEA_APP_ACCOUNT, password=OPEN_MIDEA_APP_PASSWORD):
-        if self.version == 3:
-            _device = await self.support_testv3(account, password)
-        else:
-            _device = ac(self.ip, self.id, self.port)
-        if self.type == 'ac':
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, _device.refresh)
-            _LOGGER.debug("{}".format(_device))
-            self.support = _device.support
+        if self.run_test:
+            if self.version == 3:
+                _device = await self.support_testv3(account, password)
+            else:
+                _device = ac(self.ip, self.id, self.port)
+            if self.type == 'ac':
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, _device.refresh)
+                _LOGGER.debug("{}".format(_device))
+                self.support = _device.support
         _LOGGER.debug("*** Found a device: \033[94m\033[1m{} \033[0m".format(self)) 
         return self
 
@@ -161,6 +165,7 @@ class MideaDiscovery:
         self.socket = _get_socket()
         self.result = set()
         self.found_devices = set()
+        self.run_test = True
 
     async def find(self, ip=None):
         if ip is not None:
@@ -204,6 +209,7 @@ class MideaDiscovery:
                 _LOGGER.debug("Midea Local Data {} {}".format(ip, data.hex()))
                 self.found_devices.add(ip)
                 device = await scandevice.load(ip, data)
+                device.run_test = self.run_test
                 loop = asyncio.get_event_loop()
                 return loop.create_task(device.support_test(self.account, self.password))
         except socket.timeout:
