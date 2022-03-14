@@ -34,7 +34,7 @@ class scandevice:
         self.version = 0
         self.token = None
         self.key = None
-        self.type = 0xff
+        self.type = "ff"
         self.sn = None
         self.model = None
 
