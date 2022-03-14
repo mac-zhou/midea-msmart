@@ -49,21 +49,22 @@ class device:
         return self._lan_service.authenticate(self._token, self._key)
 
     def set_device_detail(self, device_detail: dict):
-        if 'id' in device_detail:
-            self._id = device_detail['id']
-        if 'name' in device_detail:
-            self._name = device_detail['name']
-        if 'ssid' in device_detail:
-            self._name = device_detail['ssid']
-        if self._name is None and 'ssid' in device_detail:
-            self._name = device_detail['ssid']
-        if 'model' in device_detail:
-            self._model = device_detail['model']
-        if 'sn' in device_detail:
-            self._sn = device_detail['sn']
-        # self._type = int(device_detail['type'], 0)
-        # self._active = device_detail['activeStatus'] == '1'
-        # self._online = device_detail['onlineStatus'] == '1'
+        '''set device detail'''
+        self._ip = device_detail.get('host', self._ip)
+        self._port = device_detail.get('port', 6444)
+        self._id = device_detail.get('id', self._id)
+        self._token = device_detail.get('token', self._token)
+        self._key = device_detail.get('key', self._key)
+        self._type = device_detail.get('type', self._type)
+        self._protocol_version = device_detail.get('version', self._protocol_version)
+
+        self._lan_service = lan(self._ip, self._id, self._port)
+
+        self._name = device_detail.get('name', self._name)
+        self._ssid = device_detail.get('ssid', None)
+        self._model = device_detail.get('model', None)
+        self._sn = device_detail.get('sn', None)
+        
 
     def refresh(self):
         pass
