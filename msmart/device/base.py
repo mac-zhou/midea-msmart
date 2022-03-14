@@ -53,8 +53,10 @@ class device:
         self._ip = device_detail.get('host', self._ip)
         self._port = device_detail.get('port', 6444)
         self._id = device_detail.get('id', self._id)
-        self._token = device_detail.get('token', self._token)
-        self._key = device_detail.get('key', self._key)
+        token = device_detail.get('token', "")
+        self._token = bytearray.fromhex(token)
+        key = device_detail.get('key', "")
+        self._key = bytearray.fromhex(key)
         self._type = device_detail.get('type', self._type)
         self._protocol_version = device_detail.get('version', self._protocol_version)
 
