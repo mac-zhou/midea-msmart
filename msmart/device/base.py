@@ -7,13 +7,6 @@ VERSION = '0.2.2'
 _LOGGER = logging.getLogger(__name__)
 
 
-def convert_device_id_hex(device_id: int):
-    return device_id.to_bytes(6, 'little').hex()
-
-
-def convert_device_id_int(device_id: str):
-    return int.from_bytes(bytes.fromhex(device_id), 'little')
-
 
 class device:
     
@@ -61,6 +54,8 @@ class device:
         self._protocol_version = device_detail.get('version', self._protocol_version)
 
         self._lan_service = lan(self._ip, self._id, self._port)
+        self._lan_service._key = self._key
+        self._lan_service._token = self._token
 
         self._name = device_detail.get('name', self._name)
         self._ssid = device_detail.get('ssid', None)
