@@ -180,7 +180,6 @@ class security:
         if data:
             msg += data
         msg += random
-        _LOGGER.info("signing: {}".format(msg))
         sign = hmac.new(self._hmackey.encode("ascii"), msg.encode("ascii"), sha256)
         return sign.hexdigest()
 
