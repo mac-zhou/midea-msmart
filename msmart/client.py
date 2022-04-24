@@ -4,13 +4,13 @@
 # License MIT - Use as you please and at your own risk
 from typing import Dict
 from msmart.cloud import cloud
-from msmart.device import air_conditioning_device, dehumidifier_device, unknown_device
+from msmart.device import air_conditioning, dehumidifier_device, unknown_device
 from msmart.lan import lan
 
 VERSION = '0.2.2'
 
 DEVICE_TYPES = {
-    0xAC: air_conditioning_device,
+    0xAC: air_conditioning,
     0x00: dehumidifier_device
 }
 

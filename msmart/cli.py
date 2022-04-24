@@ -22,8 +22,8 @@ _LOGGER = logging.getLogger(__name__)
 @click.option("-d", "--debug", default=False, count=True, help='Enable debug logging')
 @click.option("-c", "--amount", default=1, help='Number of broadcast packets, default is 1.\
                                                 if you have many devices, you may change this value.')
-@click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your email address for your Midea account.')
-@click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password for your Midea account.')
+@click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your email address for your MSmartHome APP.')
+@click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password for your MSmartHome APP.')
 @click.option("-i", "--ip", default='', help="IP address of Midea device. you can use: \
                                                 - broadcasts don't work. \
                                                 - just get one device's info. \
@@ -37,7 +37,7 @@ def discover(debug: bool, amount: int, account:str, password:str, ip: str):
     else:
         logging.basicConfig(level=logging.INFO)
 
-    _LOGGER.info("msmart version: {} Currently only supports ac devices.".format(VERSION))
+    _LOGGER.info("msmart version: {} Currently only supports ac devices, only support MSmartHome APP.".format(VERSION))
     
     try:
         discovery = MideaDiscovery(account=account, password=password, amount=amount)

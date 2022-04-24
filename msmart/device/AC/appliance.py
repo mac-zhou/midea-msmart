@@ -7,121 +7,14 @@ from msmart.command import base_command as request_status_command
 from msmart.command import set_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder
+from msmart.device.base import device
 
 VERSION = '0.2.2'
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def convert_device_id_hex(device_id: int):
-    return device_id.to_bytes(6, 'little').hex()
-
-
-def convert_device_id_int(device_id: str):
-    return int.from_bytes(bytes.fromhex(device_id), 'little')
-
-
-class device:
-
-    def __init__(self, device_ip: str, device_id: int, device_port: int):
-        # device_id = convert_device_id_hex(device_id)
-        self._lan_service = lan(device_ip, device_id, device_port)
-        self._ip = device_ip
-        self._id = device_id
-        self._port = device_port
-        self._keep_last_known_online_state = False
-        self._type = 0xac
-        self._updating = False
-        self._defer_update = False
-        self._half_temp_step = False
-        self._support = False
-        self._online = True
-        self._active = True
-        self._protocol_version = 2
-        self._token = None
-        self._key = None
-
-    def authenticate(self, key: str, token: str):
-        # compatible example.py
-        if key != "YOUR_AC_K1" and token != "YOUR_AC_TOKEN":
-            self._protocol_version = 3
-            self._token = bytearray.fromhex(token)
-            self._key = bytearray.fromhex(key)
-            return self._authenticate()
-        return False
-        
-    def _authenticate(self):
-        return self._lan_service.authenticate(self._token, self._key)
-
-    def set_device_detail(self, device_detail: dict):
-        self._id = device_detail['id']
-        self._name = device_detail['name']
-        self._model_number = device_detail['modelNumber']
-        self._serial_number = device_detail['sn']
-        self._type = int(device_detail['type'], 0)
-        self._active = device_detail['activeStatus'] == '1'
-        self._online = device_detail['onlineStatus'] == '1'
-
-    def refresh(self):
-        pass
-
-    def apply(self):
-        pass
-
-    @property
-    def id(self):
-        return self._id
-    
-    @property
-    def type(self):
-        return self._type
-
-    @property
-    def ip(self):
-        return self._ip
-
-    @property
-    def port(self):
-        return self._port
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def model_number(self):
-        return self._model_number
-
-    @property
-    def serial_number(self):
-        return self._serial_number
-
-    @property
-    def type(self):
-        return self._type
-
-    @property
-    def active(self):
-        return self._active
-
-    @property
-    def online(self):
-        return self._online
-
-    @property
-    def support(self):
-        return self._support
-
-    @property
-    def keep_last_known_online_state(self):
-        return self._keep_last_known_online_state
-
-    @keep_last_known_online_state.setter
-    def keep_last_known_online_state(self, feedback: bool):
-        self._keep_last_known_online_state = feedback
-
-
-class air_conditioning_device(device):
+class air_conditioning(device):
 
     class fan_speed_enum(Enum):
         Auto = 102
@@ -133,14 +26,14 @@ class air_conditioning_device(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning_device.fan_speed_enum))
+            return list(map(lambda c: c.name, air_conditioning.fan_speed_enum))
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning_device.fan_speed_enum._value2member_map_):
-                return air_conditioning_device.fan_speed_enum(value)
+            if(value in air_conditioning.fan_speed_enum._value2member_map_):
+                return air_conditioning.fan_speed_enum(value)
             _LOGGER.debug("Unknown Fan Speed: {}".format(value))
-            return air_conditioning_device.fan_speed_enum.Auto
+            return air_conditioning.fan_speed_enum.Auto
 
     class operational_mode_enum(Enum):
         auto = 1
@@ -151,14 +44,14 @@ class air_conditioning_device(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning_device.operational_mode_enum))
+            return list(map(lambda c: c.name, air_conditioning.operational_mode_enum))
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning_device.operational_mode_enum._value2member_map_):
-                return air_conditioning_device.operational_mode_enum(value)
+            if(value in air_conditioning.operational_mode_enum._value2member_map_):
+                return air_conditioning.operational_mode_enum(value)
             _LOGGER.debug("Unknown Operational Mode: {}".format(value))
-            return air_conditioning_device.operational_mode_enum.fan_only
+            return air_conditioning.operational_mode_enum.fan_only
 
     class swing_mode_enum(Enum):
         Off = 0x0
@@ -168,23 +61,23 @@ class air_conditioning_device(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning_device.swing_mode_enum))
+            return list(map(lambda c: c.name, air_conditioning.swing_mode_enum))
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning_device.swing_mode_enum._value2member_map_):
-                return air_conditioning_device.swing_mode_enum(value)
+            if(value in air_conditioning.swing_mode_enum._value2member_map_):
+                return air_conditioning.swing_mode_enum(value)
             _LOGGER.debug("Unknown Swing Mode: {}".format(value))
-            return air_conditioning_device.swing_mode_enum.Off
+            return air_conditioning.swing_mode_enum.Off
 
     def __init__(self, *args, **kwargs):
-        super(air_conditioning_device, self).__init__(*args, **kwargs)
+        super(air_conditioning, self).__init__(*args, **kwargs)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
-        self._operational_mode = air_conditioning_device.operational_mode_enum.auto
-        self._fan_speed = air_conditioning_device.fan_speed_enum.Auto
-        self._swing_mode = air_conditioning_device.swing_mode_enum.Off
+        self._operational_mode = air_conditioning.operational_mode_enum.auto
+        self._fan_speed = air_conditioning.fan_speed_enum.Auto
+        self._swing_mode = air_conditioning.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
         self.fahrenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
@@ -244,7 +137,7 @@ class air_conditioning_device(device):
                     self.update(response)
                 if data[0xa] == 0xa1 or data[0xa] == 0xa0:
                     '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("Update - Special Respone. {}:{} {}".format(
+                    _LOGGER.debug("Update - Special response. {}:{} {}".format(
                         self.ip, self.port, data[0xa:].hex()))
                     pass
                     # self.update_special(response)
@@ -275,11 +168,11 @@ class air_conditioning_device(device):
     def update(self, res: appliance_response):
         self._power_state = res.power_state
         self._target_temperature = res.target_temperature
-        self._operational_mode = air_conditioning_device.operational_mode_enum.get(
+        self._operational_mode = air_conditioning.operational_mode_enum.get(
             res.operational_mode)
-        self._fan_speed = air_conditioning_device.fan_speed_enum.get(
+        self._fan_speed = air_conditioning.fan_speed_enum.get(
             res.fan_speed)
-        self._swing_mode = air_conditioning_device.swing_mode_enum.get(
+        self._swing_mode = air_conditioning.swing_mode_enum.get(
             res.swing_mode)
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
@@ -395,42 +288,3 @@ class air_conditioning_device(device):
     @property
     def off_timer(self):
         return self._off_timer
-
-
-class unknown_device(device):
-
-    def __init__(self, lan_service: lan):
-        super().__init__(lan_service)
-
-    def refresh(self):
-        cmd = request_status_command(self.type)
-        pkt_builder = packet_builder()
-        pkt_builder.set_command(cmd)
-
-        data = pkt_builder.finalize()
-        data = self._lan_service.appliance_transparent_send(self.id, data)
-        if len(data) > 0:
-            self._online = True
-            response = appliance_response(data)
-            _LOGGER.debug("Decoded Data: {}".format({
-                'prompt_tone': response.prompt_tone,
-                'target_temperature': response.target_temperature,
-                'indoor_temperature': response.indoor_temperature,
-                'outdoor_temperature': response.outdoor_temperature,
-                'operational_mode': response.operational_mode,
-                'fan_speed': response.fan_speed,
-                'swing_mode': response.swing_mode,
-                'eco_mode': response.eco_mode,
-                'turbo_mode': response.turbo_mode
-            }))
-        elif not self._keep_last_known_online_state:
-            self._online = False
-
-    def apply(self):
-        _LOGGER.debug("Cannot apply, device not fully supported yet")
-
-
-class dehumidifier_device(unknown_device):
-
-    def __init__(self, lan_service: lan):
-        super().__init__(lan_service)

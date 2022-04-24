@@ -8,12 +8,15 @@ from Crypto.Random import get_random_bytes
 from hashlib import md5, sha256
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_ENCRYPTED_RESPONSE
 from urllib.parse import urlparse
+import hmac
+import collections
+from typing import Any, Dict, List, Optional, Tuple
 
 VERSION = '0.2.2'
 _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
-loginKey = '3742e9e5842d4ad59c2db887e12449f9'
+loginKey = 'ac21b9f9cbfe4ca5a88562ef25e2b768'
 
 class security:
 
@@ -27,6 +30,8 @@ class security:
         self._tcp_key = None
         self._request_count = 0
         self._response_count = 0
+        self._iotkey = "meicloud"
+        self._hmackey = "PROD_VnoClJI9aikS8dyy"
 
     def aes_decrypt(self, raw):
         cipher = AES.new(self.encKey, AES.MODE_ECB)
@@ -170,6 +175,15 @@ class security:
         
         return m.hexdigest()
 
+    def new_sign(self, data: str, random: str) -> str:
+        msg = self._iotkey
+        if data:
+            msg += data
+        msg += random
+        _LOGGER.info("signing: {}".format(msg))
+        sign = hmac.new(self._hmackey.encode("ascii"), msg.encode("ascii"), sha256)
+        return sign.hexdigest()
+
     def encryptPassword(self, loginId, password):         
         # Hash the password
         m = sha256()
@@ -180,6 +194,21 @@ class security:
         m = sha256()
         m.update(loginHash.encode('ascii'))
         return m.hexdigest()
+
+    def encrypt_iam_password(self, loginId, password) -> str:
+        """Encrypts password for cloud API"""
+        # Hash the password
+        md = md5()
+        md.update(password.encode("ascii"))
+        md_second = md5()
+        md_second.update(md.hexdigest().encode("ascii"))
+        # Create the login hash with the loginID + password hash + appKey,
+        # then hash it all again
+        login_hash = loginId + md_second.hexdigest() + loginKey
+        sha = sha256()
+        sha.update(login_hash.encode("ascii"))
+
+        return sha.hexdigest()
 
 def get_udpid(data):
     b = sha256(data).digest()

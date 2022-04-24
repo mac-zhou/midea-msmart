@@ -1,5 +1,6 @@
 
-from msmart.device import air_conditioning_device as ac
+from msmart.device import air_conditioning as ac
+from msmart.device.base import device
 import logging
 import time
 logging.basicConfig(level=logging.DEBUG)
