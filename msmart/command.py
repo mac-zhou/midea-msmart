@@ -4,7 +4,7 @@ import datetime
 import msmart.crc8 as crc8
 from msmart.utils import getBit, getBits
 
-VERSION = '0.2.2'
+VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 

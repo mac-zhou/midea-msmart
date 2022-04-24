@@ -13,7 +13,7 @@ from secrets import token_hex, token_urlsafe
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
-VERSION = '0.2.2'
+VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 

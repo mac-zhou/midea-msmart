@@ -2,7 +2,7 @@
 import logging
 from msmart.lan import lan
 
-VERSION = '0.2.2'
+VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 

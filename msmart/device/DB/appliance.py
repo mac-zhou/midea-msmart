@@ -7,7 +7,7 @@ from .command import base_command as request_status_command
 from msmart.packet_builder import packet_builder
 from msmart.device.base import device
 
-VERSION = '0.2.2'
+VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 
