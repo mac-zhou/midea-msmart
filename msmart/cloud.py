@@ -52,9 +52,9 @@ class cloud:
         self._use_china_server = use_china_server
         if os.getenv('USE_CHINA_SERVER', '0') == '1':
             self._use_china_server = True
-        self.SERVER_URL = 'http://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
+        self.SERVER_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
         if self._use_china_server:
-            self.SERVER_URL = 'http://mp-prod.smartmidea.net/mas/v5/app/proxy?alias='
+            self.SERVER_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias='
         _LOGGER.info("Using Midea cloud server: {} {}".format(self.SERVER_URL, self._use_china_server))
 
     def api_request(self, endpoint, args=None, data=None):
