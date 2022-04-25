@@ -11,16 +11,16 @@ from urllib.parse import urlparse
 import hmac
 import collections
 from typing import Any, Dict, List, Optional, Tuple
+import os
 
 VERSION = '0.2.3'
 _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
-loginKey = 'ac21b9f9cbfe4ca5a88562ef25e2b768'
 
 class security:
 
-    def __init__(self):
+    def __init__(self, use_china_server=False):
         self.appKey = appKey.encode()
         self.signKey = signKey.encode()
         self.blockSize = 16
@@ -30,8 +30,17 @@ class security:
         self._tcp_key = None
         self._request_count = 0
         self._response_count = 0
-        self._iotkey = "meicloud"
         self._hmackey = "PROD_VnoClJI9aikS8dyy"
+
+        self._iotkey = "meicloud"
+        self._loginKey = 'ac21b9f9cbfe4ca5a88562ef25e2b768'
+
+        self._use_china_server = use_china_server
+        if os.getenv('USE_CHINA_SERVER', '0') == '1':
+            self._use_china_server = True
+        if self._use_china_server:
+            self._iotkey = "prod_secret123@muc"
+            self._loginKey = 'ad0ee21d48a64bf49f4fb583ab76e799'
 
     def aes_decrypt(self, raw):
         cipher = AES.new(self.encKey, AES.MODE_ECB)
@@ -169,7 +178,7 @@ class security:
         query = urllib.parse.unquote_plus(urllib.parse.urlencode(query))
         
         # Combine all the sign stuff to make one giant string, then SHA256 it
-        sign = path + query + loginKey
+        sign = path + query + self._loginKey
         m = sha256()
         m.update(sign.encode('ASCII'))
         
@@ -189,7 +198,7 @@ class security:
         m.update(password.encode('ascii'))
         
         # Create the login hash with the loginID + password hash + appKey, then hash it all AGAIN       
-        loginHash = loginId + m.hexdigest() + loginKey
+        loginHash = loginId + m.hexdigest() + self._loginKey
         m = sha256()
         m.update(loginHash.encode('ascii'))
         return m.hexdigest()
@@ -201,9 +210,9 @@ class security:
         md.update(password.encode("ascii"))
         md_second = md5()
         md_second.update(md.hexdigest().encode("ascii"))
-        # Create the login hash with the loginID + password hash + appKey,
-        # then hash it all again
-        login_hash = loginId + md_second.hexdigest() + loginKey
+        if self._use_china_server:
+            return md_second.hexdigest()
+        login_hash = loginId + md_second.hexdigest() + self._loginKey
         sha = sha256()
         sha.update(login_hash.encode("ascii"))
 

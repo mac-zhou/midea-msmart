@@ -7,8 +7,9 @@ from time import time
 
 from threading import Lock
 from msmart.security import security
-from msmart.security import loginKey
+# from msmart.security import loginKey
 from secrets import token_hex, token_urlsafe
+import os
 
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
@@ -19,14 +20,13 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class cloud:
-    SERVER_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
     CLIENT_TYPE = 1                 # Android
     FORMAT = 2                      # JSON
     LANGUAGE = 'en_US'
     APP_ID = "1010"
     SRC = "1010"
 
-    def __init__(self, email, password):
+    def __init__(self, email, password, use_china_server=False):
         # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
         # self.app_key = app_key
         self.login_account = email   # Your email address for your Midea account
@@ -49,6 +49,13 @@ class cloud:
         self.security = security()
         self._retries = 0
         self.accessToken = ''
+        self._use_china_server = use_china_server
+        if os.getenv('USE_CHINA_SERVER', '0') == '1':
+            self._use_china_server = True
+        self.SERVER_URL = 'http://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
+        if self._use_china_server:
+            self.SERVER_URL = 'http://mp-prod.smartmidea.net/mas/v5/app/proxy?alias='
+        _LOGGER.info("Using Midea cloud server: {} {}".format(self.SERVER_URL, self._use_china_server))
 
     def api_request(self, endpoint, args=None, data=None):
         """
@@ -144,7 +151,7 @@ class cloud:
             "/mj/user/login", 
             data={
                 "data": {
-                    "appKey": loginKey,
+                    # "appKey": loginKey,
                     "platform": self.FORMAT,
                 },
                 "iotData": {
