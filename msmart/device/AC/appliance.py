@@ -2,7 +2,7 @@
 import logging
 import time
 from enum import Enum
-from msmart.command import appliance_response
+from msmart.command import state_response
 from msmart.command import get_state_command
 from msmart.command import set_state_command
 from msmart.lan import lan
@@ -80,7 +80,7 @@ class air_conditioning(device):
         self._swing_mode = air_conditioning.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
-        self.fahrenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
+        self._fahrenheit_unit = False  # Display temperature in Fahrenheit
 
         self._on_timer = None
         self._off_timer = None
@@ -88,7 +88,7 @@ class air_conditioning(device):
         self._active = True
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
-    
+
     def __str__(self):
         return str(self.__dict__)
 
@@ -112,7 +112,7 @@ class air_conditioning(device):
             "Got responses from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
         if len(responses) == 0:
             _LOGGER.warn(
-            "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
+                "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
             self._active = False
             self._support = False
         for response in responses:
@@ -129,7 +129,7 @@ class air_conditioning(device):
                 _LOGGER.warn(
                     "Got ERROR from {}, {}".format(self.ip, self.id))
                 return
-            response = appliance_response(data)
+            response = state_response(data)
             self._defer_update = False
             self._support = True
             if not self._defer_update:
@@ -159,33 +159,39 @@ class air_conditioning(device):
             cmd.turbo_mode = self._turbo_mode
             # pkt_builder = packet_builder(self.id)
 #            cmd.night_light = False
-            cmd.fahrenheit = self.fahrenheit_unit
+            cmd.fahrenheit = self._fahrenheit_unit
             self._send_cmd(cmd)
         finally:
             self._updating = False
             self._defer_update = False
 
-    def update(self, res: appliance_response):
-        self._power_state = res.power_state
+    def update(self, res: state_response):
+        self._power_state = res.power_on
+
         self._target_temperature = res.target_temperature
         self._operational_mode = air_conditioning.operational_mode_enum.get(
             res.operational_mode)
+
         self._fan_speed = air_conditioning.fan_speed_enum.get(
             res.fan_speed)
+
         self._swing_mode = air_conditioning.swing_mode_enum.get(
             res.swing_mode)
+
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
-        indoor_temperature = res.indoor_temperature
-        if indoor_temperature != 0xff:
-            self._indoor_temperature = indoor_temperature
-        outdoor_temperature = res.outdoor_temperature
-        if outdoor_temperature != 0xff:
-            self._outdoor_temperature = outdoor_temperature
-        self._on_timer = res.on_timer
-        self._off_timer = res.off_timer
+        self._fahrenheit_unit = res.fahrenheit
 
-    def update_special(self, res: appliance_response):
+        if res.indoor_temperature != 0xff:
+            self._indoor_temperature = res.indoor_temperature
+
+        if res.outdoor_temperature != 0xff:
+            self._outdoor_temperature = res.outdoor_temperature
+
+        # self._on_timer = res.on_timer
+        # self._off_timer = res.off_timer
+
+    def update_special(self, res: state_response):
         indoor_temperature = res.indoor_temperature
         if indoor_temperature != 0xff:
             self._indoor_temperature = indoor_temperature
@@ -218,7 +224,7 @@ class air_conditioning(device):
         return self._target_temperature
 
     @target_temperature.setter
-    def target_temperature(self, temperature_celsius: float): # the implementation later rounds the temperature down to the nearest 0.5'C resolution.
+    def target_temperature(self, temperature_celsius: float):
         if self._updating:
             self._defer_update = True
         self._target_temperature = temperature_celsius
@@ -272,6 +278,16 @@ class air_conditioning(device):
         if self._updating:
             self._defer_update = True
         self._turbo_mode = enabled
+
+    @property
+    def fahrenheit(self):
+        return self._fahrenheit_unit
+
+    @fahrenheit.setter
+    def fahrenheit(self, enabled: bool):
+        if self._updating:
+            self._defer_update = True
+        self._fahrenheit_unit = enabled
 
     @property
     def indoor_temperature(self):

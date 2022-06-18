@@ -409,188 +409,87 @@ class capabilities_response(response):
             caps = caps[3+size:]
 
 
-class appliance_response:
+class state_response(response):
+    def __init__(self, frame: bytes):
+        super().__init__(frame)
 
-    def __init__(self, data: bytearray):
-        # The response data from the appliance includes a packet header which we don't want
-        self.data = data[0xa:]
-        _LOGGER.debug("Appliance response data: {}".format(self.data.hex()))
+    def unpack(self, payload: memoryview):
+        if self.id != 0xC0:
+            # TODO throw instead?
+            _LOGGER.error(
+                "Invalid state response ID.")
+            return
 
-    # Byte 0x01
-    @property
-    def power_state(self):
-        return (self.data[0x01] & 0x1) > 0
+        _LOGGER.debug(
+            "State response payload: {}".format(payload.hex()))
 
-    @property
-    def imode_resume(self):
-        return (self.data[0x01] & 0x4) > 0
+        self.read_state(payload)
 
-    @property
-    def timer_mode(self):
-        return (self.data[0x01] & 0x10) > 0
+    def read_state(self, payload: memoryview):
 
-    @property
-    def appliance_error(self):
-        return (self.data[0x01] & 0x80) > 0
+        self.power_on = bool(payload[1] & 0x1)
+        #self.imode_resume = payload[1] & 0x4
+        #self.timer_mode = (payload[1] & 0x10) > 0
+        #self.appliance_error = (payload[1] & 0x80) > 0
 
-    # Byte 0x02
-    @property
-    def target_temperature(self):
-        return (self.data[0x02] & 0xf) + 16.0 + (0.5 if self.data[0x02] & 0x10 > 0 else 0.0)
+        # Unpack target temp and mode byte
+        self.target_temperature = (payload[2] & 0xF) + 16.0
+        self.target_temperature += 0.5 if payload[2] & 0x10 else 0.0
+        self.operational_mode = (payload[2] >> 5) & 0x7
 
-    @property
-    def operational_mode(self):
-        return (self.data[0x02] & 0xe0) >> 5
+        # Fan speed
+        # TODO Fan speed can be auto = 102, or value from 0 - 100
+        # On my unit, Low == 40 (LED < 40), Med == 60 (LED < 60), High == 100 (LED < 100)
+        self.fan_speed = payload[3]
 
-    # Byte 0x03
-    @property
-    def fan_speed(self):
-        return self.data[0x03] & 0x7f
+        # on_timer_value = payload[4]
+        # on_timer_minutes = payload[6]
+        # self.on_timer = {
+        #     'status': ((on_timer_value & 0x80) >> 7) > 0,
+        #     'hour': (on_timer_value & 0x7c) >> 2,
+        #     'minutes': (on_timer_value & 0x3) | ((on_timer_minutes & 0xf0) >> 4)
+        # }
 
-    # Byte 0x04 + 0x06
-    @property
-    def on_timer(self):
-        on_timer_value = self.data[0x04]
-        on_timer_minutes = self.data[0x06]
-        return {
-            'status': ((on_timer_value & 0x80) >> 7) > 0,
-            'hour': (on_timer_value & 0x7c) >> 2,
-            'minutes': (on_timer_value & 0x3) | ((on_timer_minutes & 0xf0) >> 4)
-        }
+        # off_timer_value = payload[5]
+        # off_timer_minutes = payload[6]
+        # self.off_timer = {
+        #     'status': ((off_timer_value & 0x80) >> 7) > 0,
+        #     'hour': (off_timer_value & 0x7c) >> 2,
+        #     'minutes': (off_timer_value & 0x3) | (off_timer_minutes & 0xf)
+        # }
 
-    # Byte 0x05 + 0x06
-    @property
-    def off_timer(self):
-        off_timer_value = self.data[0x05]
-        off_timer_minutes = self.data[0x06]
-        return {
-            'status': ((off_timer_value & 0x80) >> 7) > 0,
-            'hour': (off_timer_value & 0x7c) >> 2,
-            'minutes': (off_timer_value & 0x3) | (off_timer_minutes & 0xf)
-        }
+        # Swing mode
+        self.swing_mode = payload[7] & 0xF
 
-    # Byte 0x07
-    @property
-    def swing_mode(self):
-        return self.data[0x07] & 0x0f
+        # self.cozy_sleep = payload[8] & 0x03
+        # self.save = (payload[8] & 0x08) > 0
+        # self.low_frequency_fan = (payload[8] & 0x10) > 0
+        self.turbo_mode = bool(payload[8] & 0x20)
+        # self.feel_own = (payload[8] & 0x80) > 0
 
-    # Byte 0x08
-    @property
-    def cozy_sleep(self):
-        return self.data[0x08] & 0x03
+        self.eco_mode = bool(payload[9] & 0x10)
+        # self.child_sleep_mode = (payload[9] & 0x01) > 0
+        # self.exchange_air = (payload[9] & 0x02) > 0
+        # self.dry_clean = (payload[9] & 0x04) > 0
+        # self.aux_heat = (payload[9] & 0x08) > 0
+        # self.clean_up = (payload[9] & 0x20) > 0
+        # self.temp_unit = (payload[9] & 0x80) > 0
 
-    @property
-    def save(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x08] & 0x08) > 0
+        self.sleep = bool(payload[10] & 0x1)
+        self.turbo_mode |= bool(payload[10] & 0x2)
+        self.fahrenheit = bool(payload[10] & 0x4)
+        # self.catch_cold = (payload[10] & 0x08) > 0
+        # self.night_light = (payload[10] & 0x10) > 0
+        # self.peak_elec = (payload[10] & 0x20) > 0
+        # self.natural_fan = (payload[10] & 0x40) > 0
 
-    @property
-    def low_frequency_fan(self):
-        return (self.data[0x08] & 0x10) > 0
+        self.indoor_temperature = (payload[11] - 50) / 2.0
 
-    @property
-    def super_fan(self):
-        return (self.data[0x08] & 0x20) > 0
+        self.outdoor_temperature = (payload[12] - 50) / 2.0
 
-    @property
-    def feel_own(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x08] & 0x80) > 0
+        # self.humidity = (payload[13] & 0x7F)
 
-    # Byte 0x09
-    @property
-    def child_sleep_mode(self):
-        return (self.data[0x09] & 0x01) > 0
+        self.display_on = (payload[14] != 0x70)
 
-    @property
-    def exchange_air(self):
-        return (self.data[0x09] & 0x02) > 0
-
-    @property
-    def dry_clean(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x09] & 0x04) > 0
-
-    @property
-    def aux_heat(self):
-        return (self.data[0x09] & 0x08) > 0
-
-    @property
-    def eco_mode(self):
-        return (self.data[0x09] & 0x10) > 0
-
-    @property
-    def clean_up(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x09] & 0x20) > 0
-
-    @property
-    def temp_unit(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x09] & 0x80) > 0
-
-    # Byte 0x0a
-    @property
-    def sleep_function(self):
-        return (self.data[0x0a] & 0x01) > 0
-
-    @property
-    def turbo_mode(self):
-        return (self.data[0x0a] & 0x02) > 0
-
-    @property
-    def catch_cold(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x08) > 0
-
-    @property
-    def night_light(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x10) > 0
-
-    @property
-    def peak_elec(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x20) > 0
-
-    @property
-    def natural_fan(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x40) > 0
-
-    # Byte 0x0b
-    @property
-    def indoor_temperature(self):
-        if self.data[0] == 0xc0:
-            if int((self.data[11] - 50) / 2) < -19 or int((self.data[11] - 50) / 2) > 50:
-                return 0xff
-            else:
-                indoorTempInteger = int((self.data[11] - 50) / 2)
-            indoorTemperatureDot = getBits(self.data, 15, 0, 3)
-            indoorTempDecimal = indoorTemperatureDot * 0.1
-            if self.data[11] > 49:
-                return indoorTempInteger + indoorTempDecimal
-            else:
-                return indoorTempInteger - indoorTempDecimal
-        if self.data[0] == 0xa0 or self.data[0] == 0xa1:
-            if self.data[0] == 0xa0:
-                if (self.data[1] >> 2) - 4 == 0:
-                    indoorTempInteger = -1
-                else:
-                    indoorTempInteger = (self.data[1] >> 2) + 12
-                if (self.data[1] >> 1) & 0x01 == 1:
-                    indoorTempDecimal = 0.5
-                else:
-                    indoorTempDecimal = 0
-            if self.data[0] == 0xa1:
-                if int((self.data[13] - 50) / 2) < -19 or int((self.data[13] - 50) / 2) > 50:
-                    return 0xff
-                else:
-                    indoorTempInteger = int((self.data[13] - 50) / 2)
-                indoorTempDecimal = (self.data[18] & 0x0f) * 0.1
-            if int(self.data[13]) > 49:
-                return indoorTempInteger + indoorTempDecimal
-            else:
-                return indoorTempInteger - indoorTempDecimal
-        return 0xff
-
-    # Byte 0x0c
-    @property
-    def outdoor_temperature(self):
-        return (self.data[0x0c] - 50) / 2.0
-
-    # Byte 0x0d
-    @property
-    def humidity(self):
-        return (self.data[0x0d] & 0x7f)
+        # TODO dudanov/MideaUART freeze protection in byte 21, bit 7
+        # TODO dudanov/MideaUART humidity set point in byte 19, mask 0x7F
