@@ -299,6 +299,9 @@ class capabilities_response(response):
 
         self.read_capabilities(payload)
 
+        _LOGGER.debug(
+            "Supported capabilities: {}".format(self.capabilities))
+
     def read_capabilities(self, payload: memoryview):
         # Clear existing capabilities
         self.capabilities = {}
@@ -321,6 +324,7 @@ class capabilities_response(response):
             CapabilityId.ActiveClean:  reader("active_clean", get_value(1)),
             CapabilityId.OneKeyNoWindOnMe: reader("one_key_no_wind_on_me", get_value(1)),
             CapabilityId.BreezeControl: reader("breeze_control", get_value(1)),
+            # Fan speed control always seems to return false, even if unit can
             CapabilityId.FanSpeedControl: reader("fan_speed_control", get_no_value(1)),
             CapabilityId.PresetEco: [
                 reader("eco_mode", get_value(1)),
@@ -424,7 +428,42 @@ class capabilities_response(response):
 
             # Advanced to next capability
             caps = caps[3+size:]
+    
+    @property
+    def swing_horizontal(self):
+        return self.capabilities.get("swing_horizontal", False)
+    
+    @property
+    def swing_vertical(self):
+        return self.capabilities.get("swing_vertical", False)
+    
+    @property
+    def swing_both(self):
+        return self.swing_vertical and self.swing_horizontal
 
+    @property
+    def dry_mode(self):
+        return self.capabilities.get("dry_mode", False)
+
+    @property
+    def cool_mode(self):
+        return self.capabilities.get("cool_mode", False)
+
+    @property
+    def heat_mode(self):
+        return self.capabilities.get("heat_mode", False)
+
+    @property
+    def auto_mode(self):
+        return self.capabilities.get("auto_mode", False)
+
+    @property
+    def eco_mode(self):
+        return self.capabilities.get("eco_mode", False) or self.capabilities.get("eco_mode_2", False)
+
+    @property
+    def turbo_mode(self):
+        return self.capabilities.get("turbo_heat", False) or self.capabilities.get("turbo_cool", False)
 
 class state_response(response):
     def __init__(self, frame: bytes):

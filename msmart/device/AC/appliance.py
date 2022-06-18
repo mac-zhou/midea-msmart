@@ -85,6 +85,12 @@ class air_conditioning(device):
         self._turbo_mode = False
         self._fahrenheit_unit = False  # Display temperature in Fahrenheit
 
+        # Support all known modes initially
+        self._supported_op_modes = air_conditioning.operational_mode_enum.list()
+        self._supported_swing_modes = air_conditioning.swing_mode_enum.list()
+        self._supports_eco = True
+        self._supports_turbo = True
+
         self._on_timer = None
         self._off_timer = None
         self._online = True
@@ -146,8 +152,7 @@ class air_conditioning(device):
                 if response.id == ResponseId.State:
                     self.update(response)
                 elif response.id == ResponseId.Capabilities:
-                    _LOGGER.debug("Received caps response. {}:{}".format(
-                        self.ip, self.port))
+                    self.update_capabilities(response)
                 elif response.id == 0xa1 or response.id == 0xa0:
                     _LOGGER.warn("Ignored special response. {}:{} {}".format(
                         self.ip, self.port, response.payload.hex()))
@@ -160,6 +165,21 @@ class air_conditioning(device):
     def apply(self):
         self._updating = True
         try:
+            # Warn if trying to apply unsupported modes
+            if self._operational_mode not in self._supported_op_modes:
+                _LOGGER.warn("Device is not capable of operational mode {}.".format(
+                    self._operational_mode))
+
+            if self._swing_mode not in self._supported_swing_modes:
+                _LOGGER.warn(
+                    "Device is not capable of swing mode {}.".format(self._swing_mode))
+
+            if self._turbo_mode and not self._supports_turbo:
+                _LOGGER.warn("Device is not capable of turbo mode.")
+
+            if self._eco_mode and not self._supports_eco:
+                _LOGGER.warn("Device is not capable of eco mode.")
+
             cmd = set_state_command(self.type)
             cmd.beep_on = self._prompt_tone
             cmd.power_on = self._power_state
@@ -169,8 +189,6 @@ class air_conditioning(device):
             cmd.swing_mode = self._swing_mode.value
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
-            # pkt_builder = packet_builder(self.id)
-#            cmd.night_light = False
             cmd.fahrenheit = self._fahrenheit_unit
             self._send_cmd(cmd)
         finally:
@@ -202,6 +220,34 @@ class air_conditioning(device):
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
+
+    def update_capabilities(self, res: capabilities_response):
+        # Build list of supported operation modes
+        op_modes = [air_conditioning.operational_mode_enum.fan_only]
+        if res.dry_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.dry)
+        if res.cool_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.cool)
+        if res.heat_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.heat)
+        if res.auto_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.auto)
+
+        self._supported_op_modes = op_modes
+
+        # Build list of supported swing modes
+        swing_modes = [air_conditioning.swing_mode_enum.Off]
+        if res.swing_horizontal:
+            swing_modes.append(air_conditioning.swing_mode_enum.Horizontal)
+        if res.swing_vertical:
+            swing_modes.append(air_conditioning.swing_mode_enum.Vertical)
+        if res.swing_both:
+            swing_modes.append(air_conditioning.swing_mode_enum.Both)
+
+        self._supported_swing_modes = swing_modes
+
+        self._supports_eco = res.eco_mode
+        self._supports_turbo = res.turbo_mode
 
     @property
     def prompt_tone(self):
