@@ -88,6 +88,22 @@ class command(ABC):
         return bytes()
 
 
+class get_capabilities_command(command):
+    def __init__(self, device_type):
+        super().__init__(device_type, frame_type=frame_type.Request)
+
+    @property
+    def payload(self):
+        return bytes([
+            # Get capabilities
+            0xB5,
+            # Unknown
+            0x01, 0x11,
+            # Message ID
+            self.message_id
+        ])
+
+
 class get_state_command(command):
     temperature_type = temperature_type.Indoor
 
