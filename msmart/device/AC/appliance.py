@@ -4,7 +4,7 @@ import time
 from enum import Enum
 from msmart.command import appliance_response
 from msmart.command import get_state_command as request_status_command
-from msmart.command import set_command
+from msmart.command import set_state_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder
 from msmart.device.base import device
@@ -148,9 +148,9 @@ class air_conditioning(device):
     def apply(self):
         self._updating = True
         try:
-            cmd = set_command(self.type)
-            cmd.prompt_tone = self._prompt_tone
-            cmd.power_state = self._power_state
+            cmd = set_state_command(self.type)
+            cmd.beep_on = self._prompt_tone
+            cmd.power_on = self._power_state
             cmd.target_temperature = self._target_temperature
             cmd.operational_mode = self._operational_mode.value
             cmd.fan_speed = self._fan_speed.value

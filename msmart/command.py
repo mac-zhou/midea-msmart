@@ -114,130 +114,69 @@ class get_state_command(command):
         ])
 
 
-class set_command(base_command):
+class set_state_command(command):
+    beep_on = True
+    power_on = False
+    target_temperature = 25.0
+    operational_mode = 0
+    fan_speed = 0
+    eco_mode = True
+    swing_mode = 0
+    turbo_mode = False
+    display_on = True
+    fahrenheit = True
 
     def __init__(self, device_type):
-        base_command.__init__(self, device_type)
-        self.data[0x01] = 0x23
-        self.data[0x09] = 0x02
-        # Set up Mode
-        self.data[0x0a] = 0x40
-        # prompt_tone
-        self.data[0x0b] = 0x40
-        self.data.extend(bytearray([0x00, 0x00, 0x00]))
+        super().__init__(device_type, frame_type=frame_type.Set)
 
     @property
-    def prompt_tone(self):
-        return self.data[0x0b] & 0x42
+    def payload(self):
+        # Build prompt tone and power status byte
+        beep = 0x42 if self.beep_on else 0
+        power = 0x1 if self.power_on else 0
 
-    @prompt_tone.setter
-    def prompt_tone(self, feedback_anabled: bool):
-        self.data[0x0b] &= ~ 0x42  # Clear the audible bits
-        self.data[0x0b] |= 0x42 if feedback_anabled else 0
+        # Build target temp and mode byte
+        fractional, integral = math.modf(self.target_temperature)
+        temperature = (int(integral) & 0xF) | (0x10 if fractional > 0 else 0)
+        mode = (self.operational_mode & 0x7) << 5
 
-    @property
-    def power_state(self):
-        return self.data[0x0b] & 0x01
+        # Build swing mode byte
+        swing_mode = 0x30 | (self.swing_mode & 0x3F)
 
-    @power_state.setter
-    def power_state(self, state: bool):
-        self.data[0x0b] &= ~ 0x01  # Clear the power bit
-        self.data[0x0b] |= 0x01 if state else 0
+        # Build eco mode byte
+        eco_mode = 0xFF if self.eco_mode else 0
 
-    @property
-    def target_temperature(self):
-        return self.data[0x0c] & 0x1f
+        # Build turbo, display and fahrenheit byte
+        turbo = 0x02 if self.turbo_mode else 0
+        display = 0x10 if self.display_on else 0
+        fahrenheit = 0x04 if self.fahrenheit else 0
 
-    @target_temperature.setter
-    def target_temperature(self, temperature_celsius: float):
-        # Clear the temperature bits.
-        self.data[0x0c] &= ~ 0x0f
-        # Clear the temperature bits, except the 0.5 bit, which will be set properly in all cases
-        self.data[0x0c] |= (int(temperature_celsius) & 0xf)
-        # set the +0.5 bit
-        self.temperature_dot5 = (int(round(temperature_celsius*2)) % 2 != 0)
-
-    @property
-    def operational_mode(self):
-        return (self.data[0x0c] & 0xe0) >> 5
-
-    @operational_mode.setter
-    def operational_mode(self, mode: int):
-        self.data[0x0c] &= ~ 0xe0  # Clear the mode bit
-        self.data[0x0c] |= (mode << 5) & 0xe0
-
-    @property
-    def fan_speed(self):
-        return self.data[0x0d]
-
-    @fan_speed.setter
-    def fan_speed(self, speed: int):
-        self.data[0x0d] = speed
-
-    @property
-    def eco_mode(self):
-        return self.data[0x13] > 0
-
-    @eco_mode.setter
-    def eco_mode(self, eco_mode_enabled: bool):
-        self.data[0x13] = 0xFF if eco_mode_enabled else 0
-
-    @property
-    def swing_mode(self):
-        return self.data[0x11]
-
-    @swing_mode.setter
-    def swing_mode(self, mode: int):
-        self.data[0x11] = 0x30  # Clear the mode bit
-        self.data[0x11] |= mode & 0x3f
-
-    @property
-    def turbo_mode(self):
-        return self.data[0x14] > 0
-
-    @turbo_mode.setter
-    def turbo_mode(self, turbo_mode_enabled: bool):
-        if (turbo_mode_enabled):
-            self.data[0x14] |= 0x02
-        else:
-            self.data[0x14] &= (~0x02)
-
-    @property
-    def screen_display(self):
-        return self.data[0x14] & 0x10 > 0
-
-    @screen_display.setter
-    def screen_display(self, screen_display_enabled: bool):
-        # the LED lights on the AC. these display temperature and are often too bright during nights
-        if screen_display_enabled:
-            self.data[0x14] |= 0x10
-        else:
-            self.data[0x14] &= (~0x10)
-
-    @property
-    def temperature_dot5(self):
-        return self.data[0x0c] & 0x10 > 0
-
-    @temperature_dot5.setter
-    def temperature_dot5(self, temperature_dot5_enabled: bool):
-        # add 0.5C to the temperature value. not intended to be called directly. target_temperature setter calls this if needed
-        if temperature_dot5_enabled:
-            self.data[0x0c] |= 0x10
-        else:
-            self.data[0x0c] &= (~0x10)
-
-    @property
-    def fahrenheit(self):
-        # is the temperature unit fahrenheit? (celcius otherwise)
-        return self.data[0x14] & 0x04 > 0
-
-    @fahrenheit.setter
-    def fahrenheit(self, fahrenheit_enabled: bool):
-        # set the unit to fahrenheit from celcius
-        if fahrenheit_enabled:
-            self.data[0x14] |= 0x04
-        else:
-            self.data[0x14] &= (~0x04)
+        return bytes([
+            # Set state
+            0x40,
+            # Beep and power state
+            beep | power,
+            # Temperature and operational mode
+            temperature | mode,
+            # Fan speed
+            self.fan_speed,
+            # Unknown
+            0x7F, 0x7F, 0x00,
+            # Swing mode
+            swing_mode,
+            # Unknown
+            0x00,  # TODO Alternate turbo mode?
+            # ECO mode
+            eco_mode,
+            # Turbo mode, display on and fahrenheit
+            turbo | display | fahrenheit,  # TODO Sleep bit?
+            # Unknown
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+            # Message ID
+            self.message_id
+        ])
 
 
 class appliance_response:
