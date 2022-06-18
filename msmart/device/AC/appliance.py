@@ -4,8 +4,10 @@ import time
 from enum import Enum
 from msmart.command import ResponseId, response as base_response
 from msmart.command import state_response
+from msmart.command import capabilities_response
 from msmart.command import get_state_command
 from msmart.command import set_state_command
+from msmart.command import get_capabilities_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder
 from msmart.device.base import device
@@ -92,6 +94,10 @@ class air_conditioning(device):
 
     def __str__(self):
         return str(self.__dict__)
+
+    def get_capabilities(self):
+        cmd = get_capabilities_command(self.type)
+        self._send_cmd(cmd)
 
     def refresh(self):
         cmd = get_state_command(self.type)
