@@ -3,7 +3,7 @@ import logging
 import time
 from enum import Enum
 from msmart.command import appliance_response
-from msmart.command import base_command as request_status_command
+from msmart.command import get_state_command as request_status_command
 from msmart.command import set_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder

@@ -1,6 +1,6 @@
 import datetime
 import logging
-from msmart.command import base_command
+from msmart.command import command as base_command
 from msmart.security import security
 
 VERSION = '0.2.3'
@@ -37,7 +37,7 @@ class packet_builder:
         self.packet[20:28] = device_id.to_bytes(8, 'little')
 
     def set_command(self, command: base_command, add_crc8: bool = True):
-        self.command = command.finalize(add_crc8)
+        self.command = command.pack()
 
     def finalize(self):
         # Append the command data(48 bytes) to the packet

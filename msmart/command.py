@@ -1,77 +1,117 @@
 
+from enum import IntEnum
 import logging
-import datetime
+from abc import ABC, abstractmethod
+import math
 import msmart.crc8 as crc8
-from msmart.utils import getBit, getBits
+from msmart.utils import getBits
 
 VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class base_command:
+class temperature_type(IntEnum):
+    Unknown = 0
+    Indoor = 0x2
+    Outdoor = 0x3
 
-    def __init__(self, device_type=0xAC):
-        # More magic numbers. I'm sure each of these have a purpose, but none of it is documented in english. I might make an effort to google translate the SDK
-        self.data = bytearray([
-            # 0 header
-            0xaa,
-            # 1 command lenght: N+10
-            0x20,
-            # 2 device type
-            0xac,
-            # 3 Frame SYN CheckSum
-            0x00, 
-            # 4-5 Reserved 
-            0x00, 0x00, 
-            # 6 Message ID 
-            0x00, 
-            # 7 Frame Protocol Version
+
+class frame_type(IntEnum):
+    Unknown = 0
+    Set = 0x2
+    Request = 0x3
+
+
+class command(ABC):
+    device_type = 0
+    protocol_version = 0
+    frame_type = frame_type.Unknown
+
+    _message_id = 0
+
+    def __init__(self, device_type=0xAC, frame_type=frame_type.Request):
+        self.device_type = device_type
+        self.frame_type = frame_type
+
+    def pack(self):
+        # Create payload with CRC appended
+        payload_crc = self.payload + bytes([crc8.calculate(self.payload)])
+
+        # Length includes header, payload and CRC
+        length = 10 + len(payload_crc)
+
+        # Build frame header
+        header = bytearray([
+            # Start byte
+            0xAA,
+            # Length of payload and header
+            length,
+            # Device/appliance type
+            self.device_type,
+            # Frame checksum (sync?)
+            self.device_type ^ length,
+            # Reserved
+            0x00, 0x00,
+            # Frame ID
             0x00,
-            # 8 Device Protocol Version 
+            # Frame protocol version
             0x00,
-            # 9 Messgae Type: request is 0x03; setting is 0x02
-            0x03,
-            
-            # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
-            0x41,
-            # Byte1
-            0x81,
-            # Byte2 - operational_mode
-            0x00,
-            # Byte3
-            0xff,
-            # Byte4
-            0x03,
-            # Byte5
-            0xff,
-            # Byte6
-            0x00,
-            # Byte7 - Room Temperature Request: 0x02 - indoor_temperature, 0x03 - outdoor_temperature
-            # when set, this is swing_mode
-            0x02,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            # Message ID
-            0x00
+            # Device protocol version
+            self.protocol_version,
+            # Frame type
+            self.frame_type
         ])
-        self.data[-1] = datetime.datetime.now().second
-        self.data[0x02] = device_type
 
-    def checksum(self, data):
-        c = (~ sum(data) + 1) & 0xff
-        return (~ sum(data) + 1) & 0xff
+        # Build frame from header and payload with CRC
+        frame = header + payload_crc
 
-    def finalize(self, addd_crc8=True):
-        # Add the CRC8
-        if addd_crc8:
-            self.data.append(crc8.calculate(self.data[10:]))
-        # Set the length of the command data
-        # self.data[0x01] = len(self.data)
-        # Add cheksum
-        self.data.append(self.checksum(self.data[1:]))
-        _LOGGER.debug("Finalize request data: {}".format(self.data.hex()))
-        return self.data
+        # Calculate total frame checksum
+        frame.append(command.checksum(frame))
+
+        _LOGGER.debug("Frame data: {}".format(frame.hex()))
+
+        return frame
+
+    @staticmethod
+    def checksum(frame):
+        return (~sum(frame[1:]) + 1) & 0xFF
+
+    @property
+    def message_id(self):
+        self._message_id = (self._message_id + 1) & 0xFF
+        return self._message_id
+
+    @property
+    @abstractmethod
+    def payload(self):
+        return bytes()
+
+
+class get_state_command(command):
+    temperature_type = temperature_type.Indoor
+
+    def __init__(self, device_type):
+        super().__init__(device_type, frame_type=frame_type.Request)
+
+    @property
+    def payload(self):
+        return bytes([
+            # Get state
+            0x41,
+            # Unknown
+            0x81, 0x00, 0xFF, 0x03, 0xFF, 0x00,
+            # Temperature request
+            self.temperature_type,
+            # Unknown
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            # Unknown
+            0x03,
+            # Message ID
+            self.message_id
+        ])
 
 
 class set_command(base_command):
