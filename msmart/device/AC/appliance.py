@@ -2,6 +2,7 @@
 import logging
 import time
 from enum import Enum
+from msmart.command import ResponseId, response as base_response
 from msmart.command import state_response
 from msmart.command import get_state_command
 from msmart.command import set_state_command
@@ -129,18 +130,23 @@ class air_conditioning(device):
                 _LOGGER.warn(
                     "Got ERROR from {}, {}".format(self.ip, self.id))
                 return
-            response = state_response(data)
+
+            # Construct response from data
+            response = base_response.construct(data)
+
             self._defer_update = False
             self._support = True
             if not self._defer_update:
-                if data[0xa] == 0xc0:
+                if response.id == ResponseId.State:
                     self.update(response)
-                if data[0xa] == 0xa1 or data[0xa] == 0xa0:
-                    '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("Update - Special response. {}:{} {}".format(
-                        self.ip, self.port, data[0xa:].hex()))
-                    pass
-                    # self.update_special(response)
+                elif response.id == ResponseId.Capabilities:
+                    _LOGGER.debug("Received caps response. {}:{}".format(
+                        self.ip, self.port))
+                elif response.id == 0xa1 or response.id == 0xa0:
+                    _LOGGER.warn("Ignored special response. {}:{} {}".format(
+                        self.ip, self.port, response.payload.hex()))
+                    return
+
                 self._defer_update = False
         elif not self._keep_last_known_online_state:
             self._online = False
@@ -190,14 +196,6 @@ class air_conditioning(device):
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
-
-    def update_special(self, res: state_response):
-        indoor_temperature = res.indoor_temperature
-        if indoor_temperature != 0xff:
-            self._indoor_temperature = indoor_temperature
-        outdoor_temperature = res.outdoor_temperature
-        if outdoor_temperature != 0xff:
-            self._outdoor_temperature = outdoor_temperature
 
     @property
     def prompt_tone(self):
