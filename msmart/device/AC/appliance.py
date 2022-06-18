@@ -3,7 +3,7 @@ import logging
 import time
 from enum import Enum
 from msmart.command import appliance_response
-from msmart.command import get_state_command as request_status_command
+from msmart.command import get_state_command
 from msmart.command import set_state_command
 from msmart.lan import lan
 from msmart.packet_builder import packet_builder
@@ -93,7 +93,7 @@ class air_conditioning(device):
         return str(self.__dict__)
 
     def refresh(self):
-        cmd = request_status_command(self.type)
+        cmd = get_state_command(self.type)
         self._send_cmd(cmd)
 
     def _send_cmd(self, cmd):
