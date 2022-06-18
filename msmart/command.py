@@ -226,7 +226,7 @@ class set_state_command(command):
         ])
 
 
-class response(ABC):
+class response():
     def __init__(self, frame: bytes):
         # Build a memoryview of the frame for zero-copy slicing
         frame_mv = memoryview(frame)
@@ -262,13 +262,25 @@ class response(ABC):
         # Free the memoryview
         frame_mv.release()
 
+    @staticmethod
+    def construct(frame):
+        id = frame[10]
+        if id == ResponseId.State:
+            return state_response(frame)
+        elif id == ResponseId.Capabilities:
+            return capabilities_response(frame)
+        else:
+            # Unrecognized frame
+            return response(frame)
+
     @property
     def id(self):
         return self._id
 
     @abstractmethod
     def unpack(self, payload: memoryview):
-        return
+        # Make a copy for debug
+        self.payload = bytes(payload)
 
 
 class capabilities_response(response):
