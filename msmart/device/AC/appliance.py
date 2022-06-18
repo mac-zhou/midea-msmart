@@ -1,7 +1,7 @@
 
 import logging
 import time
-from enum import Enum
+from enum import IntEnum
 from msmart.command import ResponseId, response as base_response
 from msmart.command import state_response
 from msmart.command import capabilities_response
@@ -17,9 +17,23 @@ VERSION = '0.2.3'
 _LOGGER = logging.getLogger(__name__)
 
 
+class IntEnumHelper(IntEnum):
+    @staticmethod
+    def names(enum):
+        return list(map(lambda c: c.name, enum))
+
+    @staticmethod
+    def get(enum_class, value, default=None):
+        try:
+            return enum_class(value)
+        except ValueError:
+            _LOGGER.debug("Unknown {}: {}".format(enum_class, value))
+            return default
+
+
 class air_conditioning(device):
 
-    class fan_speed_enum(Enum):
+    class fan_speed_enum(IntEnumHelper):
         Auto = 102
         Full = 100
         High = 80
@@ -29,16 +43,13 @@ class air_conditioning(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning.fan_speed_enum))
+            return IntEnumHelper.names(__class__)
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning.fan_speed_enum._value2member_map_):
-                return air_conditioning.fan_speed_enum(value)
-            _LOGGER.debug("Unknown Fan Speed: {}".format(value))
-            return air_conditioning.fan_speed_enum.Auto
+            return IntEnumHelper.get(__class__, value, air_conditioning.fan_speed_enum.Auto)
 
-    class operational_mode_enum(Enum):
+    class operational_mode_enum(IntEnumHelper):
         auto = 1
         cool = 2
         dry = 3
@@ -47,16 +58,13 @@ class air_conditioning(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning.operational_mode_enum))
+            return IntEnumHelper.names(__class__)
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning.operational_mode_enum._value2member_map_):
-                return air_conditioning.operational_mode_enum(value)
-            _LOGGER.debug("Unknown Operational Mode: {}".format(value))
-            return air_conditioning.operational_mode_enum.fan_only
+            return IntEnumHelper.get(__class__, value, air_conditioning.operational_mode_enum.fan_only)
 
-    class swing_mode_enum(Enum):
+    class swing_mode_enum(IntEnumHelper):
         Off = 0x0
         Vertical = 0xC
         Horizontal = 0x3
@@ -64,14 +72,11 @@ class air_conditioning(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning.swing_mode_enum))
+            return IntEnumHelper.names(__class__)
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning.swing_mode_enum._value2member_map_):
-                return air_conditioning.swing_mode_enum(value)
-            _LOGGER.debug("Unknown Swing Mode: {}".format(value))
-            return air_conditioning.swing_mode_enum.Off
+            return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
 
     def __init__(self, *args, **kwargs):
         super(air_conditioning, self).__init__(*args, **kwargs)
@@ -184,9 +189,9 @@ class air_conditioning(device):
             cmd.beep_on = self._prompt_tone
             cmd.power_on = self._power_state
             cmd.target_temperature = self._target_temperature
-            cmd.operational_mode = self._operational_mode.value
-            cmd.fan_speed = self._fan_speed.value
-            cmd.swing_mode = self._swing_mode.value
+            cmd.operational_mode = self._operational_mode
+            cmd.fan_speed = self._fan_speed
+            cmd.swing_mode = self._swing_mode
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
             cmd.fahrenheit = self._fahrenheit_unit
@@ -357,8 +362,8 @@ class air_conditioning(device):
 
     @property
     def supported_operation_modes(self):
-        return self._supported_op_modes
+        return IntEnumHelper.names(self._supported_op_modes)
 
     @property
     def supported_swing_modes(self):
-        return self._supported_swing_modes
+        return IntEnumHelper.names(self._supported_swing_modes)
