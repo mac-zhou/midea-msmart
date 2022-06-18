@@ -184,12 +184,16 @@ class set_state_command(command):
         swing_mode = 0x30 | (self.swing_mode & 0x3F)
 
         # Build eco mode byte
-        eco_mode = 0xFF if self.eco_mode else 0
+        eco_mode = 0x80 if self.eco_mode else 0
 
         # Build turbo, display and fahrenheit byte
+        sleep = 0x01 if self.sleep else 0
         turbo = 0x02 if self.turbo_mode else 0
         display = 0x10 if self.display_on else 0
         fahrenheit = 0x04 if self.fahrenheit else 0
+
+        # Build alternate turbo byte
+        turbo_alt = 0x20 if self.turbo_mode else 0
 
         return bytes([
             # Set state
@@ -204,12 +208,12 @@ class set_state_command(command):
             0x7F, 0x7F, 0x00,
             # Swing mode
             swing_mode,
-            # Unknown
-            0x00,  # TODO Alternate turbo mode?
+            # Alternate turbo mode
+            turbo_alt,
             # ECO mode
             eco_mode,
             # Turbo mode, display on and fahrenheit
-            turbo | display | fahrenheit,  # TODO Sleep bit?
+            sleep | turbo | display | fahrenheit,
             # Unknown
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
