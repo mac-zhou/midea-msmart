@@ -13,6 +13,11 @@ VERSION = '0.2.3'
 _LOGGER = logging.getLogger(__name__)
 
 
+class ResponseId(IntEnum):
+    State = 0xC0
+    Capabilities = 0xB5
+
+
 class CapabilityId(IntEnum):
     IndoorHumidity = 0x0015
     SilkyCool = 0x0018
@@ -271,7 +276,7 @@ class capabilities_response(response):
         super().__init__(frame)
 
     def unpack(self, payload: memoryview):
-        if self.id != 0xB5:
+        if self.id != ResponseId.Capabilities:
             # TODO throw instead?
             _LOGGER.error(
                 "Invalid capabilities response ID.")
@@ -414,7 +419,7 @@ class state_response(response):
         super().__init__(frame)
 
     def unpack(self, payload: memoryview):
-        if self.id != 0xC0:
+        if self.id != ResponseId.State:
             # TODO throw instead?
             _LOGGER.error(
                 "Invalid state response ID.")
