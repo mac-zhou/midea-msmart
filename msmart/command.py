@@ -1,14 +1,41 @@
 
+from abc import ABC, abstractmethod
+from collections import namedtuple
 from enum import IntEnum
 import logging
-from abc import ABC, abstractmethod
 import math
 import msmart.crc8 as crc8
 from msmart.utils import getBits
+import struct
 
 VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class CapabilityId(IntEnum):
+    IndoorHumidity = 0x0015
+    SilkyCool = 0x0018
+    SmartEye = 0x0030
+    WindOnMe = 0x0032
+    WindOffMe = 0x0033
+    ActiveClean = 0x0039
+    OneKeyNoWindOnMe = 0x0042
+    BreezeControl = 0x0043
+    FanSpeedControl = 0x0210
+    PresetEco = 0x0212
+    PresetFreezeProtection = 0x0213
+    Modes = 0x0214
+    SwingModes = 0x0215
+    Power = 0x0216
+    Nest = 0x0217
+    AuxElectricHeat = 0x0219
+    PresetTurbo = 0x021A
+    Humidity = 0x021F
+    UnitChangeable = 0x0222
+    LightControl = 0x0224
+    Temperatures = 0x0225
+    Buzzer = 0x022C
 
 
 class temperature_type(IntEnum):
@@ -24,15 +51,12 @@ class frame_type(IntEnum):
 
 
 class command(ABC):
-    device_type = 0
-    protocol_version = 0
-    frame_type = frame_type.Unknown
-
     _message_id = 0
 
     def __init__(self, device_type=0xAC, frame_type=frame_type.Request):
         self.device_type = device_type
         self.frame_type = frame_type
+        self.protocol_version = 0
 
     def pack(self):
         # Create payload with CRC appended
@@ -105,10 +129,10 @@ class get_capabilities_command(command):
 
 
 class get_state_command(command):
-    temperature_type = temperature_type.Indoor
-
     def __init__(self, device_type):
         super().__init__(device_type, frame_type=frame_type.Request)
+
+        self.temperature_type = temperature_type.Indoor
 
     @property
     def payload(self):
@@ -125,25 +149,24 @@ class get_state_command(command):
             0x00, 0x00, 0x00, 0x00,
             # Unknown
             0x03,
-            # Message ID
-            self.message_id
         ])
 
 
 class set_state_command(command):
-    beep_on = True
-    power_on = False
-    target_temperature = 25.0
-    operational_mode = 0
-    fan_speed = 0
-    eco_mode = True
-    swing_mode = 0
-    turbo_mode = False
-    display_on = True
-    fahrenheit = True
-
     def __init__(self, device_type):
         super().__init__(device_type, frame_type=frame_type.Set)
+
+        self.beep_on = True
+        self.power_on = False
+        self.target_temperature = 25.0
+        self.operational_mode = 0
+        self.fan_speed = 0
+        self.eco_mode = True
+        self.swing_mode = 0
+        self.turbo_mode = False
+        self.display_on = True
+        self.fahrenheit = True
+        self.sleep = False
 
     @property
     def payload(self):
@@ -193,6 +216,194 @@ class set_state_command(command):
             # Message ID
             self.message_id
         ])
+
+
+class response(ABC):
+    def __init__(self, frame: bytes):
+        # Build a memoryview of the frame for zero-copy slicing
+        frame_mv = memoryview(frame)
+
+        # Validate frame checksum
+        calc_checksum = command.checksum(frame_mv[0:-1])
+        recv_checkum = frame_mv[-1]
+        if recv_checkum != calc_checksum:
+            _LOGGER.error("Frame '{}' failed checksum. Received: 0x{:X}, Expected: 0x{:X}.".format(
+                frame_mv.hex(), recv_checkum, calc_checksum))
+            frame_mv.release()
+            return
+
+        # Fetch frame payload and payload with CRC
+        payload_crc = frame_mv[10:-1]
+        payload = payload_crc[0:-1]
+
+        # Validate payload CRC
+        calc_crc = crc8.calculate(payload)
+        recv_crc = payload_crc[-1]
+        if recv_crc != calc_crc:
+            _LOGGER.error("Payload '{}' failed CRC. Received: 0x{:X}, Expected: 0x{:X}.".format(
+                payload_crc.hex(), recv_crc, calc_crc))
+            frame_mv.release()
+            return
+
+        # Get ID
+        self._id = payload[0]
+
+        # Unpack the payload
+        self.unpack(payload)
+
+        # Free the memoryview
+        frame_mv.release()
+
+    @property
+    def id(self):
+        return self._id
+
+    @abstractmethod
+    def unpack(self, payload: memoryview):
+        return
+
+
+class capabilities_response(response):
+    def __init__(self, frame: bytes):
+        super().__init__(frame)
+
+    def unpack(self, payload: memoryview):
+        if self.id != 0xB5:
+            # TODO throw instead?
+            _LOGGER.error(
+                "Invalid capabilities response ID.")
+            return
+
+        _LOGGER.debug(
+            "Capabilities response payload: {}".format(payload.hex()))
+
+        self.read_capabilities(payload)
+
+    def read_capabilities(self, payload: memoryview):
+        # Clear existing capabilities
+        self.capabilities = {}
+
+        # Define some local functions to parse capability values
+        def get_bool(v): return v != 0
+        def get_value(w): return lambda v: v == w
+        def get_no_value(w): return lambda v: v != w
+
+        # Define a named tuple that represents a decoder
+        reader = namedtuple("decoder", "name read")
+
+        # Create a map of capability ID to decoders
+        capability_readers = {
+            CapabilityId.IndoorHumidity: reader("indoor_humidity", get_bool),
+            CapabilityId.SilkyCool: reader("silky_cool", get_value(1)),
+            CapabilityId.SmartEye:  reader("smart_eye", get_value(1)),
+            CapabilityId.WindOnMe:  reader("wind_on_me", get_value(1)),
+            CapabilityId.WindOffMe:  reader("wind_off_me", get_value(1)),
+            CapabilityId.ActiveClean:  reader("active_clean", get_value(1)),
+            CapabilityId.OneKeyNoWindOnMe: reader("one_key_no_wind_on_me", get_value(1)),
+            CapabilityId.BreezeControl: reader("breeze_control", get_value(1)),
+            CapabilityId.FanSpeedControl: reader("fan_speed_control", get_no_value(1)),
+            CapabilityId.PresetEco: [
+                reader("eco_mode", get_value(1)),
+                reader("eco_mode_2", get_value(2)),
+            ],
+            CapabilityId.PresetFreezeProtection: reader("freeze_protection", get_value(1)),
+            CapabilityId.Modes: [
+                reader("heat_mode", lambda v: v == 1 or v == 2),
+                reader("cool_mode", lambda v: v == 0 or v == 3),
+                reader("dry_mode", lambda v: v < 2),
+                reader("auto_mode", lambda v: v < 3),
+            ],
+            CapabilityId.SwingModes: [
+                reader("swing_horizontal", lambda v: v == 1 or v == 3),
+                reader("swing_vertical", lambda v: v < 2),
+            ],
+            CapabilityId.Power: [
+                reader("power_cal", lambda v: v == 2 or v == 3),
+                reader("power_cal_setting", lambda v: v == 3),
+            ],
+            CapabilityId.Nest: [
+                reader("nest_check", lambda v: v == 1 or v == 2 or v == 4),
+                reader("nest_need_change", lambda v: v == 3 or v == 4),
+            ],
+            CapabilityId.AuxElectricHeat: reader("aux_electric_heat", get_bool),
+            CapabilityId.PresetTurbo:  [
+                reader("turbo_heat", lambda v: v == 1 or v == 3),
+                reader("turbo_cool", lambda v: v < 2),
+            ],
+            CapabilityId.Humidity:
+            [
+                reader("humidity_auto_set", lambda v: v == 1 or v == 2),
+                reader("humidity_manual_set", lambda v: v == 2 or v == 3),
+            ],
+            CapabilityId.UnitChangeable: reader("unit_changeable", get_value(0)),
+            CapabilityId.LightControl: reader("light_control", get_bool),
+            # Temperatures capability too complex to be handled here
+            CapabilityId.Buzzer:  reader("buzzer", get_bool),
+        }
+
+        count = payload[1]
+        caps = payload[2:]
+
+        # Loop through each capability
+        for i in range(0, count):
+            # Stop if out of data
+            if len(caps) < 3:
+                break
+
+            # Skip empty capabilities
+            size = caps[2]
+            if size == 0:
+                continue
+
+            # Covert ID to enumerate type
+            try:
+                # Unpack 16 bit ID
+                (cap_id, ) = struct.unpack("<H", caps[0:2])
+                id = CapabilityId(cap_id)
+            except ValueError:
+                _LOGGER.warn(
+                    "Unknown capability. ID: 0x{:04X}, Size: {}.".format(id, size))
+                # Advanced to next capability
+                caps = caps[3+size:]
+                continue
+
+            # Fetch first cap value
+            value = caps[3]
+
+            # Apply predefined capability reader if it exists
+            if id in capability_readers:
+                # Local function to apply a reader
+                def apply(d): return {d.name: d.read(value)}
+
+                reader = capability_readers[cap_id]
+                if isinstance(reader, list):
+                    # Apply each reader in the list
+                    for r in reader:
+                        self.capabilities.update(apply(r))
+                else:
+                    # Apply the single reader
+                    self.capabilities.update(apply(reader))
+
+            elif id == CapabilityId.Temperatures:
+                # Skip if capability size is too small
+                if size < 6:
+                    continue
+
+                self.capabilities["min_cool_temperature"] = caps[3] * 0.5
+                self.capabilities["max_cool_temperature"] = caps[4] * 0.5
+                self.capabilities["min_auto_temperature"] = caps[5] * 0.5
+                self.capabilities["max_auto_temperature"] = caps[6] * 0.5
+                self.capabilities["min_heat_temperature"] = caps[7] * 0.5
+                self.capabilities["max_heat_temperature"] = caps[8] * 0.5
+
+                self.capabilities["decimals"] = caps[9] == 0 if size > 6 else caps[2] == 0
+
+            else:
+                _LOGGER.warn(
+                    "Unsupported capability. ID: 0x{:04X}, Size: {}.".format(id, size))
+
+            # Advanced to next capability
+            caps = caps[3+size:]
 
 
 class appliance_response:
