@@ -59,8 +59,11 @@ class command(ABC):
         self.protocol_version = 0
 
     def pack(self):
+        # Create payload with message id
+        payload = self.payload + bytes([self.message_id])
+
         # Create payload with CRC appended
-        payload_crc = self.payload + bytes([crc8.calculate(self.payload)])
+        payload_crc = payload + bytes([crc8.calculate(payload)])
 
         # Length includes header, payload and CRC
         length = 10 + len(payload_crc)
@@ -103,8 +106,8 @@ class command(ABC):
 
     @property
     def message_id(self):
-        self._message_id = (self._message_id + 1) & 0xFF
-        return self._message_id
+        command._message_id += 1
+        return command._message_id & 0xFF
 
     @property
     @abstractmethod
@@ -123,8 +126,6 @@ class get_capabilities_command(command):
             0xB5,
             # Unknown
             0x01, 0x11,
-            # Message ID
-            self.message_id
         ])
 
 
@@ -213,8 +214,6 @@ class set_state_command(command):
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00,
-            # Message ID
-            self.message_id
         ])
 
 
