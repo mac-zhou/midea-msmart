@@ -5,7 +5,6 @@ from enum import IntEnum
 import logging
 import math
 import msmart.crc8 as crc8
-from msmart.utils import getBits
 import struct
 
 VERSION = '0.2.3'
