@@ -30,6 +30,102 @@ class IntEnumHelper(IntEnum):
 class air_conditioning(device):
 
     class fan_speed_enum(IntEnumHelper):
+        P0 = 0
+        P1 = 1
+        P2 = 2
+        P3 = 3
+        P4 = 4
+        P5 = 5
+        P6 = 6
+        P7 = 7
+        P8 = 8
+        P9 = 9
+        P10 = 10
+        P11 = 11
+        P12 = 12
+        P13 = 13
+        P14 = 14
+        P15 = 15
+        P16 = 16
+        P17 = 17
+        P18 = 18
+        P19 = 19
+        P21 = 21
+        P22 = 22
+        P23 = 23
+        P24 = 24
+        P25 = 25
+        P26 = 26
+        P27 = 27
+        P28 = 28
+        P29 = 29
+        P30 = 30
+        P31 = 31
+        P32 = 32
+        P33 = 33
+        P34 = 34
+        P35 = 35
+        P36 = 36
+        P37 = 37
+        P38 = 38
+        P39 = 39
+        P41 = 41
+        P42 = 42
+        P43 = 43
+        P44 = 44
+        P45 = 45
+        P46 = 46
+        P47 = 47
+        P48 = 48
+        P49 = 49
+        P50 = 50
+        P51 = 51
+        P52 = 52
+        P53 = 53
+        P54 = 54
+        P55 = 55
+        P56 = 56
+        P57 = 57
+        P58 = 58
+        P59 = 59
+        P61 = 61
+        P62 = 62
+        P63 = 63
+        P64 = 64
+        P65 = 65
+        P66 = 66
+        P67 = 67
+        P68 = 68
+        P69 = 69
+        P70 = 70
+        P71 = 71
+        P72 = 72
+        P73 = 73
+        P74 = 74
+        P75 = 75
+        P76 = 76
+        P77 = 77
+        P78 = 78
+        P79 = 79
+        P81 = 81
+        P82 = 82
+        P83 = 83
+        P84 = 84
+        P85 = 85
+        P86 = 86
+        P87 = 87
+        P88 = 88
+        P89 = 89
+        P90 = 90
+        P91 = 91
+        P92 = 92
+        P93 = 93
+        P94 = 94
+        P95 = 95
+        P96 = 96
+        P97 = 97
+        P98 = 98
+        P99 = 99
         Auto = 102
         Full = 100
         High = 80
@@ -187,6 +283,8 @@ class air_conditioning(device):
             cmd.target_temperature = self._target_temperature
             cmd.operational_mode = self._operational_mode
             cmd.fan_speed = self._fan_speed
+            cmd.on_timer = self._on_timer
+            cmd.off_timer = self._off_timer
             cmd.swing_mode = self._swing_mode
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
@@ -219,8 +317,8 @@ class air_conditioning(device):
         if res.outdoor_temperature != 0xff:
             self._outdoor_temperature = res.outdoor_temperature
 
-        # self._on_timer = res.on_timer
-        # self._off_timer = res.off_timer
+        self._on_timer = res.on_timer
+        self._off_timer = res.off_timer
 
     def update_capabilities(self, res: capabilities_response):
         # Build list of supported operation modes
@@ -352,9 +450,21 @@ class air_conditioning(device):
     def on_timer(self):
         return self._on_timer
 
+    @on_timer.setter
+    def on_timer(self, dtime):
+        if self._updating:
+            self._defer_update = True
+        self._on_timer = dtime
+
     @property
     def off_timer(self):
         return self._off_timer
+
+    @off_timer.setter
+    def off_timer(self, dtime: str):
+        if self._updating:
+            self._defer_update = True
+        self._off_timer = dtime
 
     @property
     def supported_operation_modes(self):
