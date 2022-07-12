@@ -5,7 +5,7 @@ import msmart.crc8 as crc8
 from msmart.utils import getBit, getBits
 from msmart.const import CMD_TYPE_CONTROL, CMD_TYPE_QUERRY, CMD_TYPE_REPORT
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 

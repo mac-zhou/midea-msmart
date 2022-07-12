@@ -14,7 +14,7 @@ import os
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 

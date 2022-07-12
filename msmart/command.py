@@ -7,7 +7,7 @@ import math
 import msmart.crc8 as crc8
 import struct
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 

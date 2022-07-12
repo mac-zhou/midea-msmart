@@ -15,7 +15,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 

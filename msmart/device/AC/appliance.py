@@ -8,7 +8,7 @@ from msmart.packet_builder import packet_builder
 from msmart.device.base import device
 import time
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 
