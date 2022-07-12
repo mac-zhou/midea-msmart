@@ -13,6 +13,7 @@ device = ac('YOUR_AC_IP', int('YOUR_AC_ID'), 6444)
 # adb logcat | grep doKeyAgree
 device.authenticate('YOUR_AC_K1', 'YOUR_AC_TOKEN')
 # Refresh the object with the actual state by querying it
+device.get_capabilities()
 device.refresh()
 print({
     'id': device.id,
@@ -25,6 +26,7 @@ print({
     'swing_mode': device.swing_mode,
     'eco_mode': device.eco_mode,
     'turbo_mode': device.turbo_mode,
+    'fahrenheit': device.fahrenheit,
     'indoor_temperature': device.indoor_temperature,
     'outdoor_temperature': device.outdoor_temperature
 })

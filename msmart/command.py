@@ -1,387 +1,550 @@
 
+from abc import ABC, abstractmethod
+from collections import namedtuple
+from enum import IntEnum
 import logging
-import datetime
+import math
 import msmart.crc8 as crc8
-from msmart.utils import getBit, getBits
+import struct
 
 VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class base_command:
+class ResponseId(IntEnum):
+    State = 0xC0
+    Capabilities = 0xB5
 
-    def __init__(self, device_type=0xAC):
-        # More magic numbers. I'm sure each of these have a purpose, but none of it is documented in english. I might make an effort to google translate the SDK
-        self.data = bytearray([
-            # 0 header
-            0xaa,
-            # 1 command lenght: N+10
-            0x20,
-            # 2 device type
-            0xac,
-            # 3 Frame SYN CheckSum
-            0x00, 
-            # 4-5 Reserved 
-            0x00, 0x00, 
-            # 6 Message ID 
-            0x00, 
-            # 7 Frame Protocol Version
+
+class CapabilityId(IntEnum):
+    IndoorHumidity = 0x0015
+    SilkyCool = 0x0018
+    SmartEye = 0x0030
+    WindOnMe = 0x0032
+    WindOffMe = 0x0033
+    ActiveClean = 0x0039
+    OneKeyNoWindOnMe = 0x0042
+    BreezeControl = 0x0043
+    FanSpeedControl = 0x0210
+    PresetEco = 0x0212
+    PresetFreezeProtection = 0x0213
+    Modes = 0x0214
+    SwingModes = 0x0215
+    Power = 0x0216
+    Nest = 0x0217
+    AuxElectricHeat = 0x0219
+    PresetTurbo = 0x021A
+    Humidity = 0x021F
+    UnitChangeable = 0x0222
+    LightControl = 0x0224
+    Temperatures = 0x0225
+    Buzzer = 0x022C
+
+
+class temperature_type(IntEnum):
+    Unknown = 0
+    Indoor = 0x2
+    Outdoor = 0x3
+
+
+class frame_type(IntEnum):
+    Unknown = 0
+    Set = 0x2
+    Request = 0x3
+
+
+class command(ABC):
+    _message_id = 0
+
+    def __init__(self, device_type=0xAC, frame_type=frame_type.Request):
+        self.device_type = device_type
+        self.frame_type = frame_type
+        self.protocol_version = 0
+
+    def pack(self):
+        # Create payload with message id
+        payload = self.payload + bytes([self.message_id])
+
+        # Create payload with CRC appended
+        payload_crc = payload + bytes([crc8.calculate(payload)])
+
+        # Length includes header, payload and CRC
+        length = 10 + len(payload_crc)
+
+        # Build frame header
+        header = bytearray([
+            # Start byte
+            0xAA,
+            # Length of payload and header
+            length,
+            # Device/appliance type
+            self.device_type,
+            # Frame checksum (sync?)
+            self.device_type ^ length,
+            # Reserved
+            0x00, 0x00,
+            # Frame ID
             0x00,
-            # 8 Device Protocol Version 
+            # Frame protocol version
             0x00,
-            # 9 Messgae Type: request is 0x03; setting is 0x02
-            0x03,
-            
-            # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
-            0x41,
-            # Byte1
-            0x81,
-            # Byte2 - operational_mode
-            0x00,
-            # Byte3
-            0xff,
-            # Byte4
-            0x03,
-            # Byte5
-            0xff,
-            # Byte6
-            0x00,
-            # Byte7 - Room Temperature Request: 0x02 - indoor_temperature, 0x03 - outdoor_temperature
-            # when set, this is swing_mode
-            0x02,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            # Message ID
-            0x00
+            # Device protocol version
+            self.protocol_version,
+            # Frame type
+            self.frame_type
         ])
-        self.data[-1] = datetime.datetime.now().second
-        self.data[0x02] = device_type
 
-    def checksum(self, data):
-        c = (~ sum(data) + 1) & 0xff
-        return (~ sum(data) + 1) & 0xff
+        # Build frame from header and payload with CRC
+        frame = header + payload_crc
 
-    def finalize(self, addd_crc8=True):
-        # Add the CRC8
-        if addd_crc8:
-            self.data.append(crc8.calculate(self.data[10:]))
-        # Set the length of the command data
-        # self.data[0x01] = len(self.data)
-        # Add cheksum
-        self.data.append(self.checksum(self.data[1:]))
-        _LOGGER.debug("Finalize request data: {}".format(self.data.hex()))
-        return self.data
+        # Calculate total frame checksum
+        frame.append(command.checksum(frame))
+
+        _LOGGER.debug("Frame data: {}".format(frame.hex()))
+
+        return frame
+
+    @staticmethod
+    def checksum(frame):
+        return (~sum(frame[1:]) + 1) & 0xFF
+
+    @property
+    def message_id(self):
+        command._message_id += 1
+        return command._message_id & 0xFF
+
+    @property
+    @abstractmethod
+    def payload(self):
+        return bytes()
 
 
-class set_command(base_command):
-
+class get_capabilities_command(command):
     def __init__(self, device_type):
-        base_command.__init__(self, device_type)
-        self.data[0x01] = 0x23
-        self.data[0x09] = 0x02
-        # Set up Mode
-        self.data[0x0a] = 0x40
-        # prompt_tone
-        self.data[0x0b] = 0x40
-        self.data.extend(bytearray([0x00, 0x00, 0x00]))
+        super().__init__(device_type, frame_type=frame_type.Request)
 
     @property
-    def prompt_tone(self):
-        return self.data[0x0b] & 0x42
+    def payload(self):
+        return bytes([
+            # Get capabilities
+            0xB5,
+            # Unknown
+            0x01, 0x11,
+        ])
 
-    @prompt_tone.setter
-    def prompt_tone(self, feedback_anabled: bool):
-        self.data[0x0b] &= ~ 0x42  # Clear the audible bits
-        self.data[0x0b] |= 0x42 if feedback_anabled else 0
 
-    @property
-    def power_state(self):
-        return self.data[0x0b] & 0x01
+class get_state_command(command):
+    def __init__(self, device_type):
+        super().__init__(device_type, frame_type=frame_type.Request)
 
-    @power_state.setter
-    def power_state(self, state: bool):
-        self.data[0x0b] &= ~ 0x01  # Clear the power bit
-        self.data[0x0b] |= 0x01 if state else 0
+        self.temperature_type = temperature_type.Indoor
 
     @property
-    def target_temperature(self):
-        return self.data[0x0c] & 0x1f
+    def payload(self):
+        return bytes([
+            # Get state
+            0x41,
+            # Unknown
+            0x81, 0x00, 0xFF, 0x03, 0xFF, 0x00,
+            # Temperature request
+            self.temperature_type,
+            # Unknown
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            # Unknown
+            0x03,
+        ])
 
-    @target_temperature.setter
-    def target_temperature(self, temperature_celsius: float):
-        # Clear the temperature bits.
-        self.data[0x0c] &= ~ 0x0f
-        # Clear the temperature bits, except the 0.5 bit, which will be set properly in all cases
-        self.data[0x0c] |= (int(temperature_celsius) & 0xf)
-        # set the +0.5 bit
-        self.temperature_dot5 = (int(round(temperature_celsius*2)) % 2 != 0)
+
+class set_state_command(command):
+    def __init__(self, device_type):
+        super().__init__(device_type, frame_type=frame_type.Set)
+
+        self.beep_on = True
+        self.power_on = False
+        self.target_temperature = 25.0
+        self.operational_mode = 0
+        self.fan_speed = 0
+        self.eco_mode = True
+        self.swing_mode = 0
+        self.turbo_mode = False
+        self.display_on = True
+        self.fahrenheit = True
+        self.sleep = False
 
     @property
-    def operational_mode(self):
-        return (self.data[0x0c] & 0xe0) >> 5
+    def payload(self):
+        # Build prompt tone and power status byte
+        beep = 0x42 if self.beep_on else 0
+        power = 0x1 if self.power_on else 0
 
-    @operational_mode.setter
-    def operational_mode(self, mode: int):
-        self.data[0x0c] &= ~ 0xe0  # Clear the mode bit
-        self.data[0x0c] |= (mode << 5) & 0xe0
+        # Build target temp and mode byte
+        fractional, integral = math.modf(self.target_temperature)
+        temperature = (int(integral) & 0xF) | (0x10 if fractional > 0 else 0)
+        mode = (self.operational_mode & 0x7) << 5
+
+        # Build swing mode byte
+        swing_mode = 0x30 | (self.swing_mode & 0x3F)
+
+        # Build eco mode byte
+        eco_mode = 0x80 if self.eco_mode else 0
+
+        # Build turbo, display and fahrenheit byte
+        sleep = 0x01 if self.sleep else 0
+        turbo = 0x02 if self.turbo_mode else 0
+        display = 0x10 if self.display_on else 0
+        fahrenheit = 0x04 if self.fahrenheit else 0
+
+        # Build alternate turbo byte
+        turbo_alt = 0x20 if self.turbo_mode else 0
+
+        return bytes([
+            # Set state
+            0x40,
+            # Beep and power state
+            beep | power,
+            # Temperature and operational mode
+            temperature | mode,
+            # Fan speed
+            self.fan_speed,
+            # Unknown
+            0x7F, 0x7F, 0x00,
+            # Swing mode
+            swing_mode,
+            # Alternate turbo mode
+            turbo_alt,
+            # ECO mode
+            eco_mode,
+            # Turbo mode, display on and fahrenheit
+            sleep | turbo | display | fahrenheit,
+            # Unknown
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00,
+        ])
+
+
+class response():
+    def __init__(self, frame: bytes):
+        # Build a memoryview of the frame for zero-copy slicing
+        frame_mv = memoryview(frame)
+
+        # Validate frame checksum
+        calc_checksum = command.checksum(frame_mv[0:-1])
+        recv_checkum = frame_mv[-1]
+        if recv_checkum != calc_checksum:
+            _LOGGER.error("Frame '{}' failed checksum. Received: 0x{:X}, Expected: 0x{:X}.".format(
+                frame_mv.hex(), recv_checkum, calc_checksum))
+            frame_mv.release()
+            return
+
+        # Fetch frame payload and payload with CRC
+        payload_crc = frame_mv[10:-1]
+        payload = payload_crc[0:-1]
+
+        # Validate payload CRC
+        calc_crc = crc8.calculate(payload)
+        recv_crc = payload_crc[-1]
+        if recv_crc != calc_crc:
+            _LOGGER.error("Payload '{}' failed CRC. Received: 0x{:X}, Expected: 0x{:X}.".format(
+                payload_crc.hex(), recv_crc, calc_crc))
+            frame_mv.release()
+            return
+
+        # Get ID
+        self._id = payload[0]
+
+        # Unpack the payload
+        self.unpack(payload)
+
+        # Free the memoryview
+        frame_mv.release()
+
+    @staticmethod
+    def construct(frame):
+        id = frame[10]
+        if id == ResponseId.State:
+            return state_response(frame)
+        elif id == ResponseId.Capabilities:
+            return capabilities_response(frame)
+        else:
+            # Unrecognized frame
+            return response(frame)
 
     @property
-    def fan_speed(self):
-        return self.data[0x0d]
+    def id(self):
+        return self._id
 
-    @fan_speed.setter
-    def fan_speed(self, speed: int):
-        self.data[0x0d] = speed
+    @abstractmethod
+    def unpack(self, payload: memoryview):
+        # Make a copy for debug
+        self.payload = bytes(payload)
+
+
+class capabilities_response(response):
+    def __init__(self, frame: bytes):
+        super().__init__(frame)
+
+    def unpack(self, payload: memoryview):
+        if self.id != ResponseId.Capabilities:
+            # TODO throw instead?
+            _LOGGER.error(
+                "Invalid capabilities response ID.")
+            return
+
+        _LOGGER.debug(
+            "Capabilities response payload: {}".format(payload.hex()))
+
+        self.read_capabilities(payload)
+
+        _LOGGER.debug(
+            "Supported capabilities: {}".format(self.capabilities))
+
+    def read_capabilities(self, payload: memoryview):
+        # Clear existing capabilities
+        self.capabilities = {}
+
+        # Define some local functions to parse capability values
+        def get_bool(v): return v != 0
+        def get_value(w): return lambda v: v == w
+        def get_no_value(w): return lambda v: v != w
+
+        # Define a named tuple that represents a decoder
+        reader = namedtuple("decoder", "name read")
+
+        # Create a map of capability ID to decoders
+        capability_readers = {
+            CapabilityId.IndoorHumidity: reader("indoor_humidity", get_bool),
+            CapabilityId.SilkyCool: reader("silky_cool", get_value(1)),
+            CapabilityId.SmartEye:  reader("smart_eye", get_value(1)),
+            CapabilityId.WindOnMe:  reader("wind_on_me", get_value(1)),
+            CapabilityId.WindOffMe:  reader("wind_off_me", get_value(1)),
+            CapabilityId.ActiveClean:  reader("active_clean", get_value(1)),
+            CapabilityId.OneKeyNoWindOnMe: reader("one_key_no_wind_on_me", get_value(1)),
+            CapabilityId.BreezeControl: reader("breeze_control", get_value(1)),
+            # Fan speed control always seems to return false, even if unit can
+            CapabilityId.FanSpeedControl: reader("fan_speed_control", get_no_value(1)),
+            CapabilityId.PresetEco: [
+                reader("eco_mode", get_value(1)),
+                reader("eco_mode_2", get_value(2)),
+            ],
+            CapabilityId.PresetFreezeProtection: reader("freeze_protection", get_value(1)),
+            CapabilityId.Modes: [
+                reader("heat_mode", lambda v: v == 1 or v == 2),
+                reader("cool_mode", lambda v: v == 0 or v == 3),
+                reader("dry_mode", lambda v: v < 2),
+                reader("auto_mode", lambda v: v < 3),
+            ],
+            CapabilityId.SwingModes: [
+                reader("swing_horizontal", lambda v: v == 1 or v == 3),
+                reader("swing_vertical", lambda v: v < 2),
+            ],
+            CapabilityId.Power: [
+                reader("power_cal", lambda v: v == 2 or v == 3),
+                reader("power_cal_setting", lambda v: v == 3),
+            ],
+            CapabilityId.Nest: [
+                reader("nest_check", lambda v: v == 1 or v == 2 or v == 4),
+                reader("nest_need_change", lambda v: v == 3 or v == 4),
+            ],
+            CapabilityId.AuxElectricHeat: reader("aux_electric_heat", get_bool),
+            CapabilityId.PresetTurbo:  [
+                reader("turbo_heat", lambda v: v == 1 or v == 3),
+                reader("turbo_cool", lambda v: v < 2),
+            ],
+            CapabilityId.Humidity:
+            [
+                reader("humidity_auto_set", lambda v: v == 1 or v == 2),
+                reader("humidity_manual_set", lambda v: v == 2 or v == 3),
+            ],
+            CapabilityId.UnitChangeable: reader("unit_changeable", get_value(0)),
+            CapabilityId.LightControl: reader("light_control", get_bool),
+            # Temperatures capability too complex to be handled here
+            CapabilityId.Buzzer:  reader("buzzer", get_bool),
+        }
+
+        count = payload[1]
+        caps = payload[2:]
+
+        # Loop through each capability
+        for i in range(0, count):
+            # Stop if out of data
+            if len(caps) < 3:
+                break
+
+            # Skip empty capabilities
+            size = caps[2]
+            if size == 0:
+                continue
+
+            # Covert ID to enumerate type
+            try:
+                # Unpack 16 bit ID
+                (cap_id, ) = struct.unpack("<H", caps[0:2])
+                id = CapabilityId(cap_id)
+            except ValueError:
+                _LOGGER.warn(
+                    "Unknown capability. ID: 0x{:04X}, Size: {}.".format(id, size))
+                # Advanced to next capability
+                caps = caps[3+size:]
+                continue
+
+            # Fetch first cap value
+            value = caps[3]
+
+            # Apply predefined capability reader if it exists
+            if id in capability_readers:
+                # Local function to apply a reader
+                def apply(d): return {d.name: d.read(value)}
+
+                reader = capability_readers[cap_id]
+                if isinstance(reader, list):
+                    # Apply each reader in the list
+                    for r in reader:
+                        self.capabilities.update(apply(r))
+                else:
+                    # Apply the single reader
+                    self.capabilities.update(apply(reader))
+
+            elif id == CapabilityId.Temperatures:
+                # Skip if capability size is too small
+                if size < 6:
+                    continue
+
+                self.capabilities["min_cool_temperature"] = caps[3] * 0.5
+                self.capabilities["max_cool_temperature"] = caps[4] * 0.5
+                self.capabilities["min_auto_temperature"] = caps[5] * 0.5
+                self.capabilities["max_auto_temperature"] = caps[6] * 0.5
+                self.capabilities["min_heat_temperature"] = caps[7] * 0.5
+                self.capabilities["max_heat_temperature"] = caps[8] * 0.5
+
+                self.capabilities["decimals"] = caps[9] == 0 if size > 6 else caps[2] == 0
+
+            else:
+                _LOGGER.warn(
+                    "Unsupported capability. ID: 0x{:04X}, Size: {}.".format(id, size))
+
+            # Advanced to next capability
+            caps = caps[3+size:]
+    
+    @property
+    def swing_horizontal(self):
+        return self.capabilities.get("swing_horizontal", False)
+    
+    @property
+    def swing_vertical(self):
+        return self.capabilities.get("swing_vertical", False)
+    
+    @property
+    def swing_both(self):
+        return self.swing_vertical and self.swing_horizontal
+
+    @property
+    def dry_mode(self):
+        return self.capabilities.get("dry_mode", False)
+
+    @property
+    def cool_mode(self):
+        return self.capabilities.get("cool_mode", False)
+
+    @property
+    def heat_mode(self):
+        return self.capabilities.get("heat_mode", False)
+
+    @property
+    def auto_mode(self):
+        return self.capabilities.get("auto_mode", False)
 
     @property
     def eco_mode(self):
-        return self.data[0x13] > 0
-
-    @eco_mode.setter
-    def eco_mode(self, eco_mode_enabled: bool):
-        self.data[0x13] = 0xFF if eco_mode_enabled else 0
-
-    @property
-    def swing_mode(self):
-        return self.data[0x11]
-
-    @swing_mode.setter
-    def swing_mode(self, mode: int):
-        self.data[0x11] = 0x30  # Clear the mode bit
-        self.data[0x11] |= mode & 0x3f
+        return self.capabilities.get("eco_mode", False) or self.capabilities.get("eco_mode_2", False)
 
     @property
     def turbo_mode(self):
-        return self.data[0x14] > 0
+        return self.capabilities.get("turbo_heat", False) or self.capabilities.get("turbo_cool", False)
 
-    @turbo_mode.setter
-    def turbo_mode(self, turbo_mode_enabled: bool):
-        if (turbo_mode_enabled):
-            self.data[0x14] |= 0x02
-        else:
-            self.data[0x14] &= (~0x02)
+class state_response(response):
+    def __init__(self, frame: bytes):
+        super().__init__(frame)
 
-    @property
-    def screen_display(self):
-        return self.data[0x14] & 0x10 > 0
+    def unpack(self, payload: memoryview):
+        if self.id != ResponseId.State:
+            # TODO throw instead?
+            _LOGGER.error(
+                "Invalid state response ID.")
+            return
 
-    @screen_display.setter
-    def screen_display(self, screen_display_enabled: bool):
-        # the LED lights on the AC. these display temperature and are often too bright during nights
-        if screen_display_enabled:
-            self.data[0x14] |= 0x10
-        else:
-            self.data[0x14] &= (~0x10)
+        _LOGGER.debug(
+            "State response payload: {}".format(payload.hex()))
 
-    @property
-    def temperature_dot5(self):
-        return self.data[0x0c] & 0x10 > 0
+        self.read_state(payload)
 
-    @temperature_dot5.setter
-    def temperature_dot5(self, temperature_dot5_enabled: bool):
-        # add 0.5C to the temperature value. not intended to be called directly. target_temperature setter calls this if needed
-        if temperature_dot5_enabled:
-            self.data[0x0c] |= 0x10
-        else:
-            self.data[0x0c] &= (~0x10)
+    def read_state(self, payload: memoryview):
 
-    @property
-    def fahrenheit(self):
-        # is the temperature unit fahrenheit? (celcius otherwise)
-        return self.data[0x14] & 0x04 > 0
+        self.power_on = bool(payload[1] & 0x1)
+        #self.imode_resume = payload[1] & 0x4
+        #self.timer_mode = (payload[1] & 0x10) > 0
+        #self.appliance_error = (payload[1] & 0x80) > 0
 
-    @fahrenheit.setter
-    def fahrenheit(self, fahrenheit_enabled: bool):
-        # set the unit to fahrenheit from celcius
-        if fahrenheit_enabled:
-            self.data[0x14] |= 0x04
-        else:
-            self.data[0x14] &= (~0x04)
+        # Unpack target temp and mode byte
+        self.target_temperature = (payload[2] & 0xF) + 16.0
+        self.target_temperature += 0.5 if payload[2] & 0x10 else 0.0
+        self.operational_mode = (payload[2] >> 5) & 0x7
 
+        # Fan speed
+        # TODO Fan speed can be auto = 102, or value from 0 - 100
+        # On my unit, Low == 40 (LED < 40), Med == 60 (LED < 60), High == 100 (LED < 100)
+        self.fan_speed = payload[3]
 
-class appliance_response:
+        # on_timer_value = payload[4]
+        # on_timer_minutes = payload[6]
+        # self.on_timer = {
+        #     'status': ((on_timer_value & 0x80) >> 7) > 0,
+        #     'hour': (on_timer_value & 0x7c) >> 2,
+        #     'minutes': (on_timer_value & 0x3) | ((on_timer_minutes & 0xf0) >> 4)
+        # }
 
-    def __init__(self, data: bytearray):
-        # The response data from the appliance includes a packet header which we don't want
-        self.data = data[0xa:]
-        _LOGGER.debug("Appliance response data: {}".format(self.data.hex()))
+        # off_timer_value = payload[5]
+        # off_timer_minutes = payload[6]
+        # self.off_timer = {
+        #     'status': ((off_timer_value & 0x80) >> 7) > 0,
+        #     'hour': (off_timer_value & 0x7c) >> 2,
+        #     'minutes': (off_timer_value & 0x3) | (off_timer_minutes & 0xf)
+        # }
 
-    # Byte 0x01
-    @property
-    def power_state(self):
-        return (self.data[0x01] & 0x1) > 0
+        # Swing mode
+        self.swing_mode = payload[7] & 0xF
 
-    @property
-    def imode_resume(self):
-        return (self.data[0x01] & 0x4) > 0
+        # self.cozy_sleep = payload[8] & 0x03
+        # self.save = (payload[8] & 0x08) > 0
+        # self.low_frequency_fan = (payload[8] & 0x10) > 0
+        self.turbo_mode = bool(payload[8] & 0x20)
+        # self.feel_own = (payload[8] & 0x80) > 0
 
-    @property
-    def timer_mode(self):
-        return (self.data[0x01] & 0x10) > 0
+        self.eco_mode = bool(payload[9] & 0x10)
+        # self.child_sleep_mode = (payload[9] & 0x01) > 0
+        # self.exchange_air = (payload[9] & 0x02) > 0
+        # self.dry_clean = (payload[9] & 0x04) > 0
+        # self.aux_heat = (payload[9] & 0x08) > 0
+        # self.clean_up = (payload[9] & 0x20) > 0
+        # self.temp_unit = (payload[9] & 0x80) > 0
 
-    @property
-    def appliance_error(self):
-        return (self.data[0x01] & 0x80) > 0
+        self.sleep = bool(payload[10] & 0x1)
+        self.turbo_mode |= bool(payload[10] & 0x2)
+        self.fahrenheit = bool(payload[10] & 0x4)
+        # self.catch_cold = (payload[10] & 0x08) > 0
+        # self.night_light = (payload[10] & 0x10) > 0
+        # self.peak_elec = (payload[10] & 0x20) > 0
+        # self.natural_fan = (payload[10] & 0x40) > 0
 
-    # Byte 0x02
-    @property
-    def target_temperature(self):
-        return (self.data[0x02] & 0xf) + 16.0 + (0.5 if self.data[0x02] & 0x10 > 0 else 0.0)
+        self.indoor_temperature = (payload[11] - 50) / 2.0
 
-    @property
-    def operational_mode(self):
-        return (self.data[0x02] & 0xe0) >> 5
+        self.outdoor_temperature = (payload[12] - 50) / 2.0
 
-    # Byte 0x03
-    @property
-    def fan_speed(self):
-        return self.data[0x03] & 0x7f
+        # self.humidity = (payload[13] & 0x7F)
 
-    # Byte 0x04 + 0x06
-    @property
-    def on_timer(self):
-        on_timer_value = self.data[0x04]
-        on_timer_minutes = self.data[0x06]
-        return {
-            'status': ((on_timer_value & 0x80) >> 7) > 0,
-            'hour': (on_timer_value & 0x7c) >> 2,
-            'minutes': (on_timer_value & 0x3) | ((on_timer_minutes & 0xf0) >> 4)
-        }
+        self.display_on = (payload[14] != 0x70)
 
-    # Byte 0x05 + 0x06
-    @property
-    def off_timer(self):
-        off_timer_value = self.data[0x05]
-        off_timer_minutes = self.data[0x06]
-        return {
-            'status': ((off_timer_value & 0x80) >> 7) > 0,
-            'hour': (off_timer_value & 0x7c) >> 2,
-            'minutes': (off_timer_value & 0x3) | (off_timer_minutes & 0xf)
-        }
-
-    # Byte 0x07
-    @property
-    def swing_mode(self):
-        return self.data[0x07] & 0x0f
-
-    # Byte 0x08
-    @property
-    def cozy_sleep(self):
-        return self.data[0x08] & 0x03
-
-    @property
-    def save(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x08] & 0x08) > 0
-
-    @property
-    def low_frequency_fan(self):
-        return (self.data[0x08] & 0x10) > 0
-
-    @property
-    def super_fan(self):
-        return (self.data[0x08] & 0x20) > 0
-
-    @property
-    def feel_own(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x08] & 0x80) > 0
-
-    # Byte 0x09
-    @property
-    def child_sleep_mode(self):
-        return (self.data[0x09] & 0x01) > 0
-
-    @property
-    def exchange_air(self):
-        return (self.data[0x09] & 0x02) > 0
-
-    @property
-    def dry_clean(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x09] & 0x04) > 0
-
-    @property
-    def aux_heat(self):
-        return (self.data[0x09] & 0x08) > 0
-
-    @property
-    def eco_mode(self):
-        return (self.data[0x09] & 0x10) > 0
-
-    @property
-    def clean_up(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x09] & 0x20) > 0
-
-    @property
-    def temp_unit(self):  # This needs a better name, dunno what it actually means
-        return (self.data[0x09] & 0x80) > 0
-
-    # Byte 0x0a
-    @property
-    def sleep_function(self):
-        return (self.data[0x0a] & 0x01) > 0
-
-    @property
-    def turbo_mode(self):
-        return (self.data[0x0a] & 0x02) > 0
-
-    @property
-    def catch_cold(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x08) > 0
-
-    @property
-    def night_light(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x10) > 0
-
-    @property
-    def peak_elec(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x20) > 0
-
-    @property
-    def natural_fan(self):   # This needs a better name, dunno what it actually means
-        return (self.data[0x0a] & 0x40) > 0
-
-    # Byte 0x0b
-    @property
-    def indoor_temperature(self):
-        if self.data[0] == 0xc0:
-            if int((self.data[11] - 50) / 2) < -19 or int((self.data[11] - 50) / 2) > 50:
-                return 0xff
-            else:
-                indoorTempInteger = int((self.data[11] - 50) / 2)
-            indoorTemperatureDot = getBits(self.data, 15, 0, 3)
-            indoorTempDecimal = indoorTemperatureDot * 0.1
-            if self.data[11] > 49:
-                return indoorTempInteger + indoorTempDecimal
-            else:
-                return indoorTempInteger - indoorTempDecimal
-        if self.data[0] == 0xa0 or self.data[0] == 0xa1:
-            if self.data[0] == 0xa0:
-                if (self.data[1] >> 2) - 4 == 0:
-                    indoorTempInteger = -1
-                else:
-                    indoorTempInteger = (self.data[1] >> 2) + 12
-                if (self.data[1] >> 1) & 0x01 == 1:
-                    indoorTempDecimal = 0.5
-                else:
-                    indoorTempDecimal = 0
-            if self.data[0] == 0xa1:
-                if int((self.data[13] - 50) / 2) < -19 or int((self.data[13] - 50) / 2) > 50:
-                    return 0xff
-                else:
-                    indoorTempInteger = int((self.data[13] - 50) / 2)
-                indoorTempDecimal = (self.data[18] & 0x0f) * 0.1
-            if int(self.data[13]) > 49:
-                return indoorTempInteger + indoorTempDecimal
-            else:
-                return indoorTempInteger - indoorTempDecimal
-        return 0xff
-
-    # Byte 0x0c
-    @property
-    def outdoor_temperature(self):
-        return (self.data[0x0c] - 50) / 2.0
-
-    # Byte 0x0d
-    @property
-    def humidity(self):
-        return (self.data[0x0d] & 0x7f)
+        # TODO dudanov/MideaUART freeze protection in byte 21, bit 7
+        # TODO dudanov/MideaUART humidity set point in byte 19, mask 0x7F

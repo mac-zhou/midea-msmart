@@ -1,22 +1,35 @@
 
+from enum import IntEnum
 import logging
-import time
-from enum import Enum
-from msmart.command import appliance_response
-from msmart.command import base_command as request_status_command
-from msmart.command import set_command
-from msmart.lan import lan
+from msmart.command import ResponseId, response as base_response
+from msmart.command import state_response, capabilities_response
+from msmart.command import get_state_command, set_state_command, get_capabilities_command
 from msmart.packet_builder import packet_builder
 from msmart.device.base import device
+import time
 
 VERSION = '0.2.3'
 
 _LOGGER = logging.getLogger(__name__)
 
 
+class IntEnumHelper(IntEnum):
+    @staticmethod
+    def names(enum):
+        return list(map(lambda c: c.name, enum))
+
+    @staticmethod
+    def get(enum_class, value, default=None):
+        try:
+            return enum_class(value)
+        except ValueError:
+            _LOGGER.debug("Unknown {}: {}".format(enum_class, value))
+            return default
+
+
 class air_conditioning(device):
 
-    class fan_speed_enum(Enum):
+    class fan_speed_enum(IntEnumHelper):
         Auto = 102
         Full = 100
         High = 80
@@ -26,16 +39,13 @@ class air_conditioning(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning.fan_speed_enum))
+            return IntEnumHelper.names(__class__)
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning.fan_speed_enum._value2member_map_):
-                return air_conditioning.fan_speed_enum(value)
-            _LOGGER.debug("Unknown Fan Speed: {}".format(value))
-            return air_conditioning.fan_speed_enum.Auto
+            return IntEnumHelper.get(__class__, value, air_conditioning.fan_speed_enum.Auto)
 
-    class operational_mode_enum(Enum):
+    class operational_mode_enum(IntEnumHelper):
         auto = 1
         cool = 2
         dry = 3
@@ -44,16 +54,13 @@ class air_conditioning(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning.operational_mode_enum))
+            return IntEnumHelper.names(__class__)
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning.operational_mode_enum._value2member_map_):
-                return air_conditioning.operational_mode_enum(value)
-            _LOGGER.debug("Unknown Operational Mode: {}".format(value))
-            return air_conditioning.operational_mode_enum.fan_only
+            return IntEnumHelper.get(__class__, value, air_conditioning.operational_mode_enum.fan_only)
 
-    class swing_mode_enum(Enum):
+    class swing_mode_enum(IntEnumHelper):
         Off = 0x0
         Vertical = 0xC
         Horizontal = 0x3
@@ -61,14 +68,11 @@ class air_conditioning(device):
 
         @staticmethod
         def list():
-            return list(map(lambda c: c.name, air_conditioning.swing_mode_enum))
+            return IntEnumHelper.names(__class__)
 
         @staticmethod
         def get(value):
-            if(value in air_conditioning.swing_mode_enum._value2member_map_):
-                return air_conditioning.swing_mode_enum(value)
-            _LOGGER.debug("Unknown Swing Mode: {}".format(value))
-            return air_conditioning.swing_mode_enum.Off
+            return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
 
     def __init__(self, *args, **kwargs):
         super(air_conditioning, self).__init__(*args, **kwargs)
@@ -80,7 +84,13 @@ class air_conditioning(device):
         self._swing_mode = air_conditioning.swing_mode_enum.Off
         self._eco_mode = False
         self._turbo_mode = False
-        self.fahrenheit_unit = False  # default unit is Celcius. this is just to control the temperatue unit of the AC's display. the target_temperature setter always expects a celcius temperature (resolution of 0.5C), as does the midea API
+        self._fahrenheit_unit = False  # Display temperature in Fahrenheit
+
+        # Support all known modes initially
+        self._supported_op_modes = air_conditioning.operational_mode_enum.list()
+        self._supported_swing_modes = air_conditioning.swing_mode_enum.list()
+        self._supports_eco = True
+        self._supports_turbo = True
 
         self._on_timer = None
         self._off_timer = None
@@ -88,12 +98,16 @@ class air_conditioning(device):
         self._active = True
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
-    
+
     def __str__(self):
         return str(self.__dict__)
 
+    def get_capabilities(self):
+        cmd = get_capabilities_command(self.type)
+        self._send_cmd(cmd)
+
     def refresh(self):
-        cmd = request_status_command(self.type)
+        cmd = get_state_command(self.type)
         self._send_cmd(cmd)
 
     def _send_cmd(self, cmd):
@@ -112,7 +126,7 @@ class air_conditioning(device):
             "Got responses from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
         if len(responses) == 0:
             _LOGGER.warn(
-            "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
+                "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
             self._active = False
             self._support = False
         for response in responses:
@@ -129,18 +143,22 @@ class air_conditioning(device):
                 _LOGGER.warn(
                     "Got ERROR from {}, {}".format(self.ip, self.id))
                 return
-            response = appliance_response(data)
+
+            # Construct response from data
+            response = base_response.construct(data)
+
             self._defer_update = False
             self._support = True
             if not self._defer_update:
-                if data[0xa] == 0xc0:
+                if response.id == ResponseId.State:
                     self.update(response)
-                if data[0xa] == 0xa1 or data[0xa] == 0xa0:
-                    '''only update indoor_temperature and outdoor_temperature'''
-                    _LOGGER.debug("Update - Special response. {}:{} {}".format(
-                        self.ip, self.port, data[0xa:].hex()))
-                    pass
-                    # self.update_special(response)
+                elif response.id == ResponseId.Capabilities:
+                    self.update_capabilities(response)
+                elif response.id == 0xa1 or response.id == 0xa0:
+                    _LOGGER.warn("Ignored special response. {}:{} {}".format(
+                        self.ip, self.port, response.payload.hex()))
+                    return
+
                 self._defer_update = False
         elif not self._keep_last_known_online_state:
             self._online = False
@@ -148,50 +166,89 @@ class air_conditioning(device):
     def apply(self):
         self._updating = True
         try:
-            cmd = set_command(self.type)
-            cmd.prompt_tone = self._prompt_tone
-            cmd.power_state = self._power_state
+            # Warn if trying to apply unsupported modes
+            if self._operational_mode not in self._supported_op_modes:
+                _LOGGER.warn("Device is not capable of operational mode {}.".format(
+                    self._operational_mode))
+
+            if self._swing_mode not in self._supported_swing_modes:
+                _LOGGER.warn(
+                    "Device is not capable of swing mode {}.".format(self._swing_mode))
+
+            if self._turbo_mode and not self._supports_turbo:
+                _LOGGER.warn("Device is not capable of turbo mode.")
+
+            if self._eco_mode and not self._supports_eco:
+                _LOGGER.warn("Device is not capable of eco mode.")
+
+            cmd = set_state_command(self.type)
+            cmd.beep_on = self._prompt_tone
+            cmd.power_on = self._power_state
             cmd.target_temperature = self._target_temperature
-            cmd.operational_mode = self._operational_mode.value
-            cmd.fan_speed = self._fan_speed.value
-            cmd.swing_mode = self._swing_mode.value
+            cmd.operational_mode = self._operational_mode
+            cmd.fan_speed = self._fan_speed
+            cmd.swing_mode = self._swing_mode
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
-            # pkt_builder = packet_builder(self.id)
-#            cmd.night_light = False
-            cmd.fahrenheit = self.fahrenheit_unit
+            cmd.fahrenheit = self._fahrenheit_unit
             self._send_cmd(cmd)
         finally:
             self._updating = False
             self._defer_update = False
 
-    def update(self, res: appliance_response):
-        self._power_state = res.power_state
+    def update(self, res: state_response):
+        self._power_state = res.power_on
+
         self._target_temperature = res.target_temperature
         self._operational_mode = air_conditioning.operational_mode_enum.get(
             res.operational_mode)
+
         self._fan_speed = air_conditioning.fan_speed_enum.get(
             res.fan_speed)
+
         self._swing_mode = air_conditioning.swing_mode_enum.get(
             res.swing_mode)
+
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
-        indoor_temperature = res.indoor_temperature
-        if indoor_temperature != 0xff:
-            self._indoor_temperature = indoor_temperature
-        outdoor_temperature = res.outdoor_temperature
-        if outdoor_temperature != 0xff:
-            self._outdoor_temperature = outdoor_temperature
-        self._on_timer = res.on_timer
-        self._off_timer = res.off_timer
+        self._fahrenheit_unit = res.fahrenheit
 
-    def update_special(self, res: appliance_response):
-        indoor_temperature = res.indoor_temperature
-        if indoor_temperature != 0xff:
-            self._indoor_temperature = indoor_temperature
-        outdoor_temperature = res.outdoor_temperature
-        if outdoor_temperature != 0xff:
-            self._outdoor_temperature = outdoor_temperature
+        if res.indoor_temperature != 0xff:
+            self._indoor_temperature = res.indoor_temperature
+
+        if res.outdoor_temperature != 0xff:
+            self._outdoor_temperature = res.outdoor_temperature
+
+        # self._on_timer = res.on_timer
+        # self._off_timer = res.off_timer
+
+    def update_capabilities(self, res: capabilities_response):
+        # Build list of supported operation modes
+        op_modes = [air_conditioning.operational_mode_enum.fan_only]
+        if res.dry_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.dry)
+        if res.cool_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.cool)
+        if res.heat_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.heat)
+        if res.auto_mode:
+            op_modes.append(air_conditioning.operational_mode_enum.auto)
+
+        self._supported_op_modes = op_modes
+
+        # Build list of supported swing modes
+        swing_modes = [air_conditioning.swing_mode_enum.Off]
+        if res.swing_horizontal:
+            swing_modes.append(air_conditioning.swing_mode_enum.Horizontal)
+        if res.swing_vertical:
+            swing_modes.append(air_conditioning.swing_mode_enum.Vertical)
+        if res.swing_both:
+            swing_modes.append(air_conditioning.swing_mode_enum.Both)
+
+        self._supported_swing_modes = swing_modes
+
+        self._supports_eco = res.eco_mode
+        self._supports_turbo = res.turbo_mode
 
     @property
     def prompt_tone(self):
@@ -218,7 +275,7 @@ class air_conditioning(device):
         return self._target_temperature
 
     @target_temperature.setter
-    def target_temperature(self, temperature_celsius: float): # the implementation later rounds the temperature down to the nearest 0.5'C resolution.
+    def target_temperature(self, temperature_celsius: float):
         if self._updating:
             self._defer_update = True
         self._target_temperature = temperature_celsius
@@ -274,6 +331,16 @@ class air_conditioning(device):
         self._turbo_mode = enabled
 
     @property
+    def fahrenheit(self):
+        return self._fahrenheit_unit
+
+    @fahrenheit.setter
+    def fahrenheit(self, enabled: bool):
+        if self._updating:
+            self._defer_update = True
+        self._fahrenheit_unit = enabled
+
+    @property
     def indoor_temperature(self):
         return self._indoor_temperature
 
@@ -288,3 +355,11 @@ class air_conditioning(device):
     @property
     def off_timer(self):
         return self._off_timer
+
+    @property
+    def supported_operation_modes(self):
+        return IntEnumHelper.names(self._supported_op_modes)
+
+    @property
+    def supported_swing_modes(self):
+        return IntEnumHelper.names(self._supported_swing_modes)
