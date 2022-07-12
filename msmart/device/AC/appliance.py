@@ -461,7 +461,7 @@ class air_conditioning(device):
         return self._off_timer
 
     @off_timer.setter
-    def off_timer(self, dtime: str):
+    def off_timer(self, dtime):
         if self._updating:
             self._defer_update = True
         self._off_timer = dtime
