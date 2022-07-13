@@ -6,6 +6,7 @@ import logging
 import math
 import msmart.crc8 as crc8
 import struct
+import re
 
 VERSION = '0.2.4'
 
@@ -163,15 +164,31 @@ class set_state_command(command):
 
         self.beep_on = True
         self.power_on = False
-        self.target_temperature = 25.0
+        self.target_temperature = 26.0
         self.operational_mode = 0
         self.fan_speed = 0
         self.eco_mode = True
+        self.on_timer = None
+        self.off_timer = None
         self.swing_mode = 0
         self.turbo_mode = False
         self.display_on = True
         self.fahrenheit = True
         self.sleep = False
+
+    @staticmethod
+    def get_time(value):
+        if value['status']:
+            if re.match(r'(([12]?[0-9]|3[01]):[1-5]?[0-9]|32:0)$', value['time']):
+                (h,m) = value['time'].split(':')
+                (h,m) = (int(h),int(m))
+                if h == 0 and m == 0:
+                    return (0x80, 0x0f)
+                if m == 0:
+                    return (0x80 + (h - 1 << 2) + 3, 0)
+                return (0x80 + (h << 2) + m // 15, 15 - m % 15)
+            _LOGGER.debug("Unknown On/Off Timer: {}".format(value['time']))
+        return (0x7f, 0)
 
     @property
     def payload(self):
@@ -184,8 +201,12 @@ class set_state_command(command):
         temperature = (int(integral) & 0xF) | (0x10 if fractional > 0 else 0)
         mode = (self.operational_mode & 0x7) << 5
 
+        # Build on/off timer bytes
+        on_timer, on_timer_minute = self.get_time(self.on_timer)
+        off_timer, off_timer_minute = self.get_time(self.off_timer)
+        
         # Build swing mode byte
-        swing_mode = 0x30 | (self.swing_mode & 0x3F)
+        swing_mode = 0x30 | (self.swing_mode & 0x0F)
 
         # Build eco mode byte
         eco_mode = 0x80 if self.eco_mode else 0
@@ -208,8 +229,12 @@ class set_state_command(command):
             temperature | mode,
             # Fan speed
             self.fan_speed,
-            # Unknown
-            0x7F, 0x7F, 0x00,
+            # on timer, 0x80 bit: enalbe, 0x7c bits: hour, 0x03 bits: quater 
+            on_timer,
+            # off timer, 0x80 bit: enalbe, 0x7c bits: hour, 0x03 bits: quater
+            off_timer,
+            # negative minute(s) for on and off timers, 0xf0 bits: on time, 0x0f bits: off timer
+            (on_timer_minute << 4) | off_timer_minute,
             # Swing mode
             swing_mode,
             # Alternate turbo mode
@@ -497,21 +522,23 @@ class state_response(response):
         # On my unit, Low == 40 (LED < 40), Med == 60 (LED < 60), High == 100 (LED < 100)
         self.fan_speed = payload[3]
 
-        # on_timer_value = payload[4]
-        # on_timer_minutes = payload[6]
-        # self.on_timer = {
-        #     'status': ((on_timer_value & 0x80) >> 7) > 0,
-        #     'hour': (on_timer_value & 0x7c) >> 2,
-        #     'minutes': (on_timer_value & 0x3) | ((on_timer_minutes & 0xf0) >> 4)
-        # }
+        on_timer_status = (False, True)[(payload[4] & 0x80) >> 7]
+        on_timer_minute = ((payload[4] & 0x03) + 1) * 15 - ((payload[6] & 0xf0) >> 4)
+        on_timer_hour = ((payload[4] & 0x7c) >> 2) + (on_timer_minute // 60)
+        on_timer_minute = on_timer_minute - (on_timer_minute // 60) * 60
+        self.on_timer = {
+            'status': on_timer_status,
+            'time': '{}:{}'.format(on_timer_hour, on_timer_minute)
+        }
 
-        # off_timer_value = payload[5]
-        # off_timer_minutes = payload[6]
-        # self.off_timer = {
-        #     'status': ((off_timer_value & 0x80) >> 7) > 0,
-        #     'hour': (off_timer_value & 0x7c) >> 2,
-        #     'minutes': (off_timer_value & 0x3) | (off_timer_minutes & 0xf)
-        # }
+        off_timer_status = (False, True)[(payload[5] & 0x80) >> 7]
+        off_timer_minute = ((payload[5] & 0x03) + 1) * 15 - (payload[6] & 0x0f)
+        off_timer_hour = ((payload[5] & 0x7c) >> 2) + (off_timer_minute // 60)
+        off_timer_minute = off_timer_minute - (off_timer_minute // 60) * 60
+        self.off_timer = {
+            'status': off_timer_status,
+            'time': '{}:{}'.format(off_timer_hour, off_timer_minute)
+        }
 
         # Swing mode
         self.swing_mode = payload[7] & 0xF
