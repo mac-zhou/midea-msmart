@@ -2,21 +2,16 @@
 import logging
 from enum import IntEnum
 from msmart.utils import getBit, getBits
-from msmart.const import CMD_TYPE_CONTROL, CMD_TYPE_QUERRY, CMD_TYPE_REPORT
+from msmart.const import FRAME_TYPE
 from msmart.command import command as base_command
 
 VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 
-class frame_type(IntEnum):
-    Unknown = 0
-    Set = 0x2
-    Request = 0x3
-
 class get_state_command(base_command):
-    def __init__(self, device_type, frame_type=frame_type.Request):
-        super().__init__(device_type, frame_type)
+    def __init__(self, device_type=0xdb, FRAME_TYPE=FRAME_TYPE.Request):
+        super().__init__(device_type, FRAME_TYPE)
 
     @property
     def payload(self):
@@ -32,7 +27,7 @@ class appliance_response:
         self.data = data[0xa:-1]
         self.message_type = data[0x09]
         self.update = True
-        if self.message_type ==CMD_TYPE_REPORT and self.data[0] != CMD_TYPE_REPORT:
+        if self.message_type == FRAME_TYPE.Report and self.data[0] !=  FRAME_TYPE.Report:
             self.update = False
         _LOGGER.info("Appliance response type: {} update:{} data: {}".format(self.message_type, self.update, self.data.hex()))
 
@@ -103,10 +98,10 @@ class appliance_response:
 
     @property
     def appliance_type(self):
-        if self.message_type == CMD_TYPE_QUERRY:
+        if self.message_type == FRAME_TYPE.Set:
             return self.data[20]
     
     @property
     def appliance_code(self):
-        if self.message_type == CMD_TYPE_QUERRY:
+        if self.message_type ==  FRAME_TYPE.Set:
             return chr(self.data[23]) + chr(self.data[22]) + chr(self.data[21])
