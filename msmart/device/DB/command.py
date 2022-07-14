@@ -11,7 +11,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class get_state_command(base_command):
     def __init__(self, device_type=0xdb, FRAME_TYPE=FRAME_TYPE.Request):
-        print("####", device_type)
         super().__init__(device_type, FRAME_TYPE)
 
     @property
