@@ -6,6 +6,7 @@ import logging
 import math
 import msmart.crc8 as crc8
 import struct
+from msmart.const import FRAME_TYPE
 
 VERSION = '0.2.4'
 
@@ -47,19 +48,12 @@ class temperature_type(IntEnum):
     Indoor = 0x2
     Outdoor = 0x3
 
-
-class frame_type(IntEnum):
-    Unknown = 0
-    Set = 0x2
-    Request = 0x3
-
-
 class command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type=0xAC, frame_type=frame_type.Request):
+    def __init__(self, device_type=0xAC, FRAME_TYPE=FRAME_TYPE.Request):
         self.device_type = device_type
-        self.frame_type = frame_type
+        self.FRAME_TYPE = FRAME_TYPE
         self.protocol_version = 0
 
     def pack(self):
@@ -91,7 +85,7 @@ class command(ABC):
             # Device protocol version
             self.protocol_version,
             # Frame type
-            self.frame_type
+            self.FRAME_TYPE
         ])
 
         # Build frame from header and payload with CRC
@@ -121,7 +115,7 @@ class command(ABC):
 
 class get_capabilities_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=frame_type.Request)
+        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
 
     @property
     def payload(self):
@@ -135,7 +129,7 @@ class get_capabilities_command(command):
 
 class get_state_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=frame_type.Request)
+        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
 
         self.temperature_type = temperature_type.Indoor
 
@@ -159,7 +153,7 @@ class get_state_command(command):
 
 class set_state_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=frame_type.Set)
+        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Set)
 
         self.beep_on = True
         self.power_on = False
