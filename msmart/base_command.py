@@ -72,3 +72,12 @@ class command(ABC):
     @abstractmethod
     def payload(self):
         return bytes()
+
+class set_customize_command(command):
+    def __init__(self, device_type, FRAME_TYPE, customize_cmd,):
+        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        self.customize_cmd = customize_cmd
+
+    @property
+    def payload(self):
+        return bytearray.fromhex(self.customize_cmd)
