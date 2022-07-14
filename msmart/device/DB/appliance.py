@@ -2,8 +2,7 @@
 import logging
 import time
 from enum import Enum
-from .command import appliance_response
-from .command import base_command as request_status_command
+from .command import get_state_command, appliance_response
 from msmart.packet_builder import packet_builder
 from msmart.device.base import device
 
@@ -96,8 +95,7 @@ class front_load_washer(device):
         return str(self.__dict__)
 
     def refresh(self):
-        cmd = request_status_command(self.type)
-        cmd.data = bytearray.fromhex('aa0bff0000000000000303')
+        cmd = get_state_command(0xdb)
         self._send_cmd(cmd)
 
     def _send_cmd(self, cmd):

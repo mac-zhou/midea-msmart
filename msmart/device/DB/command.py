@@ -1,78 +1,29 @@
 
 import logging
-import datetime
-import msmart.crc8 as crc8
+from enum import IntEnum
 from msmart.utils import getBit, getBits
 from msmart.const import CMD_TYPE_CONTROL, CMD_TYPE_QUERRY, CMD_TYPE_REPORT
+from msmart.command import command as base_command
 
 VERSION = '0.2.4'
 
 _LOGGER = logging.getLogger(__name__)
 
+class frame_type(IntEnum):
+    Unknown = 0
+    Set = 0x2
+    Request = 0x3
 
-class base_command:
+class get_state_command(base_command):
+    def __init__(self, device_type, frame_type=frame_type.Request):
+        super().__init__(device_type, frame_type)
 
-    def __init__(self, device_type=0xAC):
-        # More magic numbers. I'm sure each of these have a purpose, but none of it is documented in english. I might make an effort to google translate the SDK
-        self.data = bytearray([
-            # 0 header
-            0xaa,
-            # 1 command lenght: N+10
-            0x20,
-            # 2 device type
-            0xac,
-            # 3 Frame SYN CheckSum
-            0x00, 
-            # 4-5 Reserved 
-            0x00, 0x00, 
-            # 6 Message ID 
-            0x00, 
-            # 7 Frame Protocol Version
-            0x00,
-            # 8 Device Protocol Version 
-            0x00,
-            # 9 Messgae Type: request is 0x03; setting is 0x02
+    @property
+    def payload(self):
+        return bytes([
+            # Get state
             0x03,
-            
-            # Byte0 - Data request/response type: 0x41 - check status; 0x40 - Set up
-            0x41,
-            # Byte1
-            0x81,
-            # Byte2 - operational_mode
-            0x00,
-            # Byte3
-            0xff,
-            # Byte4
-            0x03,
-            # Byte5
-            0xff,
-            # Byte6
-            0x00,
-            # Byte7 - Room Temperature Request: 0x02 - indoor_temperature, 0x03 - outdoor_temperature
-            # when set, this is swing_mode
-            0x02,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            # Message ID
-            0x00
         ])
-        self.data[-1] = datetime.datetime.now().second
-        self.data[0x02] = device_type
-
-    def checksum(self, data):
-        c = (~ sum(data) + 1) & 0xff
-        return (~ sum(data) + 1) & 0xff
-
-    def finalize(self, addd_crc8=True):
-        # Add the CRC8
-        if addd_crc8:
-            self.data.append(crc8.calculate(self.data[10:]))
-        # Set the length of the command data
-        # self.data[0x01] = len(self.data)
-        # Add cheksum
-        self.data.append(self.checksum(self.data[1:]))
-        _LOGGER.debug("Finalize request data: {}".format(self.data.hex()))
-        return self.data
 
 class appliance_response:
 
