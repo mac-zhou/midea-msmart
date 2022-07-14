@@ -4,9 +4,7 @@ import logging
 from msmart.command import ResponseId, response as base_response
 from msmart.command import state_response, capabilities_response
 from msmart.command import get_state_command, set_state_command, get_capabilities_command
-from msmart.packet_builder import packet_builder
 from msmart.device.base import device
-import time
 
 VERSION = '0.2.4'
 
@@ -109,41 +107,14 @@ class air_conditioning(device):
     def refresh(self):
         cmd = get_state_command(self.type)
         self._send_cmd(cmd)
-
+    
     def _send_cmd(self, cmd):
-        pkt_builder = packet_builder(self.id)
-        pkt_builder.set_command(cmd)
-        data = pkt_builder.finalize()
-        _LOGGER.debug(
-            "pkt_builder: {}:{} len: {} data: {}".format(self.ip, self.port, len(data), data.hex()))
-        send_time = time.time()
-        if self._protocol_version == 3:
-            responses = self._lan_service.appliance_transparent_send_8370(data)
-        else:
-            responses = self._lan_service.appliance_transparent_send(data)
-        request_time = round(time.time() - send_time, 2)
-        _LOGGER.debug(
-            "Got responses from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
-        if len(responses) == 0:
-            _LOGGER.warn(
-                "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
-            self._active = False
-            self._support = False
+        responses = self.send_cmd(cmd)
         for response in responses:
             self._process_response(response)
 
     def _process_response(self, data):
-        _LOGGER.debug(
-            "Update from {}:{} {}".format(self.ip, self.port, data.hex()))
-        if len(data) > 0:
-            self._online = True
-            self._active = True
-            if data == b'ERROR':
-                self._support = False
-                _LOGGER.warn(
-                    "Got ERROR from {}, {}".format(self.ip, self.id))
-                return
-
+        if self.process_response(data):
             # Construct response from data
             response = base_response.construct(data)
 
