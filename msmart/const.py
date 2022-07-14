@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 VERSION = '0.2.4'
 
 BROADCAST_MSG = bytearray([
@@ -31,7 +33,9 @@ MSGTYPE_TRANSPARENT = 0xf
 OPEN_MIDEA_APP_ACCOUNT = 'midea_is_best@outlook.com'
 OPEN_MIDEA_APP_PASSWORD = 'lovemidea4ever' 
 
-CMD_TYPE_CONTROL = 0x02
-CMD_TYPE_QUERRY = 0x03
-CMD_TYPE_REPORT = 0x04
-CMD_TYPE_ABNL_REPORT = 0x06
+class FRAME_TYPE(IntEnum):
+    Unknown = 0
+    Set = 0x02
+    Request = 0x03
+    Report = 0x04
+    ABNL_REPORT = 0x06
