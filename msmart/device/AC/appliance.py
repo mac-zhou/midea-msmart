@@ -1,9 +1,9 @@
 
 from enum import IntEnum
 import logging
-from msmart.command import ResponseId, response as base_response
-from msmart.command import state_response, capabilities_response
-from msmart.command import get_state_command, set_state_command, get_capabilities_command
+from .command import ResponseId, response as base_response
+from .command import state_response, capabilities_response
+from .command import get_state_command, set_state_command, get_capabilities_command
 from msmart.device.base import device
 
 VERSION = '0.2.4'

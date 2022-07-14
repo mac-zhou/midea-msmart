@@ -3,7 +3,7 @@ import logging
 from enum import IntEnum
 from msmart.utils import getBit, getBits
 from msmart.const import FRAME_TYPE
-from msmart.command import command as base_command
+from msmart.base_command import command as base_command
 
 VERSION = '0.2.4'
 
@@ -11,6 +11,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class get_state_command(base_command):
     def __init__(self, device_type=0xdb, FRAME_TYPE=FRAME_TYPE.Request):
+        print("####", device_type)
         super().__init__(device_type, FRAME_TYPE)
 
     @property

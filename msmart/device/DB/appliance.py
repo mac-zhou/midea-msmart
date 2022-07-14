@@ -3,7 +3,6 @@ import logging
 import time
 from enum import Enum
 from .command import get_state_command, appliance_response
-from msmart.packet_builder import packet_builder
 from msmart.device.base import device
 
 VERSION = '0.2.4'
@@ -68,7 +67,7 @@ class front_load_washer(device):
 
     def __init__(self, *args, **kwargs):
         super(front_load_washer, self).__init__(*args, **kwargs)
-
+        self._type = 0xdb
         self._power = False
         self._machine_status = front_load_washer.machine_status_enum.IDLE
         self._work_mode = False
