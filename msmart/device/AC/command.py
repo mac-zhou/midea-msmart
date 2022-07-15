@@ -9,7 +9,7 @@ import struct
 from msmart.const import FRAME_TYPE
 from msmart.base_command import command
 
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -5,7 +5,7 @@ from msmart.utils import getBit, getBits
 from msmart.const import FRAME_TYPE
 from msmart.base_command import command as base_command
 
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 
 _LOGGER = logging.getLogger(__name__)
 

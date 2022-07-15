@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 
 BROADCAST_MSG = bytearray([
     0x5a, 0x5a, 0x01, 0x11, 0x48, 0x00, 0x92, 0x00,
