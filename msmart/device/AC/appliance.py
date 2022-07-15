@@ -329,8 +329,8 @@ class air_conditioning(device):
 
     @property
     def supported_operation_modes(self):
-        return IntEnumHelper.names(self._supported_op_modes)
+        return self._supported_op_modes
 
     @property
     def supported_swing_modes(self):
-        return IntEnumHelper.names(self._supported_swing_modes)
+        return self._supported_swing_modes
