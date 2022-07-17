@@ -3,7 +3,7 @@ from enum import IntEnum
 import logging
 from .command import ResponseId, response as base_response
 from .command import state_response, capabilities_response
-from .command import get_state_command, set_state_command, get_capabilities_command
+from .command import get_state_command, set_state_command, get_capabilities_command, toggle_display_command
 from msmart.device.base import device
 
 VERSION = '0.2.5'
@@ -90,6 +90,7 @@ class air_conditioning(device):
         self._supported_swing_modes = air_conditioning.swing_mode_enum.list()
         self._supports_eco = True
         self._supports_turbo = True
+        self._supports_display_control = True
 
         self._on_timer = None
         self._off_timer = None
@@ -104,6 +105,16 @@ class air_conditioning(device):
     def get_capabilities(self):
         cmd = get_capabilities_command(self.type)
         self._send_cmd(cmd)
+
+    def toggle_display(self):
+        if not self._supports_display_control:
+            _LOGGER.warn("Device is not capable of display control.")
+
+        cmd = toggle_display_command(self.type)
+        self._send_cmd(cmd, True)
+
+        # Force a refresh to get the updated display state
+        self.refresh()
 
     def refresh(self):
         cmd = get_state_command(self.type)
@@ -225,6 +236,7 @@ class air_conditioning(device):
 
         self._supports_eco = res.eco_mode
         self._supports_turbo = res.turbo_mode
+        self._supports_display_control = res.display_control
 
     @property
     def prompt_tone(self):
