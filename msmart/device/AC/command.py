@@ -154,6 +154,26 @@ class set_state_command(command):
         ])
 
 
+class toggle_display_command(command):
+    def __init__(self, device_type):
+        # For whatever reason, toggle display uses a request type...
+        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+
+    @property
+    def payload(self):
+        # Payload taken directly from dudanov/MideaUART
+        return bytes([
+            # Get state
+            0x41,
+            # Unknown
+            0x61, 0x00, 0xFF, 0x02,
+            0x00, 0x02, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ])
+
+
 class response():
     def __init__(self, frame: bytes):
         # Build a memoryview of the frame for zero-copy slicing
