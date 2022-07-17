@@ -413,6 +413,11 @@ class capabilities_response(response):
     def turbo_mode(self):
         return self.capabilities.get("turbo_heat", False) or self.capabilities.get("turbo_cool", False)
 
+    @property
+    def display_control(self):
+        return self.capabilities.get("light_control", False)
+
+
 class state_response(response):
     def __init__(self, frame: bytes):
         super().__init__(frame)
