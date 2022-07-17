@@ -49,6 +49,7 @@ class temperature_type(IntEnum):
     Indoor = 0x2
     Outdoor = 0x3
 
+
 class get_capabilities_command(command):
     def __init__(self, device_type):
         super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
@@ -61,6 +62,7 @@ class get_capabilities_command(command):
             # Unknown
             0x01, 0x11,
         ])
+
 
 class get_state_command(command):
     def __init__(self, device_type):
@@ -376,15 +378,15 @@ class capabilities_response(response):
 
             # Advanced to next capability
             caps = caps[3+size:]
-    
+
     @property
     def swing_horizontal(self):
         return self.capabilities.get("swing_horizontal", False)
-    
+
     @property
     def swing_vertical(self):
         return self.capabilities.get("swing_vertical", False)
-    
+
     @property
     def swing_both(self):
         return self.swing_vertical and self.swing_horizontal
