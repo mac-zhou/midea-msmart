@@ -108,9 +108,15 @@ class air_conditioning(device):
     def refresh(self):
         cmd = get_state_command(self.type)
         self._send_cmd(cmd)
-    
-    def _send_cmd(self, cmd):
+
+    def _send_cmd(self, cmd, ignore_response=False):
         responses = self.send_cmd(cmd)
+
+        # Ignore responses if requested
+        if ignore_response:
+            return
+
+        # Process each response
         for response in responses:
             self._process_response(response)
 
@@ -119,19 +125,15 @@ class air_conditioning(device):
             # Construct response from data
             response = base_response.construct(data)
 
-            self._defer_update = False
             self._support = True
-            if not self._defer_update:
-                if response.id == ResponseId.State:
-                    self.update(response)
-                elif response.id == ResponseId.Capabilities:
-                    self.update_capabilities(response)
-                elif response.id == 0xa1 or response.id == 0xa0:
-                    _LOGGER.warn("Ignored special response. {}:{} {}".format(
-                        self.ip, self.port, response.payload.hex()))
-                    return
 
-                self._defer_update = False
+            if response.id == ResponseId.State:
+                self.update(response)
+            elif response.id == ResponseId.Capabilities:
+                self.update_capabilities(response)
+            elif response.id == 0xa1 or response.id == 0xa0:
+                _LOGGER.warn("Ignored special response. {}:{} {}".format(
+                    self.ip, self.port, response.payload.hex()))
         elif not self._keep_last_known_online_state:
             self._online = False
 
@@ -163,7 +165,7 @@ class air_conditioning(device):
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
             cmd.fahrenheit = self._fahrenheit_unit
-            self._send_cmd(cmd)
+            self._send_cmd(cmd, self._defer_update)
         finally:
             self._updating = False
             self._defer_update = False
