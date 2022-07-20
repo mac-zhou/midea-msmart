@@ -361,12 +361,12 @@ class capabilities_response(response):
                 if size < 6:
                     continue
 
-                self.capabilities["min_cool_temperature"] = caps[3] * 0.5
-                self.capabilities["max_cool_temperature"] = caps[4] * 0.5
-                self.capabilities["min_auto_temperature"] = caps[5] * 0.5
-                self.capabilities["max_auto_temperature"] = caps[6] * 0.5
-                self.capabilities["min_heat_temperature"] = caps[7] * 0.5
-                self.capabilities["max_heat_temperature"] = caps[8] * 0.5
+                self.capabilities["cool_min_temperature"] = caps[3] * 0.5
+                self.capabilities["cool_max_temperature"] = caps[4] * 0.5
+                self.capabilities["auto_min_temperature"] = caps[5] * 0.5
+                self.capabilities["auto_max_temperature"] = caps[6] * 0.5
+                self.capabilities["heat_min_temperature"] = caps[7] * 0.5
+                self.capabilities["heat_max_temperature"] = caps[8] * 0.5
 
                 self.capabilities["decimals"] = caps[9] == 0 if size > 6 else caps[2] == 0
 
@@ -416,6 +416,16 @@ class capabilities_response(response):
     @property
     def display_control(self):
         return self.capabilities.get("light_control", False)
+
+    @property
+    def min_temperature(self):
+        mode = ["cool", "auto", "heat"]
+        return min([self.capabilities.get(f"{m}_min_temperature", 16) for m in mode])
+
+    @property
+    def max_temperature(self):
+        mode = ["cool", "auto", "heat"]
+        return max([self.capabilities.get(f"{m}_max_temperature", 30) for m in mode])
 
 
 class state_response(response):
