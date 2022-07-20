@@ -49,6 +49,7 @@ class temperature_type(IntEnum):
     Indoor = 0x2
     Outdoor = 0x3
 
+
 class get_capabilities_command(command):
     def __init__(self, device_type):
         super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
@@ -61,6 +62,7 @@ class get_capabilities_command(command):
             # Unknown
             0x01, 0x11,
         ])
+
 
 class get_state_command(command):
     def __init__(self, device_type):
@@ -98,7 +100,6 @@ class set_state_command(command):
         self.eco_mode = True
         self.swing_mode = 0
         self.turbo_mode = False
-        self.display_on = True
         self.fahrenheit = True
         self.sleep = False
 
@@ -119,10 +120,9 @@ class set_state_command(command):
         # Build eco mode byte
         eco_mode = 0x80 if self.eco_mode else 0
 
-        # Build turbo, display and fahrenheit byte
+        # Build sleep, turbo and fahrenheit byte
         sleep = 0x01 if self.sleep else 0
         turbo = 0x02 if self.turbo_mode else 0
-        display = 0x10 if self.display_on else 0
         fahrenheit = 0x04 if self.fahrenheit else 0
 
         # Build alternate turbo byte
@@ -145,12 +145,32 @@ class set_state_command(command):
             turbo_alt,
             # ECO mode
             eco_mode,
-            # Turbo mode, display on and fahrenheit
-            sleep | turbo | display | fahrenheit,
+            # Sleep, turbo mode and fahrenheit
+            sleep | turbo | fahrenheit,
             # Unknown
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00,
+        ])
+
+
+class toggle_display_command(command):
+    def __init__(self, device_type):
+        # For whatever reason, toggle display uses a request type...
+        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+
+    @property
+    def payload(self):
+        # Payload taken directly from dudanov/MideaUART
+        return bytes([
+            # Get state
+            0x41,
+            # Unknown
+            0x61, 0x00, 0xFF, 0x02,
+            0x00, 0x02, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00,
         ])
 
 
@@ -356,15 +376,15 @@ class capabilities_response(response):
 
             # Advanced to next capability
             caps = caps[3+size:]
-    
+
     @property
     def swing_horizontal(self):
         return self.capabilities.get("swing_horizontal", False)
-    
+
     @property
     def swing_vertical(self):
         return self.capabilities.get("swing_vertical", False)
-    
+
     @property
     def swing_both(self):
         return self.swing_vertical and self.swing_horizontal
@@ -392,6 +412,11 @@ class capabilities_response(response):
     @property
     def turbo_mode(self):
         return self.capabilities.get("turbo_heat", False) or self.capabilities.get("turbo_cool", False)
+
+    @property
+    def display_control(self):
+        return self.capabilities.get("light_control", False)
+
 
 class state_response(response):
     def __init__(self, frame: bytes):

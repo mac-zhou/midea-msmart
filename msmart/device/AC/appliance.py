@@ -3,7 +3,7 @@ from enum import IntEnum
 import logging
 from .command import ResponseId, response as base_response
 from .command import state_response, capabilities_response
-from .command import get_state_command, set_state_command, get_capabilities_command
+from .command import get_state_command, set_state_command, get_capabilities_command, toggle_display_command
 from msmart.device.base import device
 
 VERSION = '0.2.5'
@@ -83,17 +83,19 @@ class air_conditioning(device):
         self._eco_mode = False
         self._turbo_mode = False
         self._fahrenheit_unit = False  # Display temperature in Fahrenheit
+        self._display_on = False
 
         # Support all known modes initially
         self._supported_op_modes = air_conditioning.operational_mode_enum.list()
         self._supported_swing_modes = air_conditioning.swing_mode_enum.list()
         self._supports_eco = True
         self._supports_turbo = True
+        self._supports_display_control = True
 
         self._on_timer = None
         self._off_timer = None
-        self._online = True
-        self._active = True
+        self._online = False
+        self._active = False
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
 
@@ -104,12 +106,28 @@ class air_conditioning(device):
         cmd = get_capabilities_command(self.type)
         self._send_cmd(cmd)
 
+    def toggle_display(self):
+        if not self._supports_display_control:
+            _LOGGER.warn("Device is not capable of display control.")
+
+        cmd = toggle_display_command(self.type)
+        self._send_cmd(cmd, True)
+
+        # Force a refresh to get the updated display state
+        self.refresh()
+
     def refresh(self):
         cmd = get_state_command(self.type)
         self._send_cmd(cmd)
-    
-    def _send_cmd(self, cmd):
+
+    def _send_cmd(self, cmd, ignore_response=False):
         responses = self.send_cmd(cmd)
+
+        # Ignore responses if requested
+        if ignore_response:
+            return
+
+        # Process each response
         for response in responses:
             self._process_response(response)
 
@@ -118,19 +136,15 @@ class air_conditioning(device):
             # Construct response from data
             response = base_response.construct(data)
 
-            self._defer_update = False
             self._support = True
-            if not self._defer_update:
-                if response.id == ResponseId.State:
-                    self.update(response)
-                elif response.id == ResponseId.Capabilities:
-                    self.update_capabilities(response)
-                elif response.id == 0xa1 or response.id == 0xa0:
-                    _LOGGER.warn("Ignored special response. {}:{} {}".format(
-                        self.ip, self.port, response.payload.hex()))
-                    return
 
-                self._defer_update = False
+            if response.id == ResponseId.State:
+                self.update(response)
+            elif response.id == ResponseId.Capabilities:
+                self.update_capabilities(response)
+            elif response.id == 0xa1 or response.id == 0xa0:
+                _LOGGER.warn("Ignored special response. {}:{} {}".format(
+                    self.ip, self.port, response.payload.hex()))
         elif not self._keep_last_known_online_state:
             self._online = False
 
@@ -162,7 +176,7 @@ class air_conditioning(device):
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
             cmd.fahrenheit = self._fahrenheit_unit
-            self._send_cmd(cmd)
+            self._send_cmd(cmd, self._defer_update)
         finally:
             self._updating = False
             self._defer_update = False
@@ -189,6 +203,8 @@ class air_conditioning(device):
 
         if res.outdoor_temperature != 0xff:
             self._outdoor_temperature = res.outdoor_temperature
+
+        self._display_on = res.display_on
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
@@ -220,6 +236,7 @@ class air_conditioning(device):
 
         self._supports_eco = res.eco_mode
         self._supports_turbo = res.turbo_mode
+        self._supports_display_control = res.display_control
 
     @property
     def prompt_tone(self):
@@ -310,6 +327,10 @@ class air_conditioning(device):
         if self._updating:
             self._defer_update = True
         self._fahrenheit_unit = enabled
+
+    @property
+    def display_on(self):
+        return self._display_on
 
     @property
     def indoor_temperature(self):
