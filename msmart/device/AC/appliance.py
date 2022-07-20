@@ -126,7 +126,7 @@ class air_conditioning(device):
                 elif response.id == ResponseId.Capabilities:
                     self.update_capabilities(response)
                 elif response.id == 0xa1 or response.id == 0xa0:
-                    _LOGGER.warn("Ignored special response. {}:{} {}".format(
+                    _LOGGER.info("Ignored special response. {}:{} {}".format(
                         self.ip, self.port, response.payload.hex()))
                     return
 
