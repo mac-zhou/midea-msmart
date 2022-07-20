@@ -89,6 +89,8 @@ class air_conditioning(device):
         self._supported_swing_modes = air_conditioning.swing_mode_enum.list()
         self._supports_eco = True
         self._supports_turbo = True
+        self._min_target_temperature = 16
+        self._max_target_temperature = 30
 
         self._on_timer = None
         self._off_timer = None
@@ -221,6 +223,9 @@ class air_conditioning(device):
         self._supports_eco = res.eco_mode
         self._supports_turbo = res.turbo_mode
 
+        self._min_target_temperature = res.min_temperature
+        self._max_target_temperature = res.max_temperature
+
     @property
     def prompt_tone(self):
         return self._prompt_tone
@@ -334,3 +339,11 @@ class air_conditioning(device):
     @property
     def supported_swing_modes(self):
         return self._supported_swing_modes
+
+    @property
+    def min_target_temperature(self):
+        return self._min_target_temperature
+
+    @property
+    def max_target_temperature(self):
+        return self._max_target_temperature
