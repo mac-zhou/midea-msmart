@@ -83,6 +83,7 @@ class air_conditioning(device):
         self._eco_mode = False
         self._turbo_mode = False
         self._fahrenheit_unit = False  # Display temperature in Fahrenheit
+        self._filter_alert = False
 
         # Support all known modes initially
         self._supported_op_modes = air_conditioning.operational_mode_enum.list()
@@ -107,7 +108,7 @@ class air_conditioning(device):
     def refresh(self):
         cmd = get_state_command(self.type)
         self._send_cmd(cmd)
-    
+
     def _send_cmd(self, cmd):
         responses = self.send_cmd(cmd)
         for response in responses:
@@ -189,6 +190,8 @@ class air_conditioning(device):
 
         if res.outdoor_temperature != 0xff:
             self._outdoor_temperature = res.outdoor_temperature
+
+        self._filter_alert = res.filter_alert
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
@@ -310,6 +313,10 @@ class air_conditioning(device):
         if self._updating:
             self._defer_update = True
         self._fahrenheit_unit = enabled
+
+    @property
+    def filter_alert(self):
+        return self._filter_alert
 
     @property
     def indoor_temperature(self):
