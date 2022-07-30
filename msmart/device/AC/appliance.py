@@ -84,6 +84,7 @@ class air_conditioning(device):
         self._turbo_mode = False
         self._fahrenheit_unit = False  # Display temperature in Fahrenheit
         self._display_on = False
+        self._filter_alert = False
 
         # Support all known modes initially
         self._supported_op_modes = air_conditioning.operational_mode_enum.list()
@@ -207,6 +208,8 @@ class air_conditioning(device):
             self._outdoor_temperature = res.outdoor_temperature
 
         self._display_on = res.display_on
+
+        self._filter_alert = res.filter_alert
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
@@ -336,6 +339,10 @@ class air_conditioning(device):
     @property
     def display_on(self):
         return self._display_on
+
+    @property
+    def filter_alert(self):
+        return self._filter_alert
 
     @property
     def indoor_temperature(self):

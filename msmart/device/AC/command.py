@@ -508,6 +508,8 @@ class state_response(response):
 
         # self.humidity = (payload[13] & 0x7F)
 
+        self.filter_alert = bool(payload[13] & 0x20)
+
         self.display_on = (payload[14] != 0x70)
 
         # TODO dudanov/MideaUART freeze protection in byte 21, bit 7
