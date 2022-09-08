@@ -101,6 +101,7 @@ class set_state_command(command):
         self.display_on = True
         self.fahrenheit = True
         self.sleep = False
+        self.freeze_protection_mode = False
 
     @property
     def payload(self):
@@ -128,6 +129,9 @@ class set_state_command(command):
         # Build alternate turbo byte
         turbo_alt = 0x20 if self.turbo_mode else 0
 
+        # Build alternate turbo byte
+        freeze_protect = 0x80 if self.freeze_protection_mode else 0
+
         return bytes([
             # Set state
             0x40,
@@ -150,7 +154,11 @@ class set_state_command(command):
             # Unknown
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+            # Frost/freeze protection
+            freeze_protect,
+            # Unknown
+            0x00, 0x00,
         ])
 
 
@@ -393,6 +401,11 @@ class capabilities_response(response):
     def turbo_mode(self):
         return self.capabilities.get("turbo_heat", False) or self.capabilities.get("turbo_cool", False)
 
+    @property
+    def freeze_protection_mode(self):
+        return self.capabilities.get("freeze_protection", False)
+
+
 class state_response(response):
     def __init__(self, frame: bytes):
         super().__init__(frame)
@@ -475,5 +488,6 @@ class state_response(response):
 
         self.display_on = (payload[14] != 0x70)
 
-        # TODO dudanov/MideaUART freeze protection in byte 21, bit 7
         # TODO dudanov/MideaUART humidity set point in byte 19, mask 0x7F
+
+        self.freeze_protection_mode = bool(payload[21] & 0x80)
