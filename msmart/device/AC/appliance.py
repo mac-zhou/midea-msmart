@@ -85,6 +85,7 @@ class air_conditioning(device):
         self._fahrenheit_unit = False  # Display temperature in Fahrenheit
         self._display_on = False
         self._filter_alert = False
+        self._freeze_protection_mode = False
 
         # Support all known modes initially
         self._supported_op_modes = air_conditioning.operational_mode_enum.list()
@@ -94,6 +95,7 @@ class air_conditioning(device):
         self._supports_display_control = True
         self._min_target_temperature = 16
         self._max_target_temperature = 30
+        self._supports_freeze_protection_mode = True
 
         self._on_timer = None
         self._off_timer = None
@@ -169,6 +171,9 @@ class air_conditioning(device):
             if self._eco_mode and not self._supports_eco:
                 _LOGGER.warn("Device is not capable of eco mode.")
 
+            if self._freeze_protection_mode and not self._supports_freeze_protection_mode:
+                _LOGGER.warn("Device is not capable of freeze protection.")
+
             cmd = set_state_command(self.type)
             cmd.beep_on = self._prompt_tone
             cmd.power_on = self._power_state
@@ -179,6 +184,7 @@ class air_conditioning(device):
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
             cmd.fahrenheit = self._fahrenheit_unit
+            cmd.freeze_protection_mode = self._freeze_protection_mode
             self._send_cmd(cmd, self._defer_update)
         finally:
             self._updating = False
@@ -199,6 +205,7 @@ class air_conditioning(device):
 
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
+        self._freeze_protection_mode = res.freeze_protection_mode
         self._fahrenheit_unit = res.fahrenheit
 
         if res.indoor_temperature != 0xff:
@@ -245,6 +252,7 @@ class air_conditioning(device):
 
         self._min_target_temperature = res.min_temperature
         self._max_target_temperature = res.max_temperature
+        self._supports_freeze_protection_mode = res.freeze_protection_mode
 
     @property
     def prompt_tone(self):
@@ -343,6 +351,20 @@ class air_conditioning(device):
     @property
     def filter_alert(self):
         return self._filter_alert
+
+    @property
+    def supports_freeze_protection_mode(self):
+        return self._supports_freeze_protection_mode
+
+    @property
+    def freeze_protection_mode(self):
+        return self._freeze_protection_mode
+
+    @freeze_protection_mode.setter
+    def freeze_protection_mode(self, enabled: bool):
+        if self._updating:
+            self._defer_update = True
+        self._freeze_protection_mode = enabled
 
     @property
     def indoor_temperature(self):
