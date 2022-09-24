@@ -94,8 +94,8 @@ class air_conditioning(device):
         self._off_timer = None
         self._online = True
         self._active = True
-        self._indoor_temperature = 0.0
-        self._outdoor_temperature = 0.0
+        self._indoor_temperature = None
+        self._outdoor_temperature = None
 
     def __str__(self):
         return str(self.__dict__)
@@ -183,12 +183,8 @@ class air_conditioning(device):
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
         self._fahrenheit_unit = res.fahrenheit
-
-        if res.indoor_temperature != 0xff:
-            self._indoor_temperature = res.indoor_temperature
-
-        if res.outdoor_temperature != 0xff:
-            self._outdoor_temperature = res.outdoor_temperature
+        self._indoor_temperature = res.indoor_temperature
+        self._outdoor_temperature = res.outdoor_temperature
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
