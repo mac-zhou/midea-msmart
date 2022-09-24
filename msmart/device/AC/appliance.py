@@ -96,6 +96,7 @@ class air_conditioning(device):
         self._active = True
         self._indoor_temperature = 0.0
         self._outdoor_temperature = 0.0
+        self._silky_cool = False
 
     def __str__(self):
         return str(self.__dict__)
@@ -192,6 +193,7 @@ class air_conditioning(device):
 
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
+        self._silky_cool = res.silky_cool
 
     def update_capabilities(self, res: capabilities_response):
         # Build list of supported operation modes
@@ -334,3 +336,7 @@ class air_conditioning(device):
     @property
     def supported_swing_modes(self):
         return self._supported_swing_modes
+
+    @property
+    def silky_cool(self):
+        return self._silky_cool
