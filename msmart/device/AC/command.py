@@ -474,6 +474,7 @@ class state_response(response):
         # self.humidity = (payload[13] & 0x7F)
 
         self.display_on = (payload[14] != 0x70)
+        self.silky_cool = (payload[22] & 0x8) > 0
 
         # TODO dudanov/MideaUART freeze protection in byte 21, bit 7
         # TODO dudanov/MideaUART humidity set point in byte 19, mask 0x7F
