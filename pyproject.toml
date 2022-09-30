@@ -1,10 +1,9 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=61.0.0", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "msmart"
-version = "0.2.5"
 description = "A library to control Midea appliances via the local area network."
 readme = "README.md"
 authors = [
@@ -25,10 +24,12 @@ dependencies = [
   "ifaddr",
   "importlib-metadata; python_version<'3.8'",
 ]
-# dynamic = ["version"]
+dynamic = ["version"]
 
 [project.urls]
 homepage = "https://github.com/mac-zhou/midea-msmart"
 
 [project.scripts]
 midea-discover = "msmart.cli:discover"
+
+[tool.setuptools_scm]
