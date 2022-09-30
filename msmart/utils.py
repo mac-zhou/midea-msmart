@@ -1,7 +1,5 @@
 # -*- coding: UTF-8 -*-
 
-VERSION = '0.2.5'
-
 def getBit(pByte, pIndex):
     return (pByte >> pIndex) & 0x01
 

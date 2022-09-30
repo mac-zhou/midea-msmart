@@ -6,7 +6,6 @@ from .command import state_response, capabilities_response
 from .command import get_state_command, set_state_command, get_capabilities_command, toggle_display_command
 from msmart.device.base import device
 
-VERSION = '0.2.5'
 
 _LOGGER = logging.getLogger(__name__)
 

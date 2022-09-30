@@ -5,7 +5,6 @@ import logging
 import msmart.crc8 as crc8
 from msmart.const import FRAME_TYPE
 
-VERSION = '0.2.5'
 
 _LOGGER = logging.getLogger(__name__)
 
