@@ -2,18 +2,13 @@
 # -*- coding: UTF-8 -*-
 import asyncio
 from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
+from msmart.scanner import MideaDiscovery
+from msmart import __version__
 import click
 import logging
 import sys
-from msmart.scanner import MideaDiscovery
 import os
 
-if sys.version_info < (3, 5):
-    print(
-        "To use this script you need python 3.5 or newer, got %s" % (
-            sys.version_info,)
-    )
-    sys.exit(1)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +31,7 @@ def discover(debug: bool, amount: int, account:str, password:str, ip: str, china
         _LOGGER.info("Debug mode active")
     else:
         logging.basicConfig(level=logging.INFO)
-    _LOGGER.info("msmart version: {} Currently only supports ac devices, only support MSmartHome and 美的美居 APP.".format(VERSION))
+    _LOGGER.info("msmart version: {} Currently only supports ac devices, only support MSmartHome and 美的美居 APP.".format(__version__))
     os.environ['USE_CHINA_SERVER']=str(china)
     if china:
         if account == OPEN_MIDEA_APP_ACCOUNT or password == OPEN_MIDEA_APP_PASSWORD:
