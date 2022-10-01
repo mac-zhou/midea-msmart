@@ -334,14 +334,15 @@ class capabilities_response(response):
             if size == 0:
                 continue
 
+            # Unpack 16 bit ID
+            (cap_id, ) = struct.unpack("<H", caps[0:2])
+
             # Covert ID to enumerate type
             try:
-                # Unpack 16 bit ID
-                (cap_id, ) = struct.unpack("<H", caps[0:2])
                 id = CapabilityId(cap_id)
             except ValueError:
                 _LOGGER.warn(
-                    "Unknown capability. ID: 0x{:04X}, Size: {}.".format(id, size))
+                    "Unknown capability. ID: 0x{:04X}, Size: {}.".format(cap_id, size))
                 # Advanced to next capability
                 caps = caps[3+size:]
                 continue
