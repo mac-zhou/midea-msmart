@@ -5,7 +5,6 @@ from enum import Enum
 from .command import get_state_command, appliance_response
 from msmart.device.base import device
 
-VERSION = '0.2.5'
 
 _LOGGER = logging.getLogger(__name__)
 

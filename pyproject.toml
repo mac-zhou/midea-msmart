@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "setuptools_scm[toml]>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "msmart"
+description = "A library to control Midea appliances via the local area network."
+readme = "README.md"
+authors = [
+  {name = "mac_zhou"},
+  {email = "mac.zfl@gmail.com"},
+]
+requires-python = ">=3.5"
+license = {text = "MIT"}
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+  "click",
+  "pycryptodome",
+  "requests",
+  "ifaddr",
+  "importlib-metadata; python_version<'3.8'",
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://github.com/mac-zhou/midea-msmart"
+
+[project.scripts]
+midea-discover = "msmart.cli:discover"
+
+[tool.setuptools_scm]
