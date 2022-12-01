@@ -514,9 +514,9 @@ class state_response(response):
         # self.peak_elec = (payload[10] & 0x20) > 0
         # self.natural_fan = (payload[10] & 0x40) > 0
 
-        self.indoor_temperature = (payload[11] - 50) / 2.0
+        self.indoor_temperature = (payload[11] - 50) / 2.0 if payload[11] != 0xff else None
 
-        self.outdoor_temperature = (payload[12] - 50) / 2.0
+        self.outdoor_temperature = (payload[12] - 50) / 2.0 if payload[12] != 0xff else None
 
         # self.humidity = (payload[13] & 0x7F)
 
