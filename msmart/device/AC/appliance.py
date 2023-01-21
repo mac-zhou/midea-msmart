@@ -82,6 +82,7 @@ class air_conditioning(device):
         self._eco_mode = False
         self._turbo_mode = False
         self._freeze_protection_mode = False
+        self._sleep_mode = False
         self._fahrenheit_unit = False  # Display temperature in Fahrenheit
         self._display_on = False
         self._filter_alert = False
@@ -183,6 +184,7 @@ class air_conditioning(device):
             cmd.eco_mode = self._eco_mode
             cmd.turbo_mode = self._turbo_mode
             cmd.freeze_protection_mode = self._freeze_protection_mode
+            cmd.sleep_mode = self._sleep_mode
             cmd.fahrenheit = self._fahrenheit_unit
             self._send_cmd(cmd, self._defer_update)
         finally:
@@ -205,6 +207,7 @@ class air_conditioning(device):
         self._eco_mode = res.eco_mode
         self._turbo_mode = res.turbo_mode
         self._freeze_protection_mode = res.freeze_protection_mode
+        self._sleep_mode = res.sleep_mode
 
         self._indoor_temperature = res.indoor_temperature
         self._outdoor_temperature = res.outdoor_temperature
@@ -344,6 +347,16 @@ class air_conditioning(device):
         if self._updating:
             self._defer_update = True
         self._freeze_protection_mode = enabled
+
+    @property
+    def sleep_mode(self):
+        return self._sleep_mode
+
+    @sleep_mode.setter
+    def sleep_mode(self, enabled: bool):
+        if self._updating:
+            self._defer_update = True
+        self._sleep_mode = enabled
 
     @property
     def fahrenheit(self):

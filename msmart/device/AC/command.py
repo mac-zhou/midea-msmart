@@ -100,7 +100,7 @@ class set_state_command(command):
         self.swing_mode = 0
         self.turbo_mode = False
         self.fahrenheit = True
-        self.sleep = False
+        self.sleep_mode = False
         self.freeze_protection_mode = False
 
     @property
@@ -121,7 +121,7 @@ class set_state_command(command):
         eco_mode = 0x80 if self.eco_mode else 0
 
         # Build sleep, turbo and fahrenheit byte
-        sleep = 0x01 if self.sleep else 0
+        sleep = 0x01 if self.sleep_mode else 0
         turbo = 0x02 if self.turbo_mode else 0
         fahrenheit = 0x04 if self.fahrenheit else 0
 
@@ -148,7 +148,7 @@ class set_state_command(command):
             turbo_alt,
             # ECO mode
             eco_mode,
-            # Sleep, turbo mode and fahrenheit
+            # Sleep mode, turbo mode and fahrenheit
             sleep | turbo | fahrenheit,
             # Unknown
             0x00, 0x00, 0x00, 0x00,
@@ -506,7 +506,7 @@ class state_response(response):
         # self.clean_up = (payload[9] & 0x20) > 0
         # self.temp_unit = (payload[9] & 0x80) > 0
 
-        self.sleep = bool(payload[10] & 0x1)
+        self.sleep_mode = bool(payload[10] & 0x1)
         self.turbo_mode |= bool(payload[10] & 0x2)
         self.fahrenheit = bool(payload[10] & 0x4)
         # self.catch_cold = (payload[10] & 0x08) > 0
