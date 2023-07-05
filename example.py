@@ -53,4 +53,4 @@ print({
     'turbo_mode': device.turbo_mode,
     'indoor_temperature': device.indoor_temperature,
     'outdoor_temperature': device.outdoor_temperature
-}) 
+})

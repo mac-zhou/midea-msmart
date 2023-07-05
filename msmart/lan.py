@@ -48,7 +48,7 @@ class lan:
             self._socket.close()
             self._socket = None
             self._tcp_key = None
-    
+
     def get_socket_info(self):
         socket_time = round(time.time() - self._timestamp, 2)
         return "{} -> {} retries: {} time: {}".format(self._local, self._remote, self._retries, socket_time)
@@ -59,14 +59,16 @@ class lan:
         if self._socket is None:
             _LOGGER.error("Sokcet is None: {}".format(self._remote))
             return bytearray(0), False
-        _LOGGER.debug("Socket {} tcp_key: {}".format(self.get_socket_info(), self._tcp_key))
+        _LOGGER.debug("Socket {} tcp_key: {}".format(
+            self.get_socket_info(), self._tcp_key))
         # Send data
         try:
             _LOGGER.debug(
                 "Sending {} message: {}".format(self.get_socket_info(), message.hex()))
             self._socket.sendall(message)
         except Exception as error:
-            _LOGGER.error("Send {} Error: {}".format(self.get_socket_info(), error))
+            _LOGGER.error("Send {} Error: {}".format(
+                self.get_socket_info(), error))
             self._disconnect()
             self._retries += 1
             return bytearray(0), True
@@ -76,23 +78,28 @@ class lan:
             response = self._socket.recv(1024)
         except socket.timeout as error:
             if error.args[0] == 'timed out':
-                _LOGGER.debug("Recv {}, timed out".format(self.get_socket_info()))
+                _LOGGER.debug("Recv {}, timed out".format(
+                    self.get_socket_info()))
                 self._retries += 1
                 return bytearray(0), True
             else:
-                _LOGGER.debug("Recv {} TimeOut: {}".format(self.get_socket_info(), error))
+                _LOGGER.debug("Recv {} TimeOut: {}".format(
+                    self.get_socket_info(), error))
                 self._disconnect()
                 self._retries += 1
                 return bytearray(0), True
         except socket.error as error:
-            _LOGGER.debug("Recv {} Error: {}".format(self.get_socket_info(), error))
+            _LOGGER.debug("Recv {} Error: {}".format(
+                self.get_socket_info(), error))
             self._disconnect()
             self._retries += 1
             return bytearray(0), True
         else:
-            _LOGGER.debug("Recv {} Response: {}".format(self.get_socket_info(), response.hex()))
+            _LOGGER.debug("Recv {} Response: {}".format(
+                self.get_socket_info(), response.hex()))
             if len(response) == 0:
-                _LOGGER.debug("Recv {} Server Closed Socket".format(self.get_socket_info()))
+                _LOGGER.debug("Recv {} Server Closed Socket".format(
+                    self.get_socket_info()))
                 self._disconnect()
                 self._retries += 1
                 return bytearray(0), True
@@ -112,11 +119,13 @@ class lan:
         tcp_key, success = self.security.tcp_key(response, self._key)
         if success:
             self._tcp_key = tcp_key.hex()
-            _LOGGER.info('Got TCP key for {} tcp_key: {}'.format(self.get_socket_info(), tcp_key.hex()))
+            _LOGGER.info('Got TCP key for {} tcp_key: {}'.format(
+                self.get_socket_info(), tcp_key.hex()))
             # After authentication, don’t send data immediately, so sleep 1s.
             time.sleep(1)
         else:
-            _LOGGER.error('Authentication failed for {} {}'.format(self.get_socket_info(), tcp_key.hex()))
+            _LOGGER.error('Authentication failed for {} {}'.format(
+                self.get_socket_info(), tcp_key.hex()))
         return success
 
     def _authenticate(self):

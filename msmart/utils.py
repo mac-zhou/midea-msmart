@@ -5,15 +5,15 @@ def getBit(pByte, pIndex):
 
 
 def getBits(pBytes, pIndex, pStartIndex, pEndIndex):
-    if pStartIndex > pEndIndex: 
+    if pStartIndex > pEndIndex:
         StartIndex = pEndIndex
         EndIndex = pStartIndex
     else:
         StartIndex = pStartIndex
         EndIndex = pEndIndex
-    tempVal = 0x00;
+    tempVal = 0x00
     i = StartIndex
     while (i <= EndIndex):
-        tempVal = tempVal | getBit(pBytes[pIndex],i) << (i-StartIndex)
-        i += 1 
+        tempVal = tempVal | getBit(pBytes[pIndex], i) << (i-StartIndex)
+        i += 1
     return tempVal

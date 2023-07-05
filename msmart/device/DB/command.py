@@ -8,6 +8,7 @@ from msmart.base_command import command as base_command
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class get_state_command(base_command):
     def __init__(self, device_type=0xdb, FRAME_TYPE=FRAME_TYPE.Request):
         super().__init__(device_type, FRAME_TYPE)
@@ -19,6 +20,7 @@ class get_state_command(base_command):
             0x03,
         ])
 
+
 class appliance_response:
 
     def __init__(self, data: bytearray):
@@ -26,9 +28,10 @@ class appliance_response:
         self.data = data[0xa:-1]
         self.message_type = data[0x09]
         self.update = True
-        if self.message_type == FRAME_TYPE.Report and self.data[0] !=  FRAME_TYPE.Report:
+        if self.message_type == FRAME_TYPE.Report and self.data[0] != FRAME_TYPE.Report:
             self.update = False
-        _LOGGER.info("Appliance response type: {} update:{} data: {}".format(self.message_type, self.update, self.data.hex()))
+        _LOGGER.info("Appliance response type: {} update:{} data: {}".format(
+            self.message_type, self.update, self.data.hex()))
 
     # Byte 0x01
     @property
@@ -42,13 +45,13 @@ class appliance_response:
     @property
     def work_mode(self):
         return self.data[3]
-    
+
     @property
     def cycle_program(self):
         return self.data[4]
-    
+
     @property
-    def water_line (self):
+    def water_line(self):
         return self.data[5]
 
     @property
@@ -58,19 +61,19 @@ class appliance_response:
     @property
     def rinse_times(self):
         return getBits(self.data, 6, 4, 7)
-    
+
     @property
     def temperature(self):
         return self.data[7]
-    
+
     @property
     def dehydrate_speed(self):
         return self.data[8]
-    
+
     @property
     def wash_times(self):
         return self.data[9]
-    
+
     @property
     def dehydrate_time(self):
         return self.data[10]
@@ -82,7 +85,7 @@ class appliance_response:
     @property
     def memory(self):
         return self.data[12]
-    
+
     @property
     def supple_dose(self):
         return self.data[13]
@@ -90,7 +93,7 @@ class appliance_response:
     @property
     def remainder_time(self):
         return self.data[17] | self.data[18] << 8
-    
+
     @property
     def wash_experts(self):
         return self.data[19]
@@ -99,8 +102,8 @@ class appliance_response:
     def appliance_type(self):
         if self.message_type == FRAME_TYPE.Set:
             return self.data[20]
-    
+
     @property
     def appliance_code(self):
-        if self.message_type ==  FRAME_TYPE.Set:
+        if self.message_type == FRAME_TYPE.Set:
             return chr(self.data[23]) + chr(self.data[22]) + chr(self.data[21])

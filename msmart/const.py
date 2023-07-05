@@ -30,7 +30,8 @@ MSGTYPE_ENCRYPTED_REQUEST = 0x6
 MSGTYPE_TRANSPARENT = 0xf
 
 OPEN_MIDEA_APP_ACCOUNT = 'midea_is_best@outlook.com'
-OPEN_MIDEA_APP_PASSWORD = 'lovemidea4ever' 
+OPEN_MIDEA_APP_PASSWORD = 'lovemidea4ever'
+
 
 class FRAME_TYPE(IntEnum):
     Unknown = 0

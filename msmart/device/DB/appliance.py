@@ -38,7 +38,7 @@ class front_load_washer(device):
 
         @staticmethod
         def get(value):
-            if(value in front_load_washer.cycle_program_enum._value2member_map_):
+            if (value in front_load_washer.cycle_program_enum._value2member_map_):
                 return front_load_washer.cycle_program_enum(value)
             _LOGGER.debug("Unknown cycle_program: {}".format(value))
             return front_load_washer.cycle_program_enum.UNKNOWN
@@ -50,7 +50,7 @@ class front_load_washer(device):
         START = 2
         PAUSE = 3
         END = 4
-        FAULT = 5 
+        FAULT = 5
         DELAY = 6
 
         @staticmethod
@@ -59,10 +59,10 @@ class front_load_washer(device):
 
         @staticmethod
         def get(value):
-            if(value in front_load_washer.machine_status_enum._value2member_map_):
+            if (value in front_load_washer.machine_status_enum._value2member_map_):
                 return front_load_washer.machine_status_enum(value)
             _LOGGER.debug("Unknown machine_status: {}".format(value))
-            return front_load_washer.machine_status_enum.Unknown    
+            return front_load_washer.machine_status_enum.Unknown
 
     def __init__(self, *args, **kwargs):
         super(front_load_washer, self).__init__(*args, **kwargs)
@@ -80,7 +80,7 @@ class front_load_washer(device):
         self._dehydrate_time = 0
         self._wash_dose = 0
         self._memory = 0
-        self._supple_dose  = 0
+        self._supple_dose = 0
         self._remainder_time = 0
         self._appliance_type = 0xff
 
@@ -88,14 +88,14 @@ class front_load_washer(device):
         self._off_timer = None
         self._online = True
         self._active = True
-    
+
     def __str__(self):
         return str(self.__dict__)
 
     def refresh(self):
         cmd = get_state_command(self.type)
         self._send_cmd(cmd)
-    
+
     def _send_cmd(self, cmd):
         responses = self.send_cmd(cmd)
         for response in responses:
@@ -108,12 +108,14 @@ class front_load_washer(device):
             self._support = True
             self.update(response)
 
-    def update(self, res: appliance_response):   
-        if res.update:     
+    def update(self, res: appliance_response):
+        if res.update:
             self._power = res.power
-            self._machine_status = front_load_washer.machine_status_enum.get(res.machine_status)
+            self._machine_status = front_load_washer.machine_status_enum.get(
+                res.machine_status)
             self._work_mode = res.work_mode
-            self._cycle_program = front_load_washer.cycle_program_enum.get(res.cycle_program)
+            self._cycle_program = front_load_washer.cycle_program_enum.get(
+                res.cycle_program)
             self._water_line = res.water_line
             self._dring_state = res.dring_state
             self._rinse_times = res.rinse_times
@@ -131,11 +133,10 @@ class front_load_washer(device):
             # self._on_timer = res.on_timer
             # self._off_timer = res.off_timer
 
-
     @property
     def power(self):
         return self._power
-    
+
     @property
     def machine_status(self):
         return self._machine_status
@@ -147,19 +148,19 @@ class front_load_washer(device):
     @property
     def cycle_program(self):
         return self._cycle_program
-    
+
     @property
     def water_line(self):
         return self._water_line
-    
+
     @property
     def dring_state(self):
         return self._dring_state
-    
+
     @property
     def rinse_times(self):
         return self._rinse_times
-    
+
     @property
     def temperature(self):
         return self._temperature
@@ -179,19 +180,19 @@ class front_load_washer(device):
     @property
     def wash_dose(self):
         return self._wash_dose
-    
+
     @property
     def memory(self):
         return self._memory
-    
+
     @property
     def supple_dose(self):
         return self._supple_dose
-    
+
     @property
     def remainder_time(self):
         return self._remainder_time
-    
+
     @property
     def wash_experts(self):
         return self._wash_experts

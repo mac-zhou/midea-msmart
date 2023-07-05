@@ -54,7 +54,8 @@ class cloud:
         self.SERVER_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
         if self._use_china_server:
             self.SERVER_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias='
-        _LOGGER.info("Using Midea cloud server: {} {}".format(self.SERVER_URL, self._use_china_server))
+        _LOGGER.info("Using Midea cloud server: {} {}".format(
+            self.SERVER_URL, self._use_china_server))
 
     def api_request(self, endpoint, args=None, data=None):
         """
@@ -100,7 +101,7 @@ class cloud:
 
             # POST the endpoint with the payload
             r = requests.post(
-                url=url, 
+                url=url,
                 headers=headers,
                 data=json.dumps(data),
                 # verify=False
@@ -116,7 +117,7 @@ class cloud:
             # If you don't throw, then retry
             _LOGGER.debug("Retrying API call: '{}'".format(endpoint))
             self._retries += 1
-            if(self._retries < 3):
+            if (self._retries < 3):
                 return self.api_request(endpoint, args)
             else:
                 raise RecursionError()
@@ -129,7 +130,7 @@ class cloud:
         Get the login ID from the email address
         """
         response = self.api_request(
-            "/v1/user/login/id/get", 
+            "/v1/user/login/id/get",
             {'loginAccount': self.login_account}
         )
         self.login_id = response['loginId']
@@ -147,7 +148,7 @@ class cloud:
         stamp = datetime.now().strftime("%Y%m%d%H%M%S")
         # Log in and store the session
         self.session = self.api_request(
-            "/mj/user/login", 
+            "/mj/user/login",
             data={
                 "data": {
                     # "appKey": loginKey,
@@ -194,7 +195,7 @@ class cloud:
         """
 
         response = self.api_request(
-            '/v1/iot/secure/getToken', 
+            '/v1/iot/secure/getToken',
             {'udpid': udpid}
         )
         for token in response['tokenlist']:
@@ -253,13 +254,15 @@ class cloud:
     def handle_api_error(self, error_code, message: str):
 
         def restart_full():
-            _LOGGER.debug("Restarting full: '{}' - '{}'".format(error_code, message))
+            _LOGGER.debug(
+                "Restarting full: '{}' - '{}'".format(error_code, message))
             self.session = None
             self.get_login_id()
             self.login()
 
         def session_restart():
-            _LOGGER.debug("Restarting session: '{}' - '{}'".format(error_code, message))
+            _LOGGER.debug(
+                "Restarting session: '{}' - '{}'".format(error_code, message))
             self.session = None
             self.login()
 
@@ -267,7 +270,8 @@ class cloud:
             raise ValueError(error_code, message)
 
         def ignore():
-            _LOGGER.debug("Error ignored: '{}' - '{}'".format(error_code, message))
+            _LOGGER.debug(
+                "Error ignored: '{}' - '{}'".format(error_code, message))
 
         error_handlers = {
             3176: ignore,          # The asyn reply does not exist.

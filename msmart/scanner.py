@@ -22,6 +22,7 @@ Client = None
 _security = security()
 _lock = Lock()
 
+
 class scandevice:
 
     def __init__(self):
@@ -42,7 +43,7 @@ class scandevice:
 
     def __str__(self):
         return str(self.__dict__)
-    
+
     async def support_test(self, account=OPEN_MIDEA_APP_ACCOUNT, password=OPEN_MIDEA_APP_PASSWORD):
         if self.run_test:
             if self.version == 3:
@@ -54,7 +55,8 @@ class scandevice:
                 await loop.run_in_executor(None, _device.refresh)
                 _LOGGER.debug("{}".format(_device))
                 self.support = _device.support
-        _LOGGER.debug("*** Found a device: \033[94m\033[1m{} \033[0m".format(self)) 
+        _LOGGER.debug(
+            "*** Found a device: \033[94m\033[1m{} \033[0m".format(self))
         return self
 
     async def support_testv3(self, account, password):
@@ -77,11 +79,12 @@ class scandevice:
         if data[:6].hex() == '3c3f786d6c20':
             return scandeviceV1(ip, data)
 
+
 class scandeviceV2V3(scandevice):
     def __init__(self, data):
         super().__init__()
         self.insert(data)
-    
+
     def insert(self, data):
         if data[:2].hex() == '5a5a':
             self.version = 2
@@ -102,7 +105,7 @@ class scandeviceV2V3(scandevice):
         self.ssid = ssid
         self.name = ssid
         self.type = self.ssid.split('_')[1]
-        
+
 
 class scandeviceV1(scandevice):
     def __init__(self, ip, data):
@@ -116,14 +119,15 @@ class scandeviceV1(scandevice):
         child = root.find('body/device')
         m = child.attrib
         self.port, self.type = m['port'], str(hex(int(m['apc_type'])))[2:]
-        
+
         self.id = self.get_device_id()
 
     def get_device_id(self, response):
         response = self.get_device_info()
         if response[64:-16][:6].hex() == '3c3f786d6c20':
             xml = response[64:-16]
-            root = ET.fromstring(xml.decode(encoding="utf-8", errors="replace"))
+            root = ET.fromstring(xml.decode(
+                encoding="utf-8", errors="replace"))
             child = root.find('smartDevice')
             m = child.attrib
             return int.from_bytes(bytearray.fromhex(m['devId']), 'little')
@@ -160,6 +164,7 @@ class scandeviceV1(scandevice):
         _LOGGER.debug("Received from {}:{} {}".format(
             self.ip, self.port, response.hex()))
         return response
+
 
 class MideaDiscovery:
 
@@ -233,7 +238,8 @@ class MideaDiscovery:
                     BROADCAST_MSG, (str(net.broadcast_address), 20086)
                 )
             except:
-                _LOGGER.debug("Unable to send broadcast to: " + str(net.broadcast_address))
+                _LOGGER.debug("Unable to send broadcast to: " +
+                              str(net.broadcast_address))
 
     async def _send_message(self, address):
         self.socket.sendto(
@@ -243,6 +249,7 @@ class MideaDiscovery:
             BROADCAST_MSG, (address, 20086)
         )
         _LOGGER.debug("Message sent")
+
 
 def gettoken(udpid, account, password):
     global Client, _lock
@@ -255,12 +262,14 @@ def gettoken(udpid, account, password):
     finally:
         _lock.release()
     return Client.gettoken(udpid)
-    
+
+
 def _get_socket():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.settimeout(5)
     return sock
+
 
 async def _get_networks():
     nets = []
@@ -268,9 +277,10 @@ async def _get_networks():
     for adapter in adapters:
         for ip in adapter.ips:
             if ip.is_IPv4 and ip.network_prefix < 32:
-                localNet = IPv4Network(f"{ip.ip}/{ip.network_prefix}", strict=False)
+                localNet = IPv4Network(
+                    f"{ip.ip}/{ip.network_prefix}", strict=False)
                 if localNet.is_private and not localNet.is_loopback and not localNet.is_link_local:
                     nets.append(localNet)
-    if not nets:        
+    if not nets:
         _LOGGER.debug("No valid networks detected to send broadcast")
     return nets

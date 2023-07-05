@@ -18,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 appKey = '434a209a5ce141c3b726de067835d7f0'
 signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
 
+
 class security:
 
     def __init__(self, use_china_server=False):
@@ -125,8 +126,9 @@ class security:
         header += size.to_bytes(2, 'big')
         header += bytes([0x20, padding << 4 | msgtype])
         if self._request_count >= 0xfff:
-            _LOGGER.info("request_count is too big to convert: {}".format(self._request_count))
-            self._request_count = 0 
+            _LOGGER.info("request_count is too big to convert: {}".format(
+                self._request_count))
+            self._request_count = 0
         data = self._request_count.to_bytes(2, 'big') + data
         self._request_count += 1
         if msgtype in (MSGTYPE_ENCRYPTED_RESPONSE, MSGTYPE_ENCRYPTED_REQUEST):
@@ -173,15 +175,15 @@ class security:
 
         # This next part cares about the field ordering in the payload signature
         query = sorted(payload.items(), key=lambda x: x[0])
-        
+
         # Create a query string (?!?) and make sure to unescape the URL encoded characters (!!!)
         query = urllib.parse.unquote_plus(urllib.parse.urlencode(query))
-        
+
         # Combine all the sign stuff to make one giant string, then SHA256 it
         sign = path + query + self._loginKey
         m = sha256()
         m.update(sign.encode('ASCII'))
-        
+
         return m.hexdigest()
 
     def new_sign(self, data: str, random: str) -> str:
@@ -189,15 +191,16 @@ class security:
         if data:
             msg += data
         msg += random
-        sign = hmac.new(self._hmackey.encode("ascii"), msg.encode("ascii"), sha256)
+        sign = hmac.new(self._hmackey.encode("ascii"),
+                        msg.encode("ascii"), sha256)
         return sign.hexdigest()
 
-    def encryptPassword(self, loginId, password):         
+    def encryptPassword(self, loginId, password):
         # Hash the password
         m = sha256()
         m.update(password.encode('ascii'))
-        
-        # Create the login hash with the loginID + password hash + appKey, then hash it all AGAIN       
+
+        # Create the login hash with the loginID + password hash + appKey, then hash it all AGAIN
         loginHash = loginId + m.hexdigest() + self._loginKey
         m = sha256()
         m.update(loginHash.encode('ascii'))
@@ -217,6 +220,7 @@ class security:
         sha.update(login_hash.encode("ascii"))
 
         return sha.hexdigest()
+
 
 def get_udpid(data):
     b = sha256(data).digest()

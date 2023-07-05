@@ -459,9 +459,9 @@ class state_response(response):
     def read_state(self, payload: memoryview):
 
         self.power_on = bool(payload[1] & 0x1)
-        #self.imode_resume = payload[1] & 0x4
-        #self.timer_mode = (payload[1] & 0x10) > 0
-        #self.appliance_error = (payload[1] & 0x80) > 0
+        # self.imode_resume = payload[1] & 0x4
+        # self.timer_mode = (payload[1] & 0x10) > 0
+        # self.appliance_error = (payload[1] & 0x80) > 0
 
         # Unpack target temp and mode byte
         self.target_temperature = (payload[2] & 0xF) + 16.0

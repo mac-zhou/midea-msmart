@@ -8,6 +8,7 @@ from msmart.const import FRAME_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class command(ABC):
     _message_id = 0
 
@@ -71,6 +72,7 @@ class command(ABC):
     @abstractmethod
     def payload(self):
         return bytes()
+
 
 class set_customize_command(command):
     def __init__(self, device_type, FRAME_TYPE, customize_cmd,):
