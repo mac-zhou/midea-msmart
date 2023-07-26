@@ -94,15 +94,15 @@ class front_load_washer(device):
 
     def refresh(self):
         cmd = get_state_command(self.type)
-        self._send_cmd(cmd)
+        self.send_cmd(cmd)
 
-    def _send_cmd(self, cmd):
-        responses = self.send_cmd(cmd)
+    def send_cmd(self, cmd):
+        responses = super().send_cmd(cmd)
         for response in responses:
-            self._process_response(response)
+            self.process_response(response)
 
-    def _process_response(self, data):
-        if self.process_response(data):
+    def process_response(self, data):
+        if super().process_response(data):
             response = appliance_response(data)
             self._defer_update = False
             self._support = True

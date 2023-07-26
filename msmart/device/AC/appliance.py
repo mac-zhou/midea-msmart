@@ -109,24 +109,24 @@ class air_conditioning(device):
 
     def get_capabilities(self):
         cmd = get_capabilities_command(self.type)
-        self._send_cmd(cmd)
+        self.send_cmd(cmd)
 
     def toggle_display(self):
         if not self._supports_display_control:
             _LOGGER.warn("Device is not capable of display control.")
 
         cmd = toggle_display_command(self.type)
-        self._send_cmd(cmd, True)
+        self.send_cmd(cmd, True)
 
         # Force a refresh to get the updated display state
         self.refresh()
 
     def refresh(self):
         cmd = get_state_command(self.type)
-        self._send_cmd(cmd)
+        self.send_cmd(cmd)
 
-    def _send_cmd(self, cmd, ignore_response=False):
-        responses = self.send_cmd(cmd)
+    def send_cmd(self, cmd, ignore_response=False):
+        responses = super().send_cmd(cmd)
 
         # Ignore responses if requested
         if ignore_response:
@@ -134,10 +134,10 @@ class air_conditioning(device):
 
         # Process each response
         for response in responses:
-            self._process_response(response)
+            self.process_response(response)
 
-    def _process_response(self, data):
-        if self.process_response(data):
+    def process_response(self, data):
+        if super().process_response(data):
             # Construct response from data
             response = base_response.construct(data)
 
@@ -186,7 +186,7 @@ class air_conditioning(device):
             cmd.freeze_protection_mode = self._freeze_protection_mode
             cmd.sleep_mode = self._sleep_mode
             cmd.fahrenheit = self._fahrenheit_unit
-            self._send_cmd(cmd, self._defer_update)
+            self.send_cmd(cmd, self._defer_update)
         finally:
             self._updating = False
             self._defer_update = False
