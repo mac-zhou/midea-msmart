@@ -20,7 +20,7 @@ class IntEnumHelper(IntEnum):
         try:
             return enum_class(value)
         except ValueError:
-            _LOGGER.debug("Unknown {}: {}".format(enum_class, value))
+            _LOGGER.debug("Unknown %s: %d", enum_class, value)
             return default
 
 
@@ -152,8 +152,8 @@ class air_conditioning(device):
             elif response.id == ResponseId.Capabilities:
                 self.update_capabilities(response)
             elif response.id == 0xa1 or response.id == 0xa0:
-                _LOGGER.info("Ignored special response. {}:{} {}".format(
-                    self.ip, self.port, response.payload.hex()))
+                _LOGGER.info("Ignored special response. %s:%d %s",
+                             self.ip, self.port, response.payload.hex())
         elif not self._keep_last_known_online_state:
             self._online = False
 
@@ -162,12 +162,12 @@ class air_conditioning(device):
         try:
             # Warn if trying to apply unsupported modes
             if self._operational_mode not in self._supported_op_modes:
-                _LOGGER.warning("Device is not capable of operational mode {}.".format(
-                    self._operational_mode))
+                _LOGGER.warning(
+                    "Device is not capable of operational mode %s.", self._operational_mode)
 
             if self._swing_mode not in self._supported_swing_modes:
                 _LOGGER.warning(
-                    "Device is not capable of swing mode {}.".format(self._swing_mode))
+                    "Device is not capable of swing mode %s.", self._swing_mode)
 
             if self._turbo_mode and not self._supports_turbo:
                 _LOGGER.warning("Device is not capable of turbo mode.")

@@ -242,12 +242,11 @@ class capabilities_response(response):
 
         self._capabilities = {}
 
-        _LOGGER.debug(
-            "Capabilities response payload: {}".format(payload.hex()))
+        _LOGGER.debug("Capabilities response payload: %s", payload.hex())
 
         self._parse_capabilities(payload)
 
-        _LOGGER.debug("Supported capabilities: {}".format(self._capabilities))
+        _LOGGER.debug("Supported capabilities: %s", self._capabilities)
 
     def _parse_capabilities(self, payload: memoryview):
         # Clear existing capabilities
@@ -334,7 +333,7 @@ class capabilities_response(response):
                 id = CapabilityId(cap_id)
             except ValueError:
                 _LOGGER.warning(
-                    "Unknown capability. ID: 0x{:04X}, Size: {}.".format(cap_id, size))
+                    "Unknown capability. ID: 0x%4X, Size: %d.", cap_id, size)
                 # Advanced to next capability
                 caps = caps[3+size:]
                 continue
@@ -372,7 +371,7 @@ class capabilities_response(response):
 
             else:
                 _LOGGER.warning(
-                    "Unsupported capability. ID: 0x{:04X}, Size: {}.".format(id, size))
+                    "Unsupported capability. ID: 0x%04X, Size: %d.", id, size)
 
             # Advanced to next capability
             caps = caps[3+size:]
@@ -451,7 +450,7 @@ class state_response(response):
         self.display_on = None
         self.freeze_protection_mode = None
 
-        _LOGGER.debug("State response payload: {}".format(payload.hex()))
+        _LOGGER.debug("State response payload: %s", payload.hex())
 
         self._parse(payload)
 

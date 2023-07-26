@@ -74,7 +74,7 @@ class device:
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
         _LOGGER.debug(
-            "pkt_builder: {}:{} len: {} data: {}".format(self.ip, self.port, len(data), data.hex()))
+            "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
         send_time = time.time()
         if self._protocol_version == 3:
             responses = self._lan_service.appliance_transparent_send_8370(data)
@@ -82,10 +82,10 @@ class device:
             responses = self._lan_service.appliance_transparent_send(data)
         request_time = round(time.time() - send_time, 2)
         _LOGGER.debug(
-            "Got responses from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
+            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._protocol_version, len(responses), request_time)
         if len(responses) == 0:
             _LOGGER.warning(
-                "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
+                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._protocol_version, len(responses), request_time)
             self._active = False
             self._support = False
         # sort, put CMD_TYPE_QUERRY last, so we can get END(machine_status) from the last response
@@ -94,15 +94,13 @@ class device:
         return responses
 
     def process_response(self, data):
-        _LOGGER.debug(
-            "Update from {}:{} {}".format(self.ip, self.port, data.hex()))
+        _LOGGER.debug("Update from %s:%d %s", self.ip, self.port, data.hex())
         if len(data) > 0:
             self._online = True
             self._active = True
             if data == b'ERROR':
                 self._support = False
-                _LOGGER.warning(
-                    "Got ERROR from {}, {}".format(self.ip, self.id))
+                _LOGGER.warning("Got ERROR from %s, %s", self.ip, self.id)
                 return
             return data
 

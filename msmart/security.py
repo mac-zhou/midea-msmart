@@ -52,8 +52,8 @@ class security:
             decrypted = unpad(decrypted, self.blockSize)
             return decrypted
         except ValueError as e:
-            _LOGGER.error(
-                "aes_decrypt error: {} - data: {}".format(repr(e), raw.hex()))
+            _LOGGER.error("aes_decrypt error: %s - data: %s",
+                          repr(e), raw.hex())
             return bytearray(0)
 
     def aes_encrypt(self, raw):
@@ -126,8 +126,8 @@ class security:
         header += size.to_bytes(2, 'big')
         header += bytes([0x20, padding << 4 | msgtype])
         if self._request_count >= 0xfff:
-            _LOGGER.info("request_count is too big to convert: {}".format(
-                self._request_count))
+            _LOGGER.info("request_count is too big to convert: %d",
+                         self._request_count)
             self._request_count = 0
         data = self._request_count.to_bytes(2, 'big') + data
         self._request_count += 1

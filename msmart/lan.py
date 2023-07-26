@@ -27,8 +27,8 @@ class lan:
     def _connect(self):
         if self._socket is None:
             self._disconnect()
-            _LOGGER.debug("Attempting new connection to {}:{}".format(
-                self.device_ip, self.device_port))
+            _LOGGER.debug("Attempting new connection to %s:%d",
+                          self.device_ip, self.device_port)
             self._buffer = b''
             self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # set timeout
@@ -39,8 +39,8 @@ class lan:
                 self._local = ":".join(
                     '%s' % i for i in self._socket.getsockname())
             except Exception as error:
-                _LOGGER.error("Connect Error: {}:{} {}".format(
-                    self.device_ip, self.device_port, error))
+                _LOGGER.error("Connect Error: %s:%d %s",
+                              self.device_ip, self.device_port, error)
                 self._disconnect()
 
     def _disconnect(self):
@@ -57,18 +57,17 @@ class lan:
         # Create a TCP/IP socket
         self._connect()
         if self._socket is None:
-            _LOGGER.error("Sokcet is None: {}".format(self._remote))
+            _LOGGER.error("Sokcet is None: %s", self._remote)
             return bytearray(0), False
-        _LOGGER.debug("Socket {} tcp_key: {}".format(
-            self.get_socket_info(), self._tcp_key))
+        _LOGGER.debug("Socket %s tcp_key: %s",
+                      self.get_socket_info(), self._tcp_key)
         # Send data
         try:
             _LOGGER.debug(
-                "Sending {} message: {}".format(self.get_socket_info(), message.hex()))
+                "Sending %s message: %s", self.get_socket_info(), message.hex())
             self._socket.sendall(message)
         except Exception as error:
-            _LOGGER.error("Send {} Error: {}".format(
-                self.get_socket_info(), error))
+            _LOGGER.error("Send %s Error: %s", self.get_socket_info(), error)
             self._disconnect()
             self._retries += 1
             return bytearray(0), True
@@ -78,28 +77,26 @@ class lan:
             response = self._socket.recv(1024)
         except socket.timeout as error:
             if error.args[0] == 'timed out':
-                _LOGGER.debug("Recv {}, timed out".format(
-                    self.get_socket_info()))
+                _LOGGER.debug("Recv %s, timed out", self.get_socket_info())
                 self._retries += 1
                 return bytearray(0), True
             else:
-                _LOGGER.debug("Recv {} TimeOut: {}".format(
-                    self.get_socket_info(), error))
+                _LOGGER.debug("Recv %s TimeOut: %s",
+                              self.get_socket_info(), error)
                 self._disconnect()
                 self._retries += 1
                 return bytearray(0), True
         except socket.error as error:
-            _LOGGER.debug("Recv {} Error: {}".format(
-                self.get_socket_info(), error))
+            _LOGGER.debug("Recv %s Error: %s", self.get_socket_info(), error)
             self._disconnect()
             self._retries += 1
             return bytearray(0), True
         else:
-            _LOGGER.debug("Recv {} Response: {}".format(
-                self.get_socket_info(), response.hex()))
+            _LOGGER.debug("Recv %s Response: %s",
+                          self.get_socket_info(), response.hex())
             if len(response) == 0:
-                _LOGGER.debug("Recv {} Server Closed Socket".format(
-                    self.get_socket_info()))
+                _LOGGER.debug("Recv %s Server Closed Socket",
+                              self.get_socket_info())
                 self._disconnect()
                 self._retries += 1
                 return bytearray(0), True
@@ -119,13 +116,13 @@ class lan:
         tcp_key, success = self.security.tcp_key(response, self._key)
         if success:
             self._tcp_key = tcp_key.hex()
-            _LOGGER.info('Got TCP key for {} tcp_key: {}'.format(
-                self.get_socket_info(), tcp_key.hex()))
+            _LOGGER.info('Got TCP key for %s tcp_key: %s',
+                         self.get_socket_info(), tcp_key.hex())
             # After authentication, don’t send data immediately, so sleep 1s.
             time.sleep(1)
         else:
-            _LOGGER.error('Authentication failed for {} {}'.format(
-                self.get_socket_info(), tcp_key.hex()))
+            _LOGGER.error('Authentication failed for %s %s',
+                          self.get_socket_info(), tcp_key.hex())
         return success
 
     def _authenticate(self):
@@ -138,7 +135,7 @@ class lan:
         # _LOGGER.debug("Data: {} msgtype: {} len: {} socket time: {}".format(data.hex(), msgtype, len(data), socket_time))
         if self._socket is None or self._tcp_key is None:
             _LOGGER.debug(
-                "Socket {} invalid, Create New Socket and Get New tcp_key {}".format(self.get_socket_info(), self._tcp_key))
+                "Socket %s invalid, Create New Socket and Get New tcp_key %s", self.get_socket_info(), self._tcp_key)
             self._disconnect()
             if self._authenticate() == False:
                 return []
@@ -148,7 +145,7 @@ class lan:
         # time sleep retries second befor send data, default is 0
         time.sleep(self._retries)
         responses, b = self.request(data)
-        _LOGGER.debug("Got responses len: {}".format(len(responses)))
+        _LOGGER.debug("Got responses len: %d", len(responses))
         if responses[8:13] == b'ERROR':
             self._disconnect()
             return [b'ERROR']
@@ -172,7 +169,7 @@ class lan:
         # time sleep retries second befor send data, default is 0
         time.sleep(self._retries)
         responses, b = self.request(data)
-        _LOGGER.debug("Get responses len: {}".format(len(responses)))
+        _LOGGER.debug("Get responses len: %d", len(responses))
         if responses == bytearray(0) and self._retries < 2 and b:
             packets = self.appliance_transparent_send(data)
             self._retries = 0
@@ -201,5 +198,5 @@ class lan:
                     packets.append(data)
                 i += size + 1
         else:
-            _LOGGER.error("Unknown responses {}".format(responses.hex()))
+            _LOGGER.error("Unknown responses %s", responses.hex())
         return packets

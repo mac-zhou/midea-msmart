@@ -53,10 +53,9 @@ class scandevice:
             if self.type == 'ac':
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, _device.refresh)
-                _LOGGER.debug("{}".format(_device))
+                _LOGGER.debug("%s", _device)
                 self.support = _device.support
-        _LOGGER.debug(
-            "*** Found a device: \033[94m\033[1m{} \033[0m".format(self))
+        _LOGGER.debug("*** Found a device: \033[94m\033[1m%s \033[0m", self)
         return self
 
     async def support_testv3(self, account, password):
@@ -96,7 +95,7 @@ class scandeviceV2V3(scandevice):
         encrypt_data = data[40:-16]
         reply = _security.aes_decrypt(encrypt_data)
         self.ip = '.'.join([str(i) for i in reply[3::-1]])
-        _LOGGER.debug("Decrypt Reply: {} {}".format(self.ip, reply.hex()))
+        _LOGGER.debug("Decrypt Reply: %s %s", self.ip, reply.hex())
         self.port = int.from_bytes(reply[4:8], 'little')
         self.sn = reply[11:40].decode("utf-8")
         self.model = self.sn[9:14]
@@ -145,24 +144,24 @@ class scandeviceV1(scandevice):
             sock.connect(device_address)
 
             # Send data
-            _LOGGER.debug("Sending to {}:{} {}".format(
-                self.ip, self.port, DEVICE_INFO_MSG.hex()))
+            _LOGGER.debug("Sending to %s:%d %s", self.ip,
+                          self.port, DEVICE_INFO_MSG.hex())
             sock.sendall(DEVICE_INFO_MSG)
 
             # Received data
             response = sock.recv(512)
         except socket.error:
-            _LOGGER.info("Couldn't connect with Device {}:{}".format(
-                self.ip, self.port))
+            _LOGGER.info("Couldn't connect with Device %s:%d",
+                         self.ip, self.port)
             return bytearray(0)
         except socket.timeout:
-            _LOGGER.info("Connect the Device {}:{} TimeOut for 8s. don't care about a small amount of this. if many maybe not support".format(
-                self.ip, self.port))
+            _LOGGER.info("Connect the Device %s:%d TimeOut for 8s. don't care about a small amount of this. if many maybe not support",
+                         self.ip, self.port)
             return bytearray(0)
         finally:
             sock.close()
-        _LOGGER.debug("Received from {}:{} {}".format(
-            self.ip, self.port, response.hex()))
+        _LOGGER.debug("Received from %s:%d %s", self.ip,
+                      self.port, response.hex())
         return response
 
 
@@ -185,7 +184,7 @@ class MideaDiscovery:
 
     async def get_all(self):
         for i in range(self.amount):
-            _LOGGER.debug("Broadcast message sent: " + str(i+1))
+            _LOGGER.debug("Broadcast message sent: %d", i+1)
             await self._broadcast_message()
             tasks = set()
             while True:
@@ -217,7 +216,7 @@ class MideaDiscovery:
             else:
                 ip = addr[0]
             if ip not in self.found_devices:
-                _LOGGER.debug("Midea Local Data {} {}".format(ip, data.hex()))
+                _LOGGER.debug("Midea Local Data %s %s", ip, data.hex())
                 self.found_devices.add(ip)
                 device = await scandevice.load(ip, data)
                 device.run_test = self.run_test
@@ -238,7 +237,7 @@ class MideaDiscovery:
                     BROADCAST_MSG, (str(net.broadcast_address), 20086)
                 )
             except:
-                _LOGGER.debug("Unable to send broadcast to: " +
+                _LOGGER.debug("Unable to send broadcast to: %s",
                               str(net.broadcast_address))
 
     async def _send_message(self, address):

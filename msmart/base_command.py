@@ -55,7 +55,7 @@ class command(ABC):
         # Calculate total frame checksum
         frame.append(command.checksum(frame[1:]))
 
-        _LOGGER.debug("Frame data: {}".format(frame.hex()))
+        _LOGGER.debug("Frame data: %s", frame.hex())
 
         return frame
 

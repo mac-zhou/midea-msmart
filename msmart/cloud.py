@@ -55,8 +55,8 @@ class cloud:
         self.SERVER_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
         if self._use_china_server:
             self.SERVER_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias='
-        _LOGGER.info("Using Midea cloud server: {} {}".format(
-            self.SERVER_URL, self._use_china_server))
+        _LOGGER.info("Using Midea cloud server: %s %s",
+                     self.SERVER_URL, self._use_china_server)
 
     def api_request(self, endpoint, args=None, data=None):
         """
@@ -108,7 +108,7 @@ class cloud:
                 data=json.dumps(data),
                 # verify=False
             )
-            _LOGGER.debug("Response: {}".format(r.text))
+            _LOGGER.debug("Response: %s", r.text)
             response = json.loads(r.text)
         finally:
             self._api_lock.release()
@@ -117,7 +117,7 @@ class cloud:
         if int(response['code']) != 0:
             self.handle_api_error(int(response['code']), response['msg'])
             # If you don't throw, then retry
-            _LOGGER.debug("Retrying API call: '{}'".format(endpoint))
+            _LOGGER.debug("Retrying API call: '%s'", endpoint)
             self._retries += 1
             if (self._retries < 3):
                 return self.api_request(endpoint, args)
@@ -189,7 +189,7 @@ class cloud:
         })
 
         self.appliance_list = response['list']
-        _LOGGER.debug("Device list: {}".format(self.appliance_list))
+        _LOGGER.debug("Device list: %s", self.appliance_list)
         return self.appliance_list
 
     def gettoken(self, udpid):
@@ -227,7 +227,7 @@ class cloud:
         if not self.session:
             self.login()
 
-        _LOGGER.debug("Sending to {}: {}".format(id, data.hex()))
+        _LOGGER.debug("Sending to %d: %s", id, data.hex())
         encoded = self.encode(data)
         order = self.security.aes_encrypt(encoded)
         response = self.api_request('appliance/transparent/send', {
@@ -239,7 +239,7 @@ class cloud:
         reply = self.decode(self.security.aes_decrypt(
             bytearray.fromhex(response['reply'])))
 
-        _LOGGER.debug("Recieved from {}: {}".format(id, reply.hex()))
+        _LOGGER.debug("Recieved from %d: %s", id, reply.hex())
         return reply
 
     def list_homegroups(self, force_update=False):
@@ -257,15 +257,14 @@ class cloud:
     def handle_api_error(self, error_code, message: str):
 
         def restart_full():
-            _LOGGER.debug(
-                "Restarting full: '{}' - '{}'".format(error_code, message))
+            _LOGGER.debug("Restarting full: '%d' - '%s'", error_code, message)
             self.session = None
             self.get_login_id()
             self.login()
 
         def session_restart():
-            _LOGGER.debug(
-                "Restarting session: '{}' - '{}'".format(error_code, message))
+            _LOGGER.debug("Restarting session: '%d' - '%s'",
+                          error_code, message)
             self.session = None
             self.login()
 
@@ -273,8 +272,7 @@ class cloud:
             raise ValueError(error_code, message)
 
         def ignore():
-            _LOGGER.debug(
-                "Error ignored: '{}' - '{}'".format(error_code, message))
+            _LOGGER.debug("Error ignored: '%d' - '%s'", error_code, message)
 
         error_handlers = {
             3176: ignore,          # The asyn reply does not exist.

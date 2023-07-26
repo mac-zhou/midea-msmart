@@ -33,7 +33,7 @@ def discover(debug: bool, amount: int, account: str, password: str, ip: str, chi
     else:
         logging.basicConfig(level=logging.INFO)
     _LOGGER.info(
-        "msmart version: {} Currently only supports ac devices, only support MSmartHome and 美的美居 APP.".format(__version__))
+        "msmart version: %s Currently only supports ac devices, only support MSmartHome and 美的美居 APP.", __version__)
     os.environ['USE_CHINA_SERVER'] = str(china)
     if china:
         if account == OPEN_MIDEA_APP_ACCOUNT or password == OPEN_MIDEA_APP_PASSWORD:
@@ -54,7 +54,7 @@ def discover(debug: bool, amount: int, account: str, password: str, ip: str, chi
         else:
             for device in found_devices:
                 _LOGGER.info(
-                    "*** Found a device: \033[94m\033[1m{} \033[0m".format(device))
+                    "*** Found a device: \033[94m\033[1m%s \033[0m", device)
     except KeyboardInterrupt:
         sys.exit(0)
 
