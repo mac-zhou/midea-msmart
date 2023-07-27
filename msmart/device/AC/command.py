@@ -13,6 +13,10 @@ from msmart.base_command import command
 _LOGGER = logging.getLogger(__name__)
 
 
+class InvalidResponseException(Exception):
+    pass
+
+
 class ResponseId(IntEnum):
     State = 0xC0
     Capabilities = 0xB5
@@ -182,84 +186,72 @@ class toggle_display_command(command):
 
 
 class response():
-    def __init__(self, frame: bytes):
-        # Build a memoryview of the frame for zero-copy slicing
-        frame_mv = memoryview(frame)
-
-        # Validate frame checksum
-        calc_checksum = command.checksum(frame_mv[0:-1])
-        recv_checkum = frame_mv[-1]
-        if recv_checkum != calc_checksum:
-            _LOGGER.error("Frame '{}' failed checksum. Received: 0x{:X}, Expected: 0x{:X}.".format(
-                frame_mv.hex(), recv_checkum, calc_checksum))
-            frame_mv.release()
-            return
-
-        # Fetch frame payload and payload with CRC
-        payload_crc = frame_mv[10:-1]
-        payload = payload_crc[0:-1]
-
-        # Validate payload CRC
-        calc_crc = crc8.calculate(payload)
-        recv_crc = payload_crc[-1]
-        if recv_crc != calc_crc:
-            _LOGGER.error("Payload '{}' failed CRC. Received: 0x{:X}, Expected: 0x{:X}.".format(
-                payload_crc.hex(), recv_crc, calc_crc))
-            frame_mv.release()
-            return
-
-        # Get ID
+    def __init__(self, payload: memoryview):
+        # Set ID and copy the payload
         self._id = payload[0]
-
-        # Unpack the payload
-        self.unpack(payload)
-
-        # Free the memoryview
-        frame_mv.release()
-
-    @staticmethod
-    def construct(frame):
-        id = frame[10]
-        if id == ResponseId.State:
-            return state_response(frame)
-        elif id == ResponseId.Capabilities:
-            return capabilities_response(frame)
-        else:
-            # Unrecognized frame
-            return response(frame)
+        self._payload = bytes(payload)
 
     @property
     def id(self):
         return self._id
 
-    @abstractmethod
-    def unpack(self, payload: memoryview):
-        # Make a copy for debug
-        self.payload = bytes(payload)
+    @property
+    def payload(self):
+        return self._payload
+
+    @staticmethod
+    def validate(frame: memoryview):
+        # Validate frame checksum
+        frame_checksum = command.checksum(frame[1:-1])
+        if frame_checksum != frame[-1]:
+            raise InvalidResponseException(
+                f"Frame '{frame.hex()}' failed checksum. Received: 0x{frame[-1]:X}, Expected: 0x{frame_checksum:X}.")
+
+        # Extract frame payload to validate CRC/checksum
+        payload = frame[10:-1]
+
+        # Some devices use a CRC others seem to use a 2nd checksum
+        payload_crc = crc8.calculate(payload[0:-1])
+        payload_checksum = command.checksum(payload[0:-1])
+
+        if payload_crc != payload[-1] and payload_checksum != payload[-1]:
+            raise InvalidResponseException(
+                f"Payload '{payload.hex()}' failed CRC and checksum. Received: 0x{payload[-1]:X}, Expected: 0x{payload_crc:X} or 0x{payload_checksum:X}.")
+
+    @staticmethod
+    def construct(frame: bytes):
+        # Build a memoryview of the frame for zero-copy slicing
+        with memoryview(frame) as frame_mv:
+            # Ensure frame is valid before parsing
+            response.validate(frame_mv)
+
+            # Parse frame depending on id
+            id = frame_mv[10]
+            payload = frame_mv[10:-2]
+            if id == ResponseId.State:
+                return state_response(payload)
+            elif id == ResponseId.Capabilities:
+                return capabilities_response(payload)
+            else:
+                return response(payload)
 
 
 class capabilities_response(response):
-    def __init__(self, frame: bytes):
-        super().__init__(frame)
+    def __init__(self, payload: memoryview):
+        super().__init__(payload)
 
-    def unpack(self, payload: memoryview):
-        if self.id != ResponseId.Capabilities:
-            # TODO throw instead?
-            _LOGGER.error(
-                "Invalid capabilities response ID.")
-            return
+        self._capabilities = {}
 
         _LOGGER.debug(
             "Capabilities response payload: {}".format(payload.hex()))
 
-        self.read_capabilities(payload)
+        self._parse_capabilities(payload)
 
-        _LOGGER.debug(
-            "Supported capabilities: {}".format(self.capabilities))
+        _LOGGER.debug("Supported capabilities: {}".format(self._capabilities))
 
-    def read_capabilities(self, payload: memoryview):
+    def _parse_capabilities(self, payload: memoryview):
         # Clear existing capabilities
-        self.capabilities = {}
+        self._capabilities.clear()
 
         # Define some local functions to parse capability values
         def get_bool(v): return v != 0
@@ -359,24 +351,24 @@ class capabilities_response(response):
                 if isinstance(reader, list):
                     # Apply each reader in the list
                     for r in reader:
-                        self.capabilities.update(apply(r))
+                        self._capabilities.update(apply(r))
                 else:
                     # Apply the single reader
-                    self.capabilities.update(apply(reader))
+                    self._capabilities.update(apply(reader))
 
             elif id == CapabilityId.Temperatures:
                 # Skip if capability size is too small
                 if size < 6:
                     continue
 
-                self.capabilities["cool_min_temperature"] = caps[3] * 0.5
-                self.capabilities["cool_max_temperature"] = caps[4] * 0.5
-                self.capabilities["auto_min_temperature"] = caps[5] * 0.5
-                self.capabilities["auto_max_temperature"] = caps[6] * 0.5
-                self.capabilities["heat_min_temperature"] = caps[7] * 0.5
-                self.capabilities["heat_max_temperature"] = caps[8] * 0.5
+                self._capabilities["cool_min_temperature"] = caps[3] * 0.5
+                self._capabilities["cool_max_temperature"] = caps[4] * 0.5
+                self._capabilities["auto_min_temperature"] = caps[5] * 0.5
+                self._capabilities["auto_max_temperature"] = caps[6] * 0.5
+                self._capabilities["heat_min_temperature"] = caps[7] * 0.5
+                self._capabilities["heat_max_temperature"] = caps[8] * 0.5
 
-                self.capabilities["decimals"] = caps[9] == 0 if size > 6 else caps[2] == 0
+                self._capabilities["decimals"] = caps[9] == 0 if size > 6 else caps[2] == 0
 
             else:
                 _LOGGER.warn(
@@ -387,11 +379,11 @@ class capabilities_response(response):
 
     @property
     def swing_horizontal(self):
-        return self.capabilities.get("swing_horizontal", False)
+        return self._capabilities.get("swing_horizontal", False)
 
     @property
     def swing_vertical(self):
-        return self.capabilities.get("swing_vertical", False)
+        return self._capabilities.get("swing_vertical", False)
 
     @property
     def swing_both(self):
@@ -399,64 +391,71 @@ class capabilities_response(response):
 
     @property
     def dry_mode(self):
-        return self.capabilities.get("dry_mode", False)
+        return self._capabilities.get("dry_mode", False)
 
     @property
     def cool_mode(self):
-        return self.capabilities.get("cool_mode", False)
+        return self._capabilities.get("cool_mode", False)
 
     @property
     def heat_mode(self):
-        return self.capabilities.get("heat_mode", False)
+        return self._capabilities.get("heat_mode", False)
 
     @property
     def auto_mode(self):
-        return self.capabilities.get("auto_mode", False)
+        return self._capabilities.get("auto_mode", False)
 
     @property
     def eco_mode(self):
-        return self.capabilities.get("eco_mode", False) or self.capabilities.get("eco_mode_2", False)
+        return self._capabilities.get("eco_mode", False) or self._capabilities.get("eco_mode_2", False)
 
     @property
     def turbo_mode(self):
-        return self.capabilities.get("turbo_heat", False) or self.capabilities.get("turbo_cool", False)
+        return self._capabilities.get("turbo_heat", False) or self._capabilities.get("turbo_cool", False)
 
     @property
     def display_control(self):
-        return self.capabilities.get("light_control", False)
+        return self._capabilities.get("light_control", False)
 
     @property
     def min_temperature(self):
         mode = ["cool", "auto", "heat"]
-        return min([self.capabilities.get(f"{m}_min_temperature", 16) for m in mode])
+        return min([self._capabilities.get(f"{m}_min_temperature", 16) for m in mode])
 
     @property
     def max_temperature(self):
         mode = ["cool", "auto", "heat"]
-        return max([self.capabilities.get(f"{m}_max_temperature", 30) for m in mode])
+        return max([self._capabilities.get(f"{m}_max_temperature", 30) for m in mode])
 
     @property
     def freeze_protection_mode(self):
-        return self.capabilities.get("freeze_protection", False)
+        return self._capabilities.get("freeze_protection", False)
 
 
 class state_response(response):
-    def __init__(self, frame: bytes):
-        super().__init__(frame)
+    def __init__(self, payload: memoryview):
+        super().__init__(payload)
 
-    def unpack(self, payload: memoryview):
-        if self.id != ResponseId.State:
-            # TODO throw instead?
-            _LOGGER.error(
-                "Invalid state response ID.")
-            return
+        self.power_on = None
+        self.target_temperature = None
+        self.operational_mode = None
+        self.fan_speed = None
+        self.swing_mode = None
+        self.turbo_mode = None
+        self.eco_mode = None
+        self.sleep_mode = None
+        self.fahrenheit = None
+        self.indoor_temperature = None
+        self.outdoor_temperature = None
+        self.filter_alert = None
+        self.display_on = None
+        self.freeze_protection_mode = None
 
-        _LOGGER.debug(
-            "State response payload: {}".format(payload.hex()))
+        _LOGGER.debug("State response payload: {}".format(payload.hex()))
 
-        self.read_state(payload)
+        self._parse(payload)
 
-    def read_state(self, payload: memoryview):
+    def _parse(self, payload: memoryview):
 
         self.power_on = bool(payload[1] & 0x1)
         # self.imode_resume = payload[1] & 0x4
@@ -527,5 +526,10 @@ class state_response(response):
         self.display_on = (payload[14] != 0x70)
 
         # TODO dudanov/MideaUART humidity set point in byte 19, mask 0x7F
+
+        # TODO Some payloads are shorter than expected. Unsure what, when or why
+        # This length was picked arbitrarily from one user's shorter payload
+        if len(payload) < 22:
+            return
 
         self.freeze_protection_mode = bool(payload[21] & 0x80)

@@ -53,7 +53,7 @@ class command(ABC):
         frame = header + payload_crc
 
         # Calculate total frame checksum
-        frame.append(command.checksum(frame))
+        frame.append(command.checksum(frame[1:]))
 
         _LOGGER.debug("Frame data: {}".format(frame.hex()))
 
@@ -61,7 +61,7 @@ class command(ABC):
 
     @staticmethod
     def checksum(frame):
-        return (~sum(frame[1:]) + 1) & 0xFF
+        return (~sum(frame) + 1) & 0xFF
 
     @property
     def message_id(self):
