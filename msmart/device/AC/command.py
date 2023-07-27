@@ -288,7 +288,7 @@ class capabilities_response(response):
             CapabilityId.PresetFreezeProtection: reader("freeze_protection", get_value(1)),
             CapabilityId.Modes: [
                 reader("heat_mode", lambda v: v == 1 or v == 2),
-                reader("cool_mode", lambda v: v == 0 or v == 3),
+                reader("cool_mode", lambda v: v != 2),
                 reader("dry_mode", lambda v: v < 2),
                 reader("auto_mode", lambda v: v < 3),
             ],
