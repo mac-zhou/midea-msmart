@@ -24,6 +24,7 @@ class cloud:
     LANGUAGE = 'en_US'
     APP_ID = "1010"
     SRC = "1010"
+    DEVICE_ID = "c1acad8939ac0d7d"
 
     def __init__(self, email, password, use_china_server=False):
         # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
@@ -76,6 +77,7 @@ class cloud:
                     'language': self.LANGUAGE,
                     'src': self.SRC,
                     'stamp': datetime.now().strftime("%Y%m%d%H%M%S"),
+                    'deviceId': self.DEVICE_ID,
                 }
             # Add the method parameters for the endpoint
             data.update(args)
