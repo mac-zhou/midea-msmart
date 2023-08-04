@@ -1,8 +1,9 @@
 MIT License
 
-Copyright (c) 2018 NeoAcheron
-Copyright (c) 2020 Mac_Zhou (@mac-zhou)
+Copyright (c) 2023 Tucker Kern
 Copyright (c) 2020 Colin Kuebler (@kueblc)
+Copyright (c) 2020 Mac_Zhou (@mac-zhou)
+Copyright (c) 2018 NeoAcheron
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
