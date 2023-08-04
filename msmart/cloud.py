@@ -155,6 +155,7 @@ class cloud:
                 "data": {
                     # "appKey": loginKey,
                     "platform": self.FORMAT,
+                    "deviceId": self.DEVICE_ID,
                 },
                 "iotData": {
                     "appId": self.APP_ID,
