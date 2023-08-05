@@ -359,14 +359,3 @@ class Discover:
         dev.refresh()
 
         return dev
-
-
-async def main():
-    logging.basicConfig(level=logging.DEBUG)
-    # result = await Discover.discover_single("net_ac_63BA")
-    result = await Discover.discover()
-    for dev in result:
-        print(dev)
-
-if __name__ == '__main__':
-    asyncio.run(main())
