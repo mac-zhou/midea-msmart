@@ -25,7 +25,6 @@ class device(ABC):
         self._key = None
 
         self._lan_service = lan(ip, id, port)
-        self._protocol_version = 2
 
     def authenticate(self, token: str = None, key: str = None):
         # Use existing token and key if none provied
@@ -62,17 +61,14 @@ class device(ABC):
             "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
         send_time = time.time()
 
-        if self._protocol_version == 3:
-            responses = self._lan_service.appliance_transparent_send_8370(data)
-        else:
-            responses = self._lan_service.appliance_transparent_send(data)
+        responses = self._lan_service.send(data)
 
         request_time = round(time.time() - send_time, 2)
         _LOGGER.debug(
-            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._protocol_version, len(responses), request_time)
+            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
         if len(responses) == 0:
             _LOGGER.warning(
-                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._protocol_version, len(responses), request_time)
+                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
             self._active = False
             self._support = False
         
