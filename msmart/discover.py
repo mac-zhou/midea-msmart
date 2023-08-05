@@ -173,6 +173,9 @@ class Discover:
         # Wait for remaining tasks
         devices = await asyncio.gather(*protocol.tasks)
 
+        # Remove any None entries
+        devices = list(filter(None, devices))
+
         return devices
 
     @classmethod

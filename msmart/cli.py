@@ -21,11 +21,13 @@ async def _discover(ip: str, count: int, account: str, password: str, china: boo
             "To use China server set account (phone number) and password of 美的美居.")
         exit(1)
 
+    devices = []
     if ip is None or ip == "":
         devices = await Discover.discover(account=account, password=password, discovery_packets=count)
     else:
         dev = await Discover.discover_single(ip, account=account, password=password, discovery_packets=count)
-        devices = [dev]
+        if dev:
+            devices.append(dev)
 
     if len(devices) == 0:
         _LOGGER.error("No devices found.")
