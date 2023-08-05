@@ -3,7 +3,7 @@ import logging
 import socket
 import time
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_HANDSHAKE_REQUEST
-from msmart.security import security
+from msmart.security import security, Security
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -159,7 +159,7 @@ class lan:
         packets = []
         for response in responses:
             if len(response) > 40 + 16:
-                response = self.security.aes_decrypt(response[40:-16])
+                response = Security.decrypt_aes(response[40:-16])
             # header lenght is 10
             if len(response) > 10:
                 packets.append(response)
@@ -183,7 +183,7 @@ class lan:
             # maybe multiple response
             while i < dlen:
                 size = responses[i+4]
-                data = self.security.aes_decrypt(responses[i:i+size][40:-16])
+                data = Security.decrypt_aes(responses[i:i+size][40:-16])
                 # header lenght is 10
                 if len(data) > 10:
                     packets.append(data)

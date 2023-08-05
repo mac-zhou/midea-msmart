@@ -2,7 +2,7 @@
 import logging
 import urllib
 from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad, unpad
+from Crypto.Util import Padding
 from Crypto.Util.strxor import strxor
 from Crypto.Random import get_random_bytes
 from hashlib import md5, sha256
@@ -15,19 +15,37 @@ import os
 
 _LOGGER = logging.getLogger(__name__)
 
-appKey = '434a209a5ce141c3b726de067835d7f0'
-signKey = 'xhdiwjnchekd4d512chdjx5d8e4c394D2D7S'
+SIGN_KEY = "xhdiwjnchekd4d512chdjx5d8e4c394D2D7S".encode()
+ENC_KEY = md5(SIGN_KEY).digest()
+
+class Security:
+    @classmethod
+    def decrypt_aes(cls, data: bytes):
+        cipher = AES.new(ENC_KEY, AES.MODE_ECB)
+
+        # Decrypt and remove padding
+        return Padding.unpad(cipher.decrypt(data), 16)
+    
+    @classmethod
+    def encrypt_aes(cls, data: bytes):
+        cipher = AES.new(ENC_KEY, AES.MODE_ECB)
+
+        # Encrypt the padded data
+        return cipher.encrypt(Padding.pad(data, 16))
+    
+    @classmethod
+    def encode32(cls, data: bytes):
+        return md5(data + SIGN_KEY).digest()
+
+    @classmethod
+    def udpid(cls, id: bytes):
+        with memoryview(sha256(id).digest()) as hash:
+            return bytes(a ^ b for a, b in zip(hash[:16], hash[16:]))
 
 
 class security:
 
     def __init__(self, use_china_server=False):
-        self.appKey = appKey.encode()
-        self.signKey = signKey.encode()
-        self.blockSize = 16
-        self.iv = b'\0' * 16
-        self.encKey = self.enc_key()
-        self.dynamicKey = self.dynamic_key()
         self._tcp_key = None
         self._request_count = 0
         self._response_count = 0
@@ -43,43 +61,11 @@ class security:
             self._iotkey = "prod_secret123@muc"
             self._loginKey = 'ad0ee21d48a64bf49f4fb583ab76e799'
 
-    def aes_decrypt(self, raw):
-        cipher = AES.new(self.encKey, AES.MODE_ECB)
-        try:
-            decrypted = cipher.decrypt(bytes(raw))
-
-            # Remove the padding
-            decrypted = unpad(decrypted, self.blockSize)
-            return decrypted
-        except ValueError as e:
-            _LOGGER.error("aes_decrypt error: %s - data: %s",
-                          repr(e), raw.hex())
-            return bytearray(0)
-
-    def aes_encrypt(self, raw):
-        # Make sure to pad the data
-        raw = pad(raw, self.blockSize)
-
-        cipher = AES.new(self.encKey, AES.MODE_ECB)
-        encrypted = cipher.encrypt(bytes(raw))
-
-        return encrypted
-
     def aes_cbc_decrypt(self, raw, key):
-        return AES.new(key, AES.MODE_CBC, iv=self.iv).decrypt(raw)
+        return AES.new(key, AES.MODE_CBC, iv=bytes(16)).decrypt(raw)
 
     def aes_cbc_encrypt(self, raw, key):
-        return AES.new(key, AES.MODE_CBC, iv=self.iv).encrypt(raw)
-
-    def enc_key(self):
-        return md5(self.signKey).digest()
-
-    def dynamic_key(self):
-        # Use only half of the hash
-        return md5(self.appKey).digest()[:8]
-
-    def encode32_data(self, raw):
-        return md5(raw + self.signKey).digest()
+        return AES.new(key, AES.MODE_CBC, iv=bytes(16)).encrypt(raw)
 
     def local_key(self, mac: str, ssid: str, pw: str):
         mac = bytes.fromhex(mac.replace(':', ''))

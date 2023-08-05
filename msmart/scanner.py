@@ -9,7 +9,7 @@ from threading import Lock
 from msmart.cloud import cloud
 from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 from msmart.device import air_conditioning as ac
-from msmart.security import get_udpid, security
+from msmart.security import get_udpid, Security
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
@@ -19,7 +19,6 @@ except ImportError:
 _LOGGER = logging.getLogger(__name__)
 
 Client = None
-_security = security()
 _lock = Lock()
 
 
@@ -93,7 +92,7 @@ class scandeviceV2V3(scandevice):
             data = data[8:-16]
         self.id = int.from_bytes(data[20:26], 'little')
         encrypt_data = data[40:-16]
-        reply = _security.aes_decrypt(encrypt_data)
+        reply = Security.decrypt_aes(encrypt_data)
         self.ip = '.'.join([str(i) for i in reply[3::-1]])
         _LOGGER.debug("Decrypt Reply: %s %s", self.ip, reply.hex())
         self.port = int.from_bytes(reply[4:8], 'little')

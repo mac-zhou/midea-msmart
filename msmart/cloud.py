@@ -6,7 +6,7 @@ import requests
 from time import time
 
 from threading import Lock
-from msmart.security import security
+from msmart.security import security, Security
 # from msmart.security import loginKey
 from secrets import token_hex, token_urlsafe
 import os
@@ -229,14 +229,14 @@ class cloud:
 
         _LOGGER.debug("Sending to %d: %s", id, data.hex())
         encoded = self.encode(data)
-        order = self.security.aes_encrypt(encoded)
+        order = Security.encrypt_aes(encoded)
         response = self.api_request('appliance/transparent/send', {
             'order': order.hex(),
             'funId': '0000',
             'applianceId': id
         })
 
-        reply = self.decode(self.security.aes_decrypt(
+        reply = self.decode(Security.decrypt_aes(
             bytearray.fromhex(response['reply'])))
 
         _LOGGER.debug("Recieved from %d: %s", id, reply.hex())
