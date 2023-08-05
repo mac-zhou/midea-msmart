@@ -18,6 +18,7 @@ _LOGGER = logging.getLogger(__name__)
 SIGN_KEY = "xhdiwjnchekd4d512chdjx5d8e4c394D2D7S".encode()
 ENC_KEY = md5(SIGN_KEY).digest()
 
+
 class Security:
     @classmethod
     def decrypt_aes(cls, data: bytes):
@@ -25,14 +26,14 @@ class Security:
 
         # Decrypt and remove padding
         return Padding.unpad(cipher.decrypt(data), 16)
-    
+
     @classmethod
     def encrypt_aes(cls, data: bytes):
         cipher = AES.new(ENC_KEY, AES.MODE_ECB)
 
         # Encrypt the padded data
         return cipher.encrypt(Padding.pad(data, 16))
-    
+
     @classmethod
     def encode32(cls, data: bytes):
         return md5(data + SIGN_KEY).digest()
