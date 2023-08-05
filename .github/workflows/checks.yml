@@ -2,9 +2,8 @@ name: Code Quality Checks
 
 on:
   push:
-    branches: [ "future" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "future" ]
 
 jobs:
   check-autopep8:
