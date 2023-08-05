@@ -30,7 +30,7 @@ async def _discover(ip: str, count: int, account: str, password: str, china: boo
     if len(devices) == 0:
         _LOGGER.error("No devices found.")
         return
-    
+
     _LOGGER.info("Found %d devices.", len(devices))
     for device in devices:
         _LOGGER.info("Found device:\n%s", device)
