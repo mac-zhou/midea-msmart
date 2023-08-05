@@ -11,23 +11,25 @@ _LOGGER = logging.getLogger(__name__)
 
 class device(ABC):
 
-    def __init__(self, *, ip: str, port: int, id: int, name: str, type: int, sn: str = None):
+    def __init__(self, *, ip: str, port: int, id: int, **kwargs):
         self._ip = ip
         self._port = port
 
         self._id = id
-        self._sn = sn
-        self._name = name
-        self._type = type
+        self._sn = kwargs.get("sn", None)
+        self._name = kwargs.get("name", None)
+        self._type = kwargs.get("type", None)
 
         # For V3 devices
         self._token = None
         self._key = None
 
         self._lan_service = lan(ip, id, port)
+        self._support = False
+        self._online = False
 
     def authenticate(self, token: str = None, key: str = None):
-        # Use existing token and key if none provied
+        # Use existing token and key if none provided
         if token is None or key is None:
             token = self._token
             key = self._key
@@ -69,19 +71,17 @@ class device(ABC):
         if len(responses) == 0:
             _LOGGER.warning(
                 "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
-            self._active = False
             self._support = False
-        
+
         # sort, put CMD_TYPE_QUERRY last, so we can get END(machine_status) from the last response
         responses.sort()
-        
+
         return responses
 
     def process_response(self, data):
         _LOGGER.debug("Update from %s:%d %s", self.ip, self.port, data.hex())
         if len(data) > 0:
             self._online = True
-            self._active = True
             if data == b'ERROR':
                 self._support = False
                 _LOGGER.warning("Got ERROR from %s, %s", self.ip, self.id)
@@ -111,6 +111,10 @@ class device(ABC):
     @property
     def sn(self) -> str:
         return self._sn
+
+    @property
+    def online(self) -> bool:
+        return self._online
 
     def __str__(self) -> str:
         return f"{self.ip}:{self.port} Type: {self.type} ID: {self.id}"

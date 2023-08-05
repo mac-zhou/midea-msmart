@@ -1,17 +1,20 @@
 
-from msmart.device import air_conditioning as ac
-from msmart.device.base import device
 import logging
 import time
+from msmart.device import air_conditioning as ac
+
 logging.basicConfig(level=logging.DEBUG)
 
-# first take device's ip and id, port is generally 6444
-# pip3 install msmart; midea-discover
-device = ac('YOUR_AC_IP', int('YOUR_AC_ID'), 6444)
-# If the device is using protocol 3 (aka 8370)
-# you must authenticate with device's k1 and token.
-# adb logcat | grep doKeyAgree
-device.authenticate('YOUR_AC_K1', 'YOUR_AC_TOKEN')
+# Manually construct device. Async functions may use Discover.discover_single("YOUR_AC_IP")
+# See midea-discover to read ID, token and key
+# Prefer to use named args
+device = ac(ip='YOUR_AC_IP', port=6444, id=int('YOUR_AC_ID'))
+# But position args will work
+# device = ac('YOUR_AC_IP', int('YOUR_AC_ID'), 6444)
+
+# V3 devices require authentication
+device.authenticate('YOUR_AC_TOKEN', 'YOUR_AC_KEY')
+
 # Refresh the object with the actual state by querying it
 device.get_capabilities()
 device.refresh()
@@ -31,15 +34,15 @@ print({
     'outdoor_temperature': device.outdoor_temperature
 })
 
+time.sleep(1)
+
 # Set the state of the device and
-device.prompt_tone = True
 device.power_state = True
 device.prompt_tone = False
 device.target_temperature = 25
 device.operational_mode = ac.operational_mode_enum.cool
-time.sleep(1)
-# commit the changes with apply()
 device.apply()
+
 print({
     'id': device.id,
     'name': device.ip,
