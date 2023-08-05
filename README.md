@@ -29,6 +29,14 @@ Check the output to ensure the type is 0xAC and the `supported` property is True
 
 Save the device ID, IP address, and port. Version 3 devices will also require the `token` and `key` fields to control the device.
 
+
+#### Note: V1 Device Owners
+Users with V1 devices will see the following error:
+```
+ERROR:msmart.discover:V1 device not supported yet.
+```
+I don't have any V1 devices to test with so please create an issue with the output of `midea-discover -d`.
+
 ### Home Assistant
 Use [this fork](https://github.com/mill1000/midea-ac-py) of midea-ac-py to control devices from Home Assistant.
 
