@@ -1,7 +1,7 @@
 # midea-msmart
 A Python library to enable local communication with Midea (and associated brands) smart air conditioners.
 
-![Code Quality Badge](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml/badge.svg?branch=future)
+![Code Quality Badge](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml/badge.svg)
 
 ## Gratitude
 This project is a fork of [mac-zhou/midea-msmart](https://github.com/mac-zhou/midea-msmart), and builds upon the work of
@@ -13,7 +13,7 @@ This project is a fork of [mac-zhou/midea-msmart](https://github.com/mac-zhou/mi
 ## Installing
 Install this fork via pip.
 ```shell
-pip install git+https://github.com/mill1000/midea-msmart.git@future
+pip install git+https://github.com/mill1000/midea-msmart.git
 ```
 
 ## Usage
