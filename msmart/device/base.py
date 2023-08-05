@@ -84,7 +84,7 @@ class device:
         _LOGGER.debug(
             "Got responses from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
         if len(responses) == 0:
-            _LOGGER.warn(
+            _LOGGER.warning(
                 "Got Null from {}:{} Version: {} Count: {} Spend time: {}".format(self.ip, self.port, self._protocol_version, len(responses), request_time))
             self._active = False
             self._support = False
@@ -101,7 +101,7 @@ class device:
             self._active = True
             if data == b'ERROR':
                 self._support = False
-                _LOGGER.warn(
+                _LOGGER.warning(
                     "Got ERROR from {}, {}".format(self.ip, self.id))
                 return
             return data

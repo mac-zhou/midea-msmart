@@ -113,7 +113,7 @@ class air_conditioning(device):
 
     def toggle_display(self):
         if not self._supports_display_control:
-            _LOGGER.warn("Device is not capable of display control.")
+            _LOGGER.warning("Device is not capable of display control.")
 
         cmd = toggle_display_command(self.type)
         self.send_cmd(cmd, True)
@@ -162,21 +162,21 @@ class air_conditioning(device):
         try:
             # Warn if trying to apply unsupported modes
             if self._operational_mode not in self._supported_op_modes:
-                _LOGGER.warn("Device is not capable of operational mode {}.".format(
+                _LOGGER.warning("Device is not capable of operational mode {}.".format(
                     self._operational_mode))
 
             if self._swing_mode not in self._supported_swing_modes:
-                _LOGGER.warn(
+                _LOGGER.warning(
                     "Device is not capable of swing mode {}.".format(self._swing_mode))
 
             if self._turbo_mode and not self._supports_turbo:
-                _LOGGER.warn("Device is not capable of turbo mode.")
+                _LOGGER.warning("Device is not capable of turbo mode.")
 
             if self._eco_mode and not self._supports_eco:
-                _LOGGER.warn("Device is not capable of eco mode.")
+                _LOGGER.warning("Device is not capable of eco mode.")
 
             if self._freeze_protection_mode and not self._supports_freeze_protection_mode:
-                _LOGGER.warn("Device is not capable of freeze protection.")
+                _LOGGER.warning("Device is not capable of freeze protection.")
 
             cmd = set_state_command(self.type)
             cmd.beep_on = self._prompt_tone

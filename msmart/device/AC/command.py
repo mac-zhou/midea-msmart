@@ -333,7 +333,7 @@ class capabilities_response(response):
             try:
                 id = CapabilityId(cap_id)
             except ValueError:
-                _LOGGER.warn(
+                _LOGGER.warning(
                     "Unknown capability. ID: 0x{:04X}, Size: {}.".format(cap_id, size))
                 # Advanced to next capability
                 caps = caps[3+size:]
@@ -371,7 +371,7 @@ class capabilities_response(response):
                 self._capabilities["decimals"] = caps[9] == 0 if size > 6 else caps[2] == 0
 
             else:
-                _LOGGER.warn(
+                _LOGGER.warning(
                     "Unsupported capability. ID: 0x{:04X}, Size: {}.".format(id, size))
 
             # Advanced to next capability
