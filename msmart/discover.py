@@ -345,7 +345,11 @@ class Discover:
         """Get device information and construct a device instance from the discovery response data."""
 
         # Fetch device information
-        info = await Discover._get_device_info(ip, version, data)
+        try:
+            info = await Discover._get_device_info(ip, version, data)
+        except NotImplementedError as e:
+            _LOGGER.error(e)
+            return None
 
         # Get device class corresponding to type
         device_class = Discover._get_device_class(info["type"])
