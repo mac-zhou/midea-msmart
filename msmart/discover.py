@@ -11,7 +11,7 @@ from msmart.const import (
     DEVICE_INFO_MSG,
     OPEN_MIDEA_APP_ACCOUNT,
     OPEN_MIDEA_APP_PASSWORD,
-    DeviceID
+    DeviceId
 )
 from msmart.security import Security
 from msmart.cloud import cloud
@@ -316,7 +316,7 @@ class Discover:
     def _get_device_class(cls, type: int):
         """Get the device class from the device type."""
 
-        if type == DeviceID.AIR_CONDITIONER:
+        if type == DeviceId.AIR_CONDITIONER:
             return air_conditioning
 
         # Unknown type return generic device

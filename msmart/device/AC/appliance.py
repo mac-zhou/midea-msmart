@@ -1,7 +1,7 @@
 
 from enum import IntEnum
 import logging
-from msmart.const import DeviceID
+from msmart.const import DeviceId
 from msmart.device.base import device
 from .command import ResponseId, InvalidResponseException, response as base_response
 from .command import state_response, capabilities_response
@@ -74,7 +74,7 @@ class air_conditioning(device):
 
     def __init__(self, ip: str, id: int,  port: int, **kwargs):
         # Ensure type is set
-        kwargs["type"] = DeviceID.AIR_CONDITIONER
+        kwargs["type"] = DeviceId.AIR_CONDITIONER.value
 
         super().__init__(ip=ip, port=port, id=id, **kwargs)
 
