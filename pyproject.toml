@@ -18,7 +18,6 @@ classifiers = [
   "Operating System :: OS Independent"
 ]
 dependencies = [
-  "click",
   "pycryptodome",
   "requests",
   "ifaddr",
@@ -30,6 +29,6 @@ dynamic = ["version"]
 homepage = "https://github.com/mac-zhou/midea-msmart"
 
 [project.scripts]
-midea-discover = "msmart.cli:discover"
+midea-discover = "msmart.cli:main"
 
 [tool.setuptools_scm]
