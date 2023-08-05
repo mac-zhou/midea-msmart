@@ -139,10 +139,6 @@ class device:
         return self._sn
 
     @property
-    def type(self):
-        return self._type
-
-    @property
     def active(self):
         return self._active
 
