@@ -72,7 +72,7 @@ class air_conditioning(device):
             return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
 
     def __init__(self, *args, **kwargs):
-        super(air_conditioning, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0

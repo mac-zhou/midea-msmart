@@ -7,7 +7,7 @@ import socket
 from threading import Lock
 
 from msmart.cloud import cloud
-from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
+from msmart.const import DISCOVERY_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 from msmart.device import air_conditioning as ac
 from msmart.security import get_udpid, Security
 try:
@@ -230,10 +230,10 @@ class MideaDiscovery:
         for net in nets:
             try:
                 self.socket.sendto(
-                    BROADCAST_MSG, (str(net.broadcast_address), 6445)
+                    DISCOVERY_MSG, (str(net.broadcast_address), 6445)
                 )
                 self.socket.sendto(
-                    BROADCAST_MSG, (str(net.broadcast_address), 20086)
+                    DISCOVERY_MSG, (str(net.broadcast_address), 20086)
                 )
             except:
                 _LOGGER.debug("Unable to send broadcast to: %s",
@@ -241,10 +241,10 @@ class MideaDiscovery:
 
     async def _send_message(self, address):
         self.socket.sendto(
-            BROADCAST_MSG, (address, 6445)
+            DISCOVERY_MSG, (address, 6445)
         )
         self.socket.sendto(
-            BROADCAST_MSG, (address, 20086)
+            DISCOVERY_MSG, (address, 20086)
         )
         _LOGGER.debug("Message sent")
 
