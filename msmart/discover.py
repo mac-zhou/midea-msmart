@@ -13,7 +13,7 @@ from msmart.const import (
     OPEN_MIDEA_APP_PASSWORD,
     DeviceId
 )
-from msmart.security import Security
+from msmart.lan import Security
 from msmart.cloud import Cloud
 from msmart.device import device, air_conditioning
 

@@ -1,12 +1,14 @@
 """Module for minimal Midea cloud API access."""
 from asyncio import Lock
 from datetime import datetime
+import hashlib
+import hmac
 import json
 import logging
 import os
 from secrets import token_hex, token_urlsafe
 import httpx
-from msmart.security import security
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,6 +43,9 @@ class Cloud:
     RETRIES = 3
 
     def __init__(self, account, password, use_china_server=False):
+        # Allow override Chia server from environment
+        if os.getenv("MIDEA_CHINA_SERVER", "0") == "1":
+            use_china_server = True
 
         self._account = account
         self._password = password
@@ -51,10 +56,7 @@ class Cloud:
         self._access_token = ""
 
         self._api_lock = Lock()
-        self._security = security()
-
-        if os.getenv("USE_CHINA_SERVER", "0") == "1":
-            use_china_server = True
+        self._security = _Security(use_china_server)
 
         self._base_url = Cloud.BASE_URL_CHINA if use_china_server else Cloud.BASE_URL
 
@@ -104,7 +106,7 @@ class Cloud:
         random = token_hex(16)
 
         # Sign the contents and add it to the header
-        sign = self._security.new_sign(contents, random)
+        sign = self._security.sign(contents, random)
         headers = {
             'Content-Type': 'application/json',
             "secretVersion": "1",
@@ -176,7 +178,7 @@ class Cloud:
                 "clientType": Cloud.CLIENT_TYPE,
                 "iampwd": self._security.encrypt_iam_password(self._login_id, self._password),
                 "loginAccount": self._account,
-                "password": self._security.encryptPassword(self._login_id, self._password),
+                "password": self._security.encrypt_password(self._login_id, self._password),
                 "pushToken": token_urlsafe(120),
                 "reqId": token_hex(16),
                 "src": Cloud.SRC,
@@ -211,3 +213,61 @@ class Cloud:
 
         # No matching udpId in the tokenlist
         return None, None
+
+
+class _Security:
+    """"Class for cloud specific security."""
+
+    HMAC_KEY = "PROD_VnoClJI9aikS8dyy"
+
+    IOT_KEY = "meicloud"
+    LOGIN_KEY = "ac21b9f9cbfe4ca5a88562ef25e2b768"
+
+    IOT_KEY_CHINA = "prod_secret123@muc"
+    LOGIN_KEY_CHINA = "ad0ee21d48a64bf49f4fb583ab76e799"
+
+    def __init__(self, use_china_server=False):
+        self._use_china_server = use_china_server
+
+    @property
+    def _iot_key(self) -> str:
+        return _Security.IOT_KEY_CHINA if self._use_china_server else _Security.IOT_KEY
+
+    @property
+    def _login_key(self) -> str:
+        return _Security.LOGIN_KEY_CHINA if self._use_china_server else _Security.LOGIN_KEY
+
+    def sign(self, data: str, random: str) -> str:
+        msg = self._iot_key + data + random
+
+        sign = hmac.new(self.HMAC_KEY.encode("ASCII"),
+                        msg.encode("ASCII"), hashlib.sha256)
+        return sign.hexdigest()
+
+    def encrypt_password(self, login_id, password):
+        """Encrypt the password for cloud API password."""
+        # Hash the password
+        m1 = hashlib.sha256(password.encode("ASCII"))
+
+        # Create the login hash with the loginID + password hash + loginKey, then hash it all AGAIN
+        login_hash = login_id + m1.hexdigest() + self._login_key
+        m2 = hashlib.sha256(login_hash.encode("ASCII"))
+
+        return m2.hexdigest()
+
+    def encrypt_iam_password(self, login_id, password) -> str:
+        """Encrypts password for cloud API iampwd field."""
+
+        # Hash the password
+        m1 = hashlib.md5(password.encode("ASCII"))
+
+        # Hash the password hash
+        m2 = hashlib.md5(m1.hexdigest().encode("ASCII"))
+
+        if self._use_china_server:
+            return m2.hexdigest()
+
+        login_hash = login_id + m2.hexdigest() + self._login_key
+        sha = hashlib.sha256(login_hash.encode("ASCII"))
+
+        return sha.hexdigest()
