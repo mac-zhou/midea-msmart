@@ -329,4 +329,4 @@ class Security:
     @classmethod
     def udpid(cls, id: bytes):
         with memoryview(sha256(id).digest()) as hash:
-            return bytes(a ^ b for a, b in zip(hash[:16], hash[16:]))
+            return strxor(hash[:16], hash[16:])
