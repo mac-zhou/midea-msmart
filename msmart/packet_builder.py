@@ -1,14 +1,12 @@
 import datetime
-import logging
 from msmart.base_command import command as base_command
-from msmart.security import security
+from msmart.security import Security
 
 
 class packet_builder:
 
     def __init__(self, device_id: int):
         self.command = None
-        self.security = security()
         # aa20ac00000000000003418100ff03ff000200000000000000000000000006f274
         # Init the packet with the header data.
         self.packet = bytearray([
@@ -37,7 +35,7 @@ class packet_builder:
 
     def finalize(self):
         # Append the command data(48 bytes) to the packet
-        self.packet.extend(self.security.aes_encrypt(self.command)[:48])
+        self.packet.extend(Security.encrypt_aes(self.command)[:48])
         # PacketLenght
         self.packet[4:6] = (len(self.packet) + 16).to_bytes(2, 'little')
         # Append a basic checksum data(16 bytes) to the packet
@@ -46,7 +44,7 @@ class packet_builder:
 
     def encode32(self, data: bytearray):
         # 16 bytes encode32
-        return self.security.encode32_data(data)
+        return Security.encode32(data)
 
     def checksum(self, data):
         return (~ sum(data) + 1) & 0xff

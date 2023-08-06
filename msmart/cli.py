@@ -1,62 +1,70 @@
-
-# -*- coding: UTF-8 -*-
 import asyncio
-from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
-from msmart.scanner import MideaDiscovery
-from msmart import __version__
-import click
+import argparse
 import logging
-import sys
-import os
 
+from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
+from msmart.discover import Discover
+from msmart import __version__
 
 _LOGGER = logging.getLogger(__name__)
 
 
-@click.command()
-@click.option("-d", "--debug", default=False, count=True, help='Enable debug logging')
-@click.option("-cn", "--china", default=False, count=True, help='Use china server')
-@click.option("-c", "--amount", default=1, help='Number of broadcast packets, default is 1.\
-                                                if you have many devices, you may change this value.')
-@click.option("-a", "--account", default=OPEN_MIDEA_APP_ACCOUNT, help='Your account of MSmartHome or 美的美居 APP.')
-@click.option("-p", "--password", default=OPEN_MIDEA_APP_PASSWORD, help='Your password of MSmartHome or 美的美居APP.')
-@click.option("-i", "--ip", default='', help="IP address of Midea device. you can use: \
-                                                - broadcasts don't work. \
-                                                - just get one device's info. \
-                                                - an error occurred.")
-# @click.pass_context
-def discover(debug: bool, amount: int, account: str, password: str, ip: str, china: bool):
-    """Discover Midea Deivces and Get Device's info"""
-    if debug:
+async def _discover(ip: str, count: int, account: str, password: str, china: bool, **_kwargs):
+    """Discover Midea devices and print configuration information."""
+
+    _LOGGER.info(f"msmart version: {__version__}")
+    _LOGGER.info(
+        f"Only supports AC devices. Only supports MSmartHome and 美的美居.")
+
+    if china and (account == OPEN_MIDEA_APP_ACCOUNT or password == OPEN_MIDEA_APP_PASSWORD):
+        _LOGGER.error(
+            "To use China server set account (phone number) and password of 美的美居.")
+        exit(1)
+
+    devices = []
+    if ip is None or ip == "":
+        devices = await Discover.discover(account=account, password=password, discovery_packets=count)
+    else:
+        dev = await Discover.discover_single(ip, account=account, password=password, discovery_packets=count)
+        if dev:
+            devices.append(dev)
+
+    if len(devices) == 0:
+        _LOGGER.error("No devices found.")
+        return
+
+    _LOGGER.info("Found %d devices.", len(devices))
+    for device in devices:
+        _LOGGER.info("Found device:\n%s", device)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Discover Midea devices and print device information.",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument(
+        "-d", "--debug", help="Enable debug logging.", action="store_true")
+    parser.add_argument(
+        "-a", "--account", help="MSmartHome or 美的美居 account username.", default=OPEN_MIDEA_APP_ACCOUNT)
+    parser.add_argument(
+        "-p", "--password", help="MSmartHome or 美的美居 account password.", default=OPEN_MIDEA_APP_PASSWORD)
+    parser.add_argument(
+        "-i", "--ip", help="IP address of a device. Useful if broadcasts don't work, or to query a single device.")
+    parser.add_argument(
+        "-c", "--count", help="Number of broadcast packets to send.", default=3, type=int)
+    parser.add_argument("--china", help="Use China server.",
+                        action="store_true")
+    args = parser.parse_args()
+
+    if args.debug:
         logging.basicConfig(level=logging.DEBUG)
-        _LOGGER.info("Debug mode active")
     else:
         logging.basicConfig(level=logging.INFO)
-    _LOGGER.info(
-        "msmart version: %s Currently only supports ac devices, only support MSmartHome and 美的美居 APP.", __version__)
-    os.environ['USE_CHINA_SERVER'] = str(china)
-    if china:
-        if account == OPEN_MIDEA_APP_ACCOUNT or password == OPEN_MIDEA_APP_PASSWORD:
-            _LOGGER.error(
-                "if you want to use china server, you need to set account(phone number) and password of 美的美居.")
-            sys.exit(1)
 
     try:
-        discovery = MideaDiscovery(
-            account=account, password=password, amount=amount)
-        loop = asyncio.new_event_loop()
-        found_devices = loop.run_until_complete(
-            discovery.get_all() if ip == '' else discovery.get(ip))
-        loop.close()
-        if not found_devices:
-            _LOGGER.error(
-                "*** \033[0;31mDevice not found, please read: https://github.com/mac-zhou/midea-ac-py#how-to-get-configuration-variables \033[0m")
-        else:
-            for device in found_devices:
-                _LOGGER.info(
-                    "*** Found a device: \033[94m\033[1m%s \033[0m", device)
+        asyncio.run(_discover(**vars(args)))
     except KeyboardInterrupt:
-        sys.exit(0)
+        pass
 
-# if __name__ == '__main__':
-#     discover()
+
+if __name__ == "__main__":
+    main()
