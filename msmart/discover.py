@@ -340,7 +340,7 @@ class Discover:
                 "Fetching token and key for udpid '%s' (%s).", udpid, endian)
             token, key = await cloud.get_token(udpid)
 
-            if dev.authenticate(token, key):
+            if await dev.authenticate(token, key):
                 return token, key
 
     @classmethod
@@ -363,6 +363,6 @@ class Discover:
         if version == 3:
             await Discover._authenticate_device(dev)
 
-        dev.refresh()
+        await dev.refresh()
 
         return dev

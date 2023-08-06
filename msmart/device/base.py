@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 import logging
 import time
-from msmart.lan import lan
+from msmart.lan import LAN
 from msmart.packet_builder import packet_builder
 
 
@@ -24,11 +24,11 @@ class device(ABC):
         self._token = None
         self._key = None
 
-        self._lan_service = lan(ip, id, port)
+        self._lan_service = LAN(ip, port)
         self._support = False
         self._online = False
 
-    def authenticate(self, token: str = None, key: str = None):
+    async def authenticate(self, token: str = None, key: str = None):
         # Use existing token and key if none provided
         if token is None or key is None:
             token = self._token
@@ -38,7 +38,7 @@ class device(ABC):
             if isinstance(x, str):
                 return bytes.fromhex(x)
 
-        success = self._lan_service.authenticate(convert(token), convert(key))
+        success = await self._lan_service.authenticate(convert(token), convert(key))
 
         # Update token and key if successful
         if success:
@@ -48,14 +48,14 @@ class device(ABC):
         return success
 
     @abstractmethod
-    def refresh(self):
+    async def refresh(self):
         pass
 
     @abstractmethod
-    def apply(self):
+    async def apply(self):
         pass
 
-    def send_cmd(self, cmd):
+    async def send_command(self, cmd):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
@@ -63,7 +63,7 @@ class device(ABC):
             "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
         send_time = time.time()
 
-        responses = self._lan_service.send(data)
+        responses = await self._lan_service.send(data)
 
         request_time = round(time.time() - send_time, 2)
         _LOGGER.debug(
