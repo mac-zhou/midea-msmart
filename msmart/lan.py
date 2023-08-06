@@ -101,7 +101,8 @@ class _LanProtocolV3(_LanProtocol):
     class AuthenticationError(Exception):
         pass
 
-    # V3 Protocol Overview
+    # V3 Packet Overview
+    #
     # Header: 6 bytes
     #  2 byte start of packet: 0x8370
     #  2 byte size of data payload, padding and sign
@@ -118,6 +119,7 @@ class _LanProtocolV3(_LanProtocol):
     # Notes
     #  - For padding purposes the 2 byte request ID is included in size,
     #    but not in the size field
+    #  - When used for device command/response, the payload contains a V2 packet
 
     def __init__(self):
         super().__init__()
@@ -297,6 +299,22 @@ class _LanProtocolV3(_LanProtocol):
         self._packet_id += 1
         self._packet_id &= 0xFFF  # Mask to 12 bits
 
+    def _get_local_key(self, key, data: memoryview):
+
+        # Extract payload and hash
+        payload = data[:32]
+        hash = data[32:]
+
+        # Decrypt the payload with the provided key
+        decrypted_payload = Security.decrypt_aes_cbc(key, payload)
+
+        if sha256(decrypted_payload).digest() != hash:
+            raise _LanProtocolV3.AuthenticationError(
+                "Calculated hash does not match received hash.")
+
+        # Construct the local key
+        return strxor(decrypted_payload, key)
+
     async def authenticate(self, token, key):
         # Send request
         try:
@@ -309,7 +327,8 @@ class _LanProtocolV3(_LanProtocol):
                 "Invalid response length for key handshake.")
 
         # Generate local key from cloud key
-        self._local_key = Security.get_local_key(key, response)
+        with memoryview(response) as response_mv:
+            self._local_key = self._get_local_key(key, response_mv)
 
         _LOGGER.info("Local key: %s", self._local_key.hex())
 
@@ -451,24 +470,6 @@ class Security:
     @classmethod
     def encrypt_aes_cbc(cls, key, data):
         return AES.new(key, AES.MODE_CBC, iv=bytes(16)).encrypt(data)
-
-    @classmethod
-    def get_local_key(cls, key, data):
-
-        with memoryview(data) as data_mv:
-            # Extract payload and hash
-            payload = data_mv[:32]
-            hash = data_mv[32:]
-
-            # Decrypt the payload with the provided key
-            decrypted_payload = Security.decrypt_aes_cbc(key, payload)
-
-            if sha256(decrypted_payload).digest() != hash:
-                raise _LanProtocolV3.InvalidPacketError(
-                    "Calculated hash does not match received hash.")  # TODO not the right exception
-
-            # Construct the local key
-            return strxor(decrypted_payload, key)
 
     @classmethod
     def decrypt_aes(cls, data: bytes):
