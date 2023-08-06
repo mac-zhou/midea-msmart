@@ -1,6 +1,6 @@
 import datetime
 from msmart.base_command import command as base_command
-from msmart.security import Security
+from msmart.lan import Security
 
 
 class packet_builder:
