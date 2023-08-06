@@ -14,7 +14,7 @@ from msmart.const import (
     DeviceId
 )
 from msmart.security import Security
-from msmart.cloud import cloud
+from msmart.cloud import Cloud
 from msmart.device import device, air_conditioning
 
 _LOGGER = logging.getLogger(__name__)
@@ -211,8 +211,8 @@ class Discover:
         async with cls._lock:
             # Create cloud connection if nonexistent
             if cls._cloud is None:
-                cls._cloud = cloud(cls._account, cls._password)
-                cls._cloud.login()
+                cls._cloud = Cloud(cls._account, cls._password)
+                await cls._cloud.login()
 
         return cls._cloud
 
@@ -338,7 +338,7 @@ class Discover:
 
             _LOGGER.debug(
                 "Fetching token and key for udpid '%s' (%s).", udpid, endian)
-            token, key = cloud.gettoken(udpid)
+            token, key = await cloud.get_token(udpid)
 
             if dev.authenticate(token, key):
                 return token, key
