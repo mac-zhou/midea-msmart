@@ -3,7 +3,7 @@ import logging
 import socket
 import time
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_HANDSHAKE_REQUEST
-from msmart.security import security
+from msmart.security import security, Security
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ class lan:
         self._tcp_key = None
         self._local = None
         self._remote = device_ip + ":" + str(device_port)
+        self._protocol_version = 2
 
     def _connect(self):
         if self._socket is None:
@@ -118,6 +119,7 @@ class lan:
             self._tcp_key = tcp_key.hex()
             _LOGGER.info('Got TCP key for %s tcp_key: %s',
                          self.get_socket_info(), tcp_key.hex())
+            self._protocol_version = 3
             # After authentication, don’t send data immediately, so sleep 1s.
             time.sleep(1)
         else:
@@ -130,7 +132,7 @@ class lan:
             raise Exception('missing token key pair')
         return self.authenticate(self._token, self._key)
 
-    def appliance_transparent_send_8370(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
+    def _send_v3(self, data, msgtype=MSGTYPE_ENCRYPTED_REQUEST):
         # socket_time = time.time() - self._timestamp
         # _LOGGER.debug("Data: {} msgtype: {} len: {} socket time: {}".format(data.hex(), msgtype, len(data), socket_time))
         if self._socket is None or self._tcp_key is None:
@@ -150,8 +152,7 @@ class lan:
             self._disconnect()
             return [b'ERROR']
         if responses == bytearray(0) and self._retries < 2 and b:
-            packets = self.appliance_transparent_send_8370(
-                original_data, msgtype)
+            packets = self._send_v3(original_data, msgtype)
             self._retries = 0
             return packets
         responses, self._buffer = self.security.decode_8370(
@@ -159,19 +160,19 @@ class lan:
         packets = []
         for response in responses:
             if len(response) > 40 + 16:
-                response = self.security.aes_decrypt(response[40:-16])
+                response = Security.decrypt_aes(response[40:-16])
             # header lenght is 10
             if len(response) > 10:
                 packets.append(response)
         return packets
 
-    def appliance_transparent_send(self, data):
+    def _send(self, data):
         # time sleep retries second befor send data, default is 0
         time.sleep(self._retries)
         responses, b = self.request(data)
         _LOGGER.debug("Get responses len: %d", len(responses))
         if responses == bytearray(0) and self._retries < 2 and b:
-            packets = self.appliance_transparent_send(data)
+            packets = self._send(data)
             self._retries = 0
             return packets
         packets = []
@@ -183,7 +184,7 @@ class lan:
             # maybe multiple response
             while i < dlen:
                 size = responses[i+4]
-                data = self.security.aes_decrypt(responses[i:i+size][40:-16])
+                data = Security.decrypt_aes(responses[i:i+size][40:-16])
                 # header lenght is 10
                 if len(data) > 10:
                     packets.append(data)
@@ -200,3 +201,13 @@ class lan:
         else:
             _LOGGER.error("Unknown responses %s", responses.hex())
         return packets
+
+    def send(self, data: bytes):
+        if self._protocol_version == 3:
+            return self._send_v3(data)
+        else:
+            return self._send(data)
+
+    @property
+    def protocol_version(self) -> int:
+        return self._protocol_version

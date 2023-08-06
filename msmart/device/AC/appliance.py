@@ -1,10 +1,11 @@
 
 from enum import IntEnum
 import logging
+from msmart.const import DeviceId
+from msmart.device.base import device
 from .command import ResponseId, InvalidResponseException, response as base_response
 from .command import state_response, capabilities_response
 from .command import get_state_command, set_state_command, get_capabilities_command, toggle_display_command
-from msmart.device.base import device
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -71,8 +72,16 @@ class air_conditioning(device):
         def get(value):
             return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
 
-    def __init__(self, *args, **kwargs):
-        super(air_conditioning, self).__init__(*args, **kwargs)
+    def __init__(self, ip: str, id: int,  port: int, **kwargs):
+        # Ensure type is set
+        kwargs["type"] = DeviceId.AIR_CONDITIONER.value
+
+        super().__init__(ip=ip, port=port, id=id, **kwargs)
+
+        self._updating = False
+        self._keep_last_known_online_state = False
+        self._defer_update = False
+
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
@@ -99,8 +108,6 @@ class air_conditioning(device):
 
         self._on_timer = None
         self._off_timer = None
-        self._online = False
-        self._active = False
         self._indoor_temperature = None
         self._outdoor_temperature = None
 
