@@ -3,7 +3,7 @@ import logging
 import socket
 import time
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_HANDSHAKE_REQUEST
-from msmart.security import security, Security
+from msmart.security import Security
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ class lan:
         self.device_ip = device_ip
         self.device_id = device_id
         self.device_port = device_port
-        self.security = security()
+        self.security = Security()
         self._retries = 0
         self._socket = None
         self._token = None
