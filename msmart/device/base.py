@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 import logging
 import time
-from msmart.lan import LAN
+from msmart.lan import LAN, ProtocolError
 from msmart.packet_builder import packet_builder
 
 
@@ -36,37 +36,31 @@ class device(ABC):
         return await self._lan.authenticate(token, key)
 
     async def send_command(self, cmd):
+        # TODO push this logic into the LAN module
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
         data = pkt_builder.finalize()
         _LOGGER.debug(
             "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
-        send_time = time.time()
 
-        responses = await self._lan.send(data)
+        start = time.time()
+        response = None
+        try:
+            response = await self._lan.send(data)
+        except (ProtocolError, TimeoutError) as e:
+            _LOGGER.error(e)
+        finally:
+            response_time = round(time.time() - start, 2)
 
-        request_time = round(time.time() - send_time, 2)
-        _LOGGER.debug(
-            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan.protocol_version, len(responses), request_time)
-        if len(responses) == 0:
-            _LOGGER.warning(
-                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan.protocol_version, len(responses), request_time)
-            self._support = False
+        if response is None:
+            _LOGGER.warning("No response from %s:%d in %f seconds. ",
+                            self.ip, self.port, response_time)
+            return None
 
-        # sort, put CMD_TYPE_QUERRY last, so we can get END(machine_status) from the last response
-        responses.sort()
+        _LOGGER.debug("Response from %s:%d in %f seconds.",
+                      self.ip, self.port, response_time)
 
-        return responses
-
-    def process_response(self, data):
-        _LOGGER.debug("Update from %s:%d %s", self.ip, self.port, data.hex())
-        if len(data) > 0:
-            self._online = True
-            if data == b'ERROR':
-                self._support = False
-                _LOGGER.warning("Got ERROR from %s, %s", self.ip, self.id)
-                return
-            return data
+        return response
 
     @property
     def ip(self) -> str:

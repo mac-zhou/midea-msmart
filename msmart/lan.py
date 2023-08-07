@@ -468,11 +468,10 @@ class LAN:
 
         try:
             with memoryview(response) as response_mv:
-                # TODO return array for compat
-                return [self._process_response(response_mv)]
+                return self._process_response(response_mv)
         except ProtocolError as e:
             _LOGGER.error(e)
-            return []
+            return None
 
     @property
     def protocol_version(self) -> int:
