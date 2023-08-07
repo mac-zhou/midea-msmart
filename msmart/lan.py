@@ -302,6 +302,10 @@ class _LanProtocolV3(_LanProtocol):
 
     def _get_local_key(self, key, data: memoryview):
 
+        if len(data) != 64:
+            raise self.AuthenticationError(
+                "Invalid data length for key handshake.")
+
         # Extract payload and hash
         payload = data[:32]
         hash = data[32:]
@@ -322,10 +326,6 @@ class _LanProtocolV3(_LanProtocol):
             response = await self.request(token, type=self.PacketType.HANDSHAKE_REQUEST)
         except ProtocolError as e:
             raise self.AuthenticationError(e)
-
-        if len(response) != 64:
-            raise self.AuthenticationError(
-                "Invalid response length for key handshake.")
 
         # Generate local key from cloud key
         with memoryview(response) as response_mv:
