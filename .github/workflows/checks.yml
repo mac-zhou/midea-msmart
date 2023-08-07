@@ -34,8 +34,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         cache: "pip"
+    - run: python -c "import sys; print(sys.version)"
     - run: |
-        python -c "import sys; print(sys.version)"
         python -m pip install --upgrade pip
         pip install --editable .
     - run: python -m unittest
