@@ -399,10 +399,12 @@ class LAN:
                 await self._protocol.authenticate(token, key)
                 break
             except TimeoutError as e:
-                _LOGGER.warning("Authentication timeout.")
-                retries -= 1
-                if retries == 0:
-                    raise e  # Rethrow the exception after retries expire
+                if retries > 1:
+                    _LOGGER.warning("Authentication timeout. Resending.")
+                    retries -= 1
+                else:
+                    raise TimeoutError(
+                        "Timeout waiting for authentication response.")
             except _LanProtocolV3.AuthenticationError as e:
                 _LOGGER.error("Authentication failed. Error: %s", e)
                 return False
@@ -455,10 +457,11 @@ class LAN:
                 response = await self._protocol.request(data)
                 break
             except TimeoutError as e:
-                _LOGGER.warning("Request timeout.")
-                retries -= 1
-                if retries == 0:
-                    raise e  # Rethrow the exception after retries expire
+                if retries > 1:
+                    _LOGGER.warning("Request timeout. Resending.")
+                    retries -= 1
+                else:
+                    raise TimeoutError("Timeout waiting for response.")
 
         _LOGGER.debug("Received response from %s: %s",
                       self._protocol.peer, response.hex())
