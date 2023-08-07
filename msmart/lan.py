@@ -406,28 +406,28 @@ class LAN:
         return True
 
     def _process_response(self, response: memoryview):
+        """Process a response into a decrypted frame."""
+
         if len(response) < 6:
-            _LOGGER.error("Response is too short: %s", response.hex())
-            return []  # TODO return array for compat with device class
+            raise ProtocolError(f"Response is too short: {response.hex()}")
 
         if response[:2] == b"\x5a\x5a":
             length = int.from_bytes(response[4:6], "little")
 
             if len(response) < length:
-                _LOGGER.error("Response is truncated. Expected %d bytes, only have %d bytes: %s", length, len(
-                    response), response.hex())
-                return []  # TODO return array for compat with device class
+                raise ProtocolError(
+                    f"Response is truncated. Expected {length} bytes, only have {len(response)} bytes: {response.hex()}")
 
-            packet = response[:length]
-            encrypted_frame = packet[40:-16]
+            response = response[:length]
+            encrypted_frame = response[40:-16]
             frame = Security.decrypt_aes(encrypted_frame)
 
             # TODO check frame hash/sign
-            return [frame]  # TODO return array for compat with device class
-        else:
-            # TODO old code handled raw frames? e.g start = 0xAA
-            _LOGGER.error("Unsupported response: %s", response.hex())
-            return []  # TODO return array for compat with device class
+
+            return frame
+
+        # TODO old code handled raw frames? e.g start = 0xAA
+        raise ProtocolError(f"Unsupported response: %s", response.hex())
 
     async def send(self, data, retries=RETRIES):
         """Send data via the LAN protocol. Connecting to the peer if necessary."""
@@ -449,11 +449,16 @@ class LAN:
                 if retries == 0:
                     raise e  # Rethrow the exception after retries expire
 
-        _LOGGER.debug("Received responses from %s: %s",
+        _LOGGER.debug("Received response from %s: %s",
                       self._protocol.peer, response.hex())
 
-        with memoryview(response) as response_mv:
-            return self._process_response(response_mv)
+        try:
+            with memoryview(response) as response_mv:
+                # TODO return array for compat
+                return [self._process_response(response_mv)]
+        except ProtocolError as e:
+            _LOGGER.error(e)
+            return []
 
     @property
     def protocol_version(self) -> int:
