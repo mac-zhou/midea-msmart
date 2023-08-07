@@ -26,11 +26,11 @@ class device(ABC):
 
     @abstractmethod
     async def refresh(self):
-        pass
+        raise NotImplementedError()
 
     @abstractmethod
     async def apply(self):
-        pass
+        raise NotImplementedError()
 
     async def authenticate(self, token, key):
         return await self._lan.authenticate(token, key)
@@ -81,15 +81,15 @@ class device(ABC):
         return self._id
 
     @property
-    def type(self) -> str:
+    def type(self) -> str | None:
         return self._type
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         return self._name
 
     @property
-    def sn(self) -> str:
+    def sn(self) -> str | None:
         return self._sn
 
     @property
