@@ -20,32 +20,9 @@ class device(ABC):
         self._name = kwargs.get("name", None)
         self._type = kwargs.get("type", None)
 
-        # For V3 devices
-        self._token = None
-        self._key = None
-
-        self._lan_service = LAN(ip, port)
+        self._lan = LAN(ip, port)
         self._support = False
         self._online = False
-
-    async def authenticate(self, token: str = None, key: str = None):
-        # Use existing token and key if none provided
-        if token is None or key is None:
-            token = self._token
-            key = self._key
-
-        def convert(x):
-            if isinstance(x, str):
-                return bytes.fromhex(x)
-
-        success = await self._lan_service.authenticate(convert(token), convert(key))
-
-        # Update token and key if successful
-        if success:
-            self._token = token
-            self._key = key
-
-        return success
 
     @abstractmethod
     async def refresh(self):
@@ -55,6 +32,9 @@ class device(ABC):
     async def apply(self):
         pass
 
+    async def authenticate(self, token, key):
+        return await self._lan.authenticate(token, key)
+
     async def send_command(self, cmd):
         pkt_builder = packet_builder(self.id)
         pkt_builder.set_command(cmd)
@@ -63,14 +43,14 @@ class device(ABC):
             "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
         send_time = time.time()
 
-        responses = await self._lan_service.send(data)
+        responses = await self._lan.send(data)
 
         request_time = round(time.time() - send_time, 2)
         _LOGGER.debug(
-            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
+            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan.protocol_version, len(responses), request_time)
         if len(responses) == 0:
             _LOGGER.warning(
-                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
+                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan.protocol_version, len(responses), request_time)
             self._support = False
 
         # sort, put CMD_TYPE_QUERRY last, so we can get END(machine_status) from the last response

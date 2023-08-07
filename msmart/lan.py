@@ -11,6 +11,9 @@ from typing import cast
 
 _LOGGER = logging.getLogger(__name__)
 
+# Define a type for a token or key
+TokenKey = str | bytes | None
+
 
 class ProtocolError(Exception):
     pass
@@ -364,26 +367,28 @@ class LAN:
         if self._protocol:
             self._protocol.disconnect()
 
-    def _set_token(self, token: bytes | None, key: bytes | None) -> None:
-        """Set token and key for V3 protocol."""
+    async def authenticate(self, token: TokenKey = None, key: TokenKey = None, retries=RETRIES):
+        """Authenticate against a V3 device. Use cached token and key unless provided a new token and key."""
 
-        if token and key:
-            self._token = token
-            self._key = key
-        elif token or key:
-            raise ValueError("Both token and key must be specified.")
+        # Use existing token and key if none provided
+        if token is None or key is None:
+            token = self._token
+            key = self._key
+        else:
+            # Define a lambda to convert hex strings to bytes
+            def convert(x):
+                return bytes.fromhex(x) if isinstance(x, str) else x
 
-    async def authenticate(self, token: bytes | None = None, key: bytes | None = None, retries=RETRIES):
-        """Authenticate against a V3 device. Use cache token and key unless provided a new token and key."""
+            # Ensure passed token and key are in byte form
+            token = convert(token)
+            key = convert(key)
 
-        # Set token and key attributes if provided
-        self._set_token(token, key)
+        # Disconnect any existing V2 protocol
+        if self._protocol_version == 2:
+            self._disconnect()
 
-        # Set protocol version
-        self._protocol_version = 3
-
-        # Connect if protocol hasn't been created
         if self._protocol is None:
+            self._protocol_version = 3
             await self._connect()
 
         # Attempt to authenticate
@@ -399,6 +404,10 @@ class LAN:
             except _LanProtocolV3.AuthenticationError as e:
                 _LOGGER.error("Authentication failed. Error: %s", e)
                 return False
+
+        # Update stored token and key if successful
+        self._token = token
+        self._key = key
 
         # Sleep briefly before requesting more data
         await asyncio.sleep(1)
