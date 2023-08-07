@@ -1,5 +1,5 @@
 # midea-msmart
-A Python library to enable local communication with Midea (and associated brands) smart air conditioners.
+A Python library for local control of Midea (and associated brands) smart air conditioners.
 
 ![Code Quality Badge](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml/badge.svg)
 
