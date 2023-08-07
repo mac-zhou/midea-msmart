@@ -10,7 +10,7 @@ authors = [
   {name = "mac_zhou"},
   {email = "mac.zfl@gmail.com"},
 ]
-requires-python = ">=3.5"
+requires-python = ">=3.8"
 license = {text = "MIT"}
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -21,8 +21,7 @@ dependencies = [
   "click",
   "pycryptodome",
   "requests",
-  "ifaddr",
-  "importlib-metadata; python_version<'3.8'",
+  "ifaddr"
 ]
 dynamic = ["version"]
 
