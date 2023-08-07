@@ -69,7 +69,7 @@ class _LanProtocol(asyncio.Protocol):
         if self._transport is None:
             raise IOError()  # TODO better?
 
-        _LOGGER.debug("Disconnecting form from %s.", self.peer)
+        _LOGGER.debug("Disconnecting from %s.", self.peer)
         self._transport.close()
 
     def _write(self, data: bytes) -> None:
@@ -367,6 +367,7 @@ class LAN:
     def _disconnect(self):
         if self._protocol:
             self._protocol.disconnect()
+            self._protocol = None
 
     async def authenticate(self, token: TokenKey = None, key: TokenKey = None, retries=RETRIES):
         """Authenticate against a V3 device. Use cached token and key unless provided a new token and key."""
