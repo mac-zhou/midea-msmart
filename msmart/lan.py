@@ -12,6 +12,10 @@ from typing import cast
 _LOGGER = logging.getLogger(__name__)
 
 
+class ProtocolError(Exception):
+    pass
+
+
 class _LanProtocol(asyncio.Protocol):
     """Midea LAN protocol."""
 
@@ -95,10 +99,7 @@ class _LanProtocolV3(_LanProtocol):
         ENCRYPTED_REQUEST = 0x6
         ERROR = 0xF
 
-    class InvalidPacketError(Exception):
-        pass
-
-    class AuthenticationError(Exception):
+    class AuthenticationError(ProtocolError):
         pass
 
     # V3 Packet Overview
@@ -172,9 +173,9 @@ class _LanProtocolV3(_LanProtocol):
                 packet, self._buffer = buf[:total_size], bytearray(
                     buf[total_size:])
 
+                # Queue the received packet
                 _LOGGER.debug("Received packet: %s", packet.hex())
                 self._queue.put_nowait(packet.tobytes())
-                # self._process_packet(packet)
 
     def _decode_encrypted_response(self, packet: memoryview):
         """Decode an encrypted response packet."""
@@ -191,7 +192,7 @@ class _LanProtocolV3(_LanProtocol):
 
         # Verify hash
         if sha256(bytes(header) + decrypted_payload).digest() != hash:
-            raise self.InvalidPacketError(
+            raise ProtocolError(
                 "Calculated and received SHA256 digest do not match.")
 
         with memoryview(decrypted_payload) as payload:
@@ -216,11 +217,11 @@ class _LanProtocolV3(_LanProtocol):
         """Process a received packet based on its type."""
 
         if packet[:2] != b"\x83\x70":
-            raise self.InvalidPacketError(
+            raise ProtocolError(
                 f"Invalid start of packet: {packet[:2].hex()}")
 
         if packet[4] != 0x20:
-            raise self.InvalidPacketError(
+            raise ProtocolError(
                 f"Invalid magic byte: 0x{packet[4]:X}")
 
         # Handle packet based on type
@@ -230,9 +231,9 @@ class _LanProtocolV3(_LanProtocol):
         elif type == self.PacketType.HANDSHAKE_RESPONSE:
             return self._decode_handshake_response(packet)
         elif type == self.PacketType.ERROR:
-            raise self.InvalidPacketError("Error packet received.")
+            raise ProtocolError("Error packet received.")
         else:
-            raise self.InvalidPacketError(f"Unexpected type: {type}")
+            raise ProtocolError(f"Unexpected type: {type}")
 
     async def _read(self, timeout=2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
@@ -319,7 +320,7 @@ class _LanProtocolV3(_LanProtocol):
         # Send request
         try:
             response = await self.request(token, type=self.PacketType.HANDSHAKE_REQUEST)
-        except self.InvalidPacketError as e:
+        except ProtocolError as e:
             raise self.AuthenticationError(e)
 
         if len(response) != 64:
