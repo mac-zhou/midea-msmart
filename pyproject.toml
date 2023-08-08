@@ -4,13 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "msmart"
-description = "A library to control Midea appliances via the local area network."
+description = "A Python library for local control of Midea (and associated brands) smart air conditioners."
 readme = "README.md"
 authors = [
-  {name = "mac_zhou"},
-  {email = "mac.zfl@gmail.com"},
+  {name = "Tucker Kern", email = "tuckkern@gmail.com"},
 ]
-requires-python = ">=3.5"
+requires-python = ">=3.8"
 license = {text = "MIT"}
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -19,13 +18,13 @@ classifiers = [
 ]
 dependencies = [
   "pycryptodome",
-  "httpx",
-  "importlib-metadata; python_version<'3.8'",
+  "httpx"
 ]
 dynamic = ["version"]
 
 [project.urls]
-homepage = "https://github.com/mac-zhou/midea-msmart"
+Repository = "https://github.com/mill1000/midea-msmart"
+Issues = "https://github.com/mill1000/midea-msmart/issues"
 
 [project.scripts]
 midea-discover = "msmart.cli:main"
