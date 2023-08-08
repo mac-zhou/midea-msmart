@@ -78,11 +78,7 @@ class _LanProtocol(asyncio.Protocol):
             raise IOError()  # TODO better
 
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
-        try:
-            self._transport.write(data)
-        except Exception as e:
-            _LOGGER.error(e)
-            raise e
+        self._transport.write(data)
 
     async def _read(self, timeout=2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
