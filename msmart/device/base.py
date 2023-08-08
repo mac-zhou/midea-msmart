@@ -2,9 +2,11 @@
 from abc import ABC, abstractmethod
 import logging
 import time
+from typing import Union
+
 from msmart.lan import LAN, ProtocolError
 from msmart.packet_builder import packet_builder
-
+from msmart.types import Token, Key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +34,7 @@ class device(ABC):
     async def apply(self):
         raise NotImplementedError()
 
-    async def authenticate(self, token, key):
+    async def authenticate(self, token: Token, key: Key):
         return await self._lan.authenticate(token, key)
 
     async def send_command(self, cmd):
@@ -75,15 +77,15 @@ class device(ABC):
         return self._id
 
     @property
-    def type(self) -> str | None:
+    def type(self) -> Union[str, None]:
         return self._type
 
     @property
-    def name(self) -> str | None:
+    def name(self) -> Union[str, None]:
         return self._name
 
     @property
-    def sn(self) -> str | None:
+    def sn(self) -> Union[str, None]:
         return self._sn
 
     @property

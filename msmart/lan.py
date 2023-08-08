@@ -9,10 +9,9 @@ from hashlib import md5, sha256
 import logging
 from typing import cast
 
-_LOGGER = logging.getLogger(__name__)
+from msmart.types import Token, Key
 
-# Define a type for a token or key
-TokenKey = str | bytes | None
+_LOGGER = logging.getLogger(__name__)
 
 
 class ProtocolError(Exception):
@@ -79,7 +78,11 @@ class _LanProtocol(asyncio.Protocol):
             raise IOError()  # TODO better
 
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
-        self._transport.write(data)
+        try:
+            self._transport.write(data)
+        except Exception as e:
+            _LOGGER.error(e)
+            raise e
 
     async def _read(self, timeout=2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
@@ -165,7 +168,7 @@ class _LanProtocolV3(_LanProtocol):
                     return
 
                 # 6 byte header + 2 packet id + padded encrypted payload
-                total_size = int.from_bytes(buf[2:4]) + 8
+                total_size = int.from_bytes(buf[2:4], "big") + 8
 
                 # Ensure entire packet is received
                 if len(buf) < total_size:
@@ -260,11 +263,11 @@ class _LanProtocolV3(_LanProtocol):
 
         # Build header
         header = b"\x83\x70" + \
-            length.to_bytes(2) + b"\x20" + \
+            length.to_bytes(2, "big") + b"\x20" + \
             bytes([pad << 4 | self.PacketType.ENCRYPTED_REQUEST])
 
         # Build payload to encrypt
-        payload = packet_id.to_bytes(2) + data + get_random_bytes(pad)
+        payload = packet_id.to_bytes(2, "big") + data + get_random_bytes(pad)
 
         hash = sha256(header + payload).digest()
         return header + Security.encrypt_aes_cbc(self._local_key, payload) + hash
@@ -273,11 +276,11 @@ class _LanProtocolV3(_LanProtocol):
         """Encode a handshake request packet."""
 
         # Build header
-        header = b"\x83\x70" + len(data).to_bytes(2) + \
+        header = b"\x83\x70" + len(data).to_bytes(2, "big") + \
             b"\x20" + bytes([self.PacketType.HANDSHAKE_REQUEST])
 
         # Build payload to encrypt
-        payload = packet_id.to_bytes(2) + data
+        payload = packet_id.to_bytes(2, "big") + data
 
         return header + payload
 
@@ -304,7 +307,7 @@ class _LanProtocolV3(_LanProtocol):
         self._packet_id += 1
         self._packet_id &= 0xFFF  # Mask to 12 bits
 
-    def _get_local_key(self, key, data: memoryview):
+    def _get_local_key(self, key: Key, data: memoryview):
 
         if len(data) != 64:
             raise self.AuthenticationError(
@@ -324,7 +327,7 @@ class _LanProtocolV3(_LanProtocol):
         # Construct the local key
         return strxor(decrypted_payload, key)
 
-    async def authenticate(self, token, key):
+    async def authenticate(self, token: Token, key: Key):
         # Send request
         try:
             response = await self.request(token, type=self.PacketType.HANDSHAKE_REQUEST)
@@ -369,7 +372,7 @@ class LAN:
             self._protocol.disconnect()
             self._protocol = None
 
-    async def authenticate(self, token: TokenKey = None, key: TokenKey = None, retries=RETRIES):
+    async def authenticate(self, token: Token = None, key: Key = None, retries=RETRIES):
         """Authenticate against a V3 device. Use cached token and key unless provided a new token and key."""
 
         # Use existing token and key if none provided
@@ -398,7 +401,7 @@ class LAN:
             try:
                 await self._protocol.authenticate(token, key)
                 break
-            except TimeoutError as e:
+            except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
                     _LOGGER.warning("Authentication timeout. Resending.")
                     retries -= 1
@@ -456,7 +459,7 @@ class LAN:
                               self._protocol.peer, data.hex())
                 response = await self._protocol.request(data)
                 break
-            except TimeoutError as e:
+            except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
                     _LOGGER.warning("Request timeout. Resending.")
                     retries -= 1

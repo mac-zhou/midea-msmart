@@ -7,6 +7,7 @@ import json
 import logging
 import os
 from secrets import token_hex, token_urlsafe
+from typing import Optional
 import httpx
 
 
@@ -78,7 +79,7 @@ class Cloud:
 
         raise ApiError(body["msg"], code=response_code)
 
-    async def _post_request(self, url, headers, contents, retries=RETRIES) -> dict | None:
+    async def _post_request(self, url, headers, contents, retries=RETRIES) -> Optional[dict]:
         """Post a request to the API."""
 
         async with httpx.AsyncClient() as client:
@@ -98,7 +99,7 @@ class Cloud:
                     if retries == 0:
                         raise e
 
-    async def _api_request(self, endpoint, body) -> dict | None:
+    async def _api_request(self, endpoint, body) -> Optional[dict]:
         """Make a request to the Midea cloud return the results."""
 
         # Encode body as JSON
