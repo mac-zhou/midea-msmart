@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0.0", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "msmart"
+name = "msmart-ng"
 description = "A Python library for local control of Midea (and associated brands) smart air conditioners."
 readme = "README.md"
 authors = [
@@ -30,5 +30,8 @@ Issues = "https://github.com/mill1000/midea-msmart/issues"
 
 [project.scripts]
 midea-discover = "msmart.cli:discover"
+
+[tool.setuptools]
+packages = ["msmart"]
 
 [tool.setuptools_scm]
