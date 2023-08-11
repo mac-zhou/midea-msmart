@@ -187,7 +187,8 @@ class _LanProtocolV3(_LanProtocol):
                     buf[total_size:])
 
                 # Queue the received packet
-                _LOGGER.debug("Received packet: %s", packet.hex())
+                _LOGGER.debug("Received packet from %s: %s",
+                              self.peer, packet.hex())
                 self._queue.put_nowait(packet.tobytes())
 
     def _decode_encrypted_response(self, packet: memoryview):
