@@ -50,7 +50,7 @@ class device(ABC):
         try:
             response = await self._lan.send(data)
         except (ProtocolError, TimeoutError) as e:
-            _LOGGER.error(e)
+            _LOGGER.error("Network error: %s", e)
         finally:
             response_time = round(time.time() - start, 2)
 
