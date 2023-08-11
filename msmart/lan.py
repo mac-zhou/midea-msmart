@@ -55,7 +55,7 @@ class _LanProtocol(asyncio.Protocol):
 
         _LOGGER.debug("Connected to %s.", self._peer)
 
-    def data_received(self, data) -> None:
+    def data_received(self, data: bytes) -> None:
         """Handle data received events."""
 
         _LOGGER.debug("Received data from %s: %s", self.peer, data.hex())
@@ -90,7 +90,7 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
         self._transport.write(data)
 
-    async def _read(self, timeout=2) -> bytes:
+    async def _read(self, timeout: int = 2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
 
         return await asyncio.wait_for(self._queue.get(), timeout=timeout)
@@ -142,7 +142,7 @@ class _LanProtocolV3(_LanProtocol):
         self._buffer = bytearray(0)
         self._local_key = None
 
-    def data_received(self, data) -> None:
+    def data_received(self, data: bytes) -> None:
         """Handle data received events."""
 
         _LOGGER.debug("Received data from %s: %s", self.peer, data.hex())
@@ -248,7 +248,7 @@ class _LanProtocolV3(_LanProtocol):
         else:
             raise ProtocolError(f"Unexpected type: {type}")
 
-    async def _read(self, timeout=2) -> bytes:
+    async def _read(self, timeout: int = 2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
 
         # Fetch a packet from the queue
@@ -350,7 +350,7 @@ class _LanProtocolV3(_LanProtocol):
 class LAN:
     RETRIES = 3
 
-    def __init__(self, ip, port=6444):
+    def __init__(self, ip: str, port: int = 6444):
         self._ip = ip
         self._port = port
 
@@ -378,7 +378,7 @@ class LAN:
             self._protocol.disconnect()
             self._protocol = None
 
-    async def authenticate(self, token: Token = None, key: Key = None, retries=RETRIES):
+    async def authenticate(self, token: Token = None, key: Key = None, retries: int = RETRIES):
         """Authenticate against a V3 device. Use cached token and key unless provided a new token and key."""
 
         # Use existing token and key if none provided
@@ -452,7 +452,7 @@ class LAN:
         # TODO old code handled raw frames? e.g start = 0xAA
         raise ProtocolError(f"Unsupported response: %s", response.hex())
 
-    async def send(self, data, retries=RETRIES):
+    async def send(self, data: bytes, retries: int = RETRIES):
         """Send data via the LAN protocol. Connecting to the peer if necessary."""
 
         # Connect if protocol doesn't exist or is dead
@@ -494,11 +494,11 @@ class Security:
     ENC_KEY = md5(SIGN_KEY).digest()
 
     @classmethod
-    def decrypt_aes_cbc(cls, key, data):
+    def decrypt_aes_cbc(cls, key: bytes, data: bytes):
         return AES.new(key, AES.MODE_CBC, iv=bytes(16)).decrypt(data)
 
     @classmethod
-    def encrypt_aes_cbc(cls, key, data):
+    def encrypt_aes_cbc(cls, key: bytes, data: bytes):
         return AES.new(key, AES.MODE_CBC, iv=bytes(16)).encrypt(data)
 
     @classmethod
