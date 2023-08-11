@@ -345,7 +345,8 @@ class _LanProtocolV3(_LanProtocol):
         with memoryview(response) as response_mv:
             self._local_key = self._get_local_key(key, response_mv)
 
-        _LOGGER.info("Local key: %s", self._local_key.hex())
+        _LOGGER.info("Authentication successful. Local key: %s",
+                     self._local_key.hex())
 
 
 class LAN:
@@ -361,7 +362,7 @@ class LAN:
         self._protocol = None
 
     async def _connect(self):
-        _LOGGER.debug("Creating new connection to %s:%s", self._ip, self._port)
+        _LOGGER.info("Creating new connection to %s:%s", self._ip, self._port)
 
         protocol_class = _LanProtocolV3 if self._protocol_version == 3 else _LanProtocol
 
@@ -403,6 +404,8 @@ class LAN:
             self._disconnect()
             self._protocol_version = 3
             await self._connect()
+
+        _LOGGER.info("Authenticating with %s.", self._protocol.peer)
 
         # Attempt to authenticate
         while retries > 0:
