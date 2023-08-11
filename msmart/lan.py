@@ -488,10 +488,6 @@ class LAN:
             _LOGGER.error(e)
             return None
 
-    @property
-    def protocol_version(self) -> int:
-        return self._protocol_version
-
 
 class Security:
     SIGN_KEY = "xhdiwjnchekd4d512chdjx5d8e4c394D2D7S".encode()
