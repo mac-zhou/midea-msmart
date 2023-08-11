@@ -464,6 +464,10 @@ class LAN:
             self._disconnect()
             await self._connect()
 
+            # Reauthenticate if needed
+            if self._protocol_version == 3:
+                await self.authenticate()
+
         while retries > 0:
             try:
                 # Send the request and await a response
