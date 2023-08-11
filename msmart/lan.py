@@ -31,6 +31,13 @@ class _LanProtocol(asyncio.Protocol):
     def peer(self):
         return self._peer
 
+    @property
+    def alive(self):
+        if self._transport is None or self._transport.is_closing():
+            return False
+
+        return True
+
     def _format_socket_name(self, sockname) -> str:
         def _format(addr, port):
             return f"{addr}:{port}"
@@ -76,6 +83,9 @@ class _LanProtocol(asyncio.Protocol):
 
         if self._transport is None:
             raise IOError()  # TODO better
+
+        if not self.alive:
+            raise ProtocolError("Transport is closing or closed.")
 
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
         self._transport.write(data)
@@ -388,7 +398,8 @@ class LAN:
         if self._protocol_version == 2:
             self._disconnect()
 
-        if self._protocol is None:
+        if self._protocol is None or not self._protocol.alive:
+            self._disconnect()
             self._protocol_version = 3
             await self._connect()
 
@@ -444,8 +455,9 @@ class LAN:
     async def send(self, data, retries=RETRIES):
         """Send data via the LAN protocol. Connecting to the peer if necessary."""
 
-        # Connect if protocol doesn't exist
-        if self._protocol is None:
+        # Connect if protocol doesn't exist or is dead
+        if self._protocol is None or not self._protocol.alive:
+            self._disconnect()
             await self._connect()
 
         while retries > 0:
