@@ -77,6 +77,20 @@ class device():
         return self._id
 
     @property
+    def token(self) -> Union[str, None]:
+        if self._lan.token is None:
+            return None
+
+        return self._lan.token.hex()
+
+    @property
+    def key(self) -> Union[str, None]:
+        if self._lan.key is None:
+            return None
+
+        return self._lan.key.hex()
+
+    @property
     def type(self) -> Union[str, None]:
         return self._type
 

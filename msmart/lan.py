@@ -396,6 +396,14 @@ class LAN:
         self._protocol_version = 2
         self._protocol = None
 
+    @property
+    def token(self) -> bytes:
+        return self._token
+
+    @property
+    def key(self) -> bytes:
+        return self._key
+
     async def _connect(self):
         _LOGGER.info("Creating new connection to %s:%s", self._ip, self._port)
 
