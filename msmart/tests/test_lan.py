@@ -2,9 +2,9 @@ import unittest
 from msmart.lan import _Packet, _LanProtocolV3
 
 
-class TestEncodeDecode(unittest.TestCase):
+class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
 
-    def test_enocde_packet_roundtrip(self):
+    async def test_enocde_packet_roundtrip(self):
         """Test that we can encode and decode a frame."""
         FRAME = bytes.fromhex(
             "aa21ac8d000000000003418100ff03ff000200000000000000000000000003016971")
@@ -15,7 +15,7 @@ class TestEncodeDecode(unittest.TestCase):
         rx_frame = _Packet.decode(packet)
         self.assertEqual(rx_frame, FRAME)
 
-    def test_decode_packet(self):
+    async def test_decode_packet(self):
         """Test that we can decode a packet to a frame."""
         PACKET = bytes.fromhex(
             "5a5a01116800208000000000000000000000000060ca0000000e0000000000000000000001000000c6a90377a364cb55af337259514c6f96bf084e8c7a899b50b68920cdea36cecf11c882a88861d1f46cd87912f201218c66151f0c9fbe5941c5384e707c36ff76")
@@ -26,7 +26,7 @@ class TestEncodeDecode(unittest.TestCase):
         self.assertIsNotNone(frame)
         self.assertEqual(frame, EXPTECTED_FRAME)
 
-    def test_decode_v3_packet(self):
+    async def test_decode_v3_packet(self):
         """Test that we can decode a V3 packet to payload to a frame."""
         PACKET = bytes.fromhex("8370008e2063ec2b8aeb17d4e3aff77094dde7fa65cf22671adf807f490a97b927347943626e9b4f58362cf34b97a0d641f8bf0c8fcbf69ad8cca131d2d7baa70ef048c5e3f3dc78da8af4598ff47aee762a0345c18815d91b50a24dedcacde0663c4ec5e73a963dc8bbbea9a593859996eb79dcfcc6a29b96262fcaa8ea6346366efea214e4a2e48caf83489475246b6fef90192b00")
         LOCAL_KEY = bytes.fromhex(

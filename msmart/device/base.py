@@ -42,7 +42,7 @@ class device(ABC):
         data = command.pack()
         _LOGGER.debug("Sending command to %s:%d: %s.",
                       self.ip, self.port, data.hex())
-        
+
         start = time.time()
         responses = None
         try:
