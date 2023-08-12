@@ -21,6 +21,25 @@ class ProtocolError(Exception):
 class _LanProtocol(asyncio.Protocol):
     """Midea LAN protocol."""
 
+    # V2 Packet Overview
+    #
+    # Header: 40 bytes
+    #  2 byte start of packet: 0x5A5A
+    #  2 byte message type: 0x0111
+    #  2 byte packet length
+    #  2 byte magic bytes: Usually 0x2000, special responses differ
+    #  4 byte message ID
+    #  8 byte timestamp
+    #  8 byte device ID
+    #  12 byte ???
+    #
+    # Payload: N bytes
+    #  N byte data payload contains encrypted frame
+    #
+    # Sign: 16 bytes
+    #   16 byte MD5 of packet + fixed key
+    #
+
     def __init__(self):
         self._transport = None
 
@@ -90,13 +109,46 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
         self._transport.write(data)
 
-    async def read(self, timeout: int = 2) -> bytes:
-        """Asynchronously read data from the peer via the queue."""
+    def _process_packet(self, packet: memoryview):
+        """Process a received packet into a decrypted frame."""
+
+        if len(packet) < 6:
+            raise ProtocolError(f"Packet is too short: {packet.hex()}")
+
+        if packet[:2] == b"\x5a\x5a":
+            length = int.from_bytes(packet[4:6], "little")
+
+            if len(packet) < length:
+                raise ProtocolError(
+                    f"Packet is truncated. Expected {length} bytes, only have {len(packet)} bytes: {packet.hex()}")
+
+            packet = packet[:length]
+            encrypted_frame = packet[40:-16]
+            frame = Security.decrypt_aes(encrypted_frame)
+
+            # TODO check frame hash/sign
+
+            return frame
+
+        # TODO old code handled raw frames? e.g start = 0xAA
+        raise ProtocolError(f"Unsupported packet: %s", packet.hex())
+
+    async def _read_queue(self, timeout: int = 2) -> bytes:
+        """Read data from the receive queue."""
 
         if timeout == 0:
             return self._queue.get_nowait()
 
         return await asyncio.wait_for(self._queue.get(), timeout=timeout)
+
+    async def read(self, timeout: int = 2) -> bytes:
+        """Asynchronously read data from the peer via the queue."""
+
+        # Fetch a packet from the queue
+        packet = await self._read_queue(timeout=timeout)
+
+        with memoryview(packet) as packet_mv:
+            return self._process_packet(packet_mv)
 
 
 class _LanProtocolV3(_LanProtocol):
@@ -212,8 +264,8 @@ class _LanProtocolV3(_LanProtocol):
             # Get pad count from header
             pad = header[5] >> 4
 
-            # Return actual payload without padding
-            return payload[2:-pad].tobytes()
+            # Get the frame from payload
+            return super()._process_packet(payload[2:-pad])
 
     def _decode_handshake_response(self, packet: memoryview):
         """Decode a handshake response packet."""
@@ -245,15 +297,6 @@ class _LanProtocolV3(_LanProtocol):
             raise ProtocolError("Error packet received.")
         else:
             raise ProtocolError(f"Unexpected type: {type}")
-
-    async def read(self, timeout: int = 2) -> bytes:
-        """Asynchronously read data from the peer via the queue."""
-
-        # Fetch a packet from the queue
-        packet = await super().read(timeout=timeout)
-
-        with memoryview(packet) as packet_mv:
-            return self._process_packet(packet_mv)
 
     def _encode_encrypted_request(self, packet_id: int, data: bytes):
         """Encode an encrypted request packet."""
@@ -430,30 +473,6 @@ class LAN:
 
         return True
 
-    def _process_response(self, response: memoryview):
-        """Process a response into a decrypted frame."""
-
-        if len(response) < 6:
-            raise ProtocolError(f"Response is too short: {response.hex()}")
-
-        if response[:2] == b"\x5a\x5a":
-            length = int.from_bytes(response[4:6], "little")
-
-            if len(response) < length:
-                raise ProtocolError(
-                    f"Response is truncated. Expected {length} bytes, only have {len(response)} bytes: {response.hex()}")
-
-            response = response[:length]
-            encrypted_frame = response[40:-16]
-            frame = Security.decrypt_aes(encrypted_frame)
-
-            # TODO check frame hash/sign
-
-            return frame
-
-        # TODO old code handled raw frames? e.g start = 0xAA
-        raise ProtocolError(f"Unsupported response: %s", response.hex())
-
     async def send(self, data: bytes, retries: int = RETRIES):
         """Send data via the LAN protocol. Connecting to the peer if necessary."""
 
@@ -475,7 +494,11 @@ class LAN:
 
             try:
                 # Await a response
-                responses.append(await self._protocol.read())
+                response = await self._protocol.read()
+                _LOGGER.debug("Received response from %s: %s",
+                              self._protocol.peer, response.hex())
+
+                responses.append(response)
                 break
             except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
@@ -487,21 +510,15 @@ class LAN:
         # Attempt to read any additional responses without blocking
         while True:
             try:
-                responses.append(await self._protocol.read(timeout=0))
+                response = await self._protocol.read(timeout=0)
+                _LOGGER.debug("Received response from %s: %s",
+                              self._protocol.peer, response.hex())
+
+                responses.append(response)
             except asyncio.QueueEmpty:
                 break
 
-        # Define a local function to process each response
-        def _process(resp):
-            _LOGGER.debug("Received response from %s: %s",
-                          self._protocol.peer, resp.hex())
-            try:
-                with memoryview(resp) as mv:
-                    return self._process_response(mv)
-            except ProtocolError as e:
-                _LOGGER.error(e)
-
-        return list(map(_process, responses))
+        return responses
 
 
 class Security:
