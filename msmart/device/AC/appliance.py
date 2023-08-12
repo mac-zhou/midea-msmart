@@ -159,9 +159,9 @@ class air_conditioning(device):
                 self.update(response)
             elif response.id == ResponseId.Capabilities:
                 self.update_capabilities(response)
-            elif response.id == 0xa1 or response.id == 0xa0:
-                _LOGGER.info("Ignored special response. %s:%d %s",
-                             self.ip, self.port, response.payload.hex())
+            else:
+                _LOGGER.debug("Ignored unknown response from %s:%d: %s",
+                              self.ip, self.port, response.payload.hex())
         elif not self._keep_last_known_online_state:
             self._online = False
 
