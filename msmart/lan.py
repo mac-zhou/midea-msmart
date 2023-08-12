@@ -294,7 +294,7 @@ class _LanProtocolV3(_LanProtocol):
 
         # Compute required padding for 16 byte alignment
         # Include 2 bytes for packet ID in total length
-        remainder =  (len(data) + 2) % 16
+        remainder = (len(data) + 2) % 16
         pad = 16 - remainder if remainder != 0 else 0
 
         # Compute total length of payload, pad and hash
