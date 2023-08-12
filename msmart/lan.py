@@ -301,6 +301,15 @@ class _LanProtocolV3(_LanProtocol):
         else:
             raise ProtocolError(f"Unexpected type: {type}")
 
+    def _build_header(self, length: int, extra: bytes):
+        # Build header
+        header = b"\x83\x70"
+        header += length.to_bytes(2, "big")
+        header += b"\x20"
+        header += extra
+
+        return header
+
     def _encode_encrypted_request(self, packet_id: int, data: bytes):
         """Encode an encrypted request packet."""
 
@@ -312,9 +321,8 @@ class _LanProtocolV3(_LanProtocol):
         length = len(data) + pad + 32
 
         # Build header
-        header = b"\x83\x70" + \
-            length.to_bytes(2, "big") + b"\x20" + \
-            bytes([pad << 4 | self.PacketType.ENCRYPTED_REQUEST])
+        header = self._build_header(length, bytes(
+            [pad << 4 | self.PacketType.ENCRYPTED_REQUEST]))
 
         # Build payload to encrypt
         payload = packet_id.to_bytes(2, "big") + data + get_random_bytes(pad)
@@ -326,8 +334,8 @@ class _LanProtocolV3(_LanProtocol):
         """Encode a handshake request packet."""
 
         # Build header
-        header = b"\x83\x70" + len(data).to_bytes(2, "big") + \
-            b"\x20" + bytes([self.PacketType.HANDSHAKE_REQUEST])
+        header = self._build_header(len(data), bytes(
+            [self.PacketType.HANDSHAKE_REQUEST]))
 
         # Build payload to encrypt
         payload = packet_id.to_bytes(2, "big") + data
