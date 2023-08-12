@@ -111,33 +111,6 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
         self._transport.write(data)
 
-    def _process_packet(self, packet: memoryview):
-        """Process a received packet into a decrypted frame."""
-
-        _LOGGER.debug("Received packet from %s: %s",
-                      self.peer, packet.hex())
-
-        if len(packet) < 6:
-            raise ProtocolError(f"Packet is too short: {packet.hex()}")
-
-        if packet[:2] == b"\x5a\x5a":
-            length = int.from_bytes(packet[4:6], "little")
-
-            if len(packet) < length:
-                raise ProtocolError(
-                    f"Packet is truncated. Expected {length} bytes, only have {len(packet)} bytes: {packet.hex()}")
-
-            packet = packet[:length]
-            encrypted_frame = packet[40:-16]
-            frame = Security.decrypt_aes(encrypted_frame)
-
-            # TODO check frame hash/sign
-
-            return frame
-
-        # TODO old code handled raw frames? e.g start = 0xAA
-        raise ProtocolError(f"Unsupported packet: %s", packet.hex())
-
     async def _read_queue(self, timeout: int = 2) -> bytes:
         """Read data from the receive queue."""
 
@@ -150,10 +123,7 @@ class _LanProtocol(asyncio.Protocol):
         """Asynchronously read data from the peer via the queue."""
 
         # Fetch a packet from the queue
-        packet = await self._read_queue(timeout=timeout)
-
-        with memoryview(packet) as packet_mv:
-            return self._process_packet(packet_mv)
+        return await self._read_queue(timeout=timeout)
 
 
 class _LanProtocolV3(_LanProtocol):
@@ -268,7 +238,7 @@ class _LanProtocolV3(_LanProtocol):
             pad = header[5] >> 4
 
             # Get the frame from payload
-            return super()._process_packet(payload[2:-pad])
+            return payload[2:-pad]
 
     def _decode_handshake_response(self, packet: memoryview):
         """Decode a handshake response packet."""
@@ -300,6 +270,15 @@ class _LanProtocolV3(_LanProtocol):
             raise ProtocolError("Error packet received.")
         else:
             raise ProtocolError(f"Unexpected type: {type}")
+
+    async def read(self, timeout: int = 2) -> bytes:
+        """Asynchronously read data from the peer via the queue."""
+
+        # Fetch a packet from the queue
+        packet = await self._read_queue(timeout=timeout)
+
+        with memoryview(packet) as packet_mv:
+            return self._process_packet(packet_mv)
 
     def _build_header(self, length: int, extra: bytes):
         # Build header
@@ -485,6 +464,21 @@ class LAN:
 
         return True
 
+    async def _read(self, **kwargs):
+        """Read and decode a frame from the protocol."""
+
+        # Await a response
+        packet = await self._protocol.read(**kwargs)
+        _LOGGER.debug("Received packet from %s: %s",
+                      self._protocol.peer, packet.hex())
+
+        # Decode packet to frame
+        response = _Packet.decode(packet)
+        _LOGGER.debug("Received response from %s: %s",
+                      self._protocol.peer, response.hex())
+
+        return response
+
     async def send(self, data: bytes, retries: int = RETRIES):
         """Send data via the LAN protocol. Connecting to the peer if necessary."""
 
@@ -497,7 +491,8 @@ class LAN:
             if self._protocol_version == 3:
                 await self.authenticate()
 
-        packet = _Packet.construct(self._device_id, data)
+        # Encode frame to packet
+        packet = _Packet.encode(self._device_id, data)
 
         responses = []
         while retries > 0:
@@ -508,11 +503,7 @@ class LAN:
 
             try:
                 # Await a response
-                response = await self._protocol.read()
-                _LOGGER.debug("Received response from %s: %s",
-                              self._protocol.peer, response.hex())
-
-                responses.append(response)
+                responses.append(await self._read())
                 break
             except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
@@ -524,11 +515,7 @@ class LAN:
         # Attempt to read any additional responses without blocking
         while True:
             try:
-                response = await self._protocol.read(timeout=0)
-                _LOGGER.debug("Received response from %s: %s",
-                              self._protocol.peer, response.hex())
-
-                responses.append(response)
+                responses.append(await self._read(timeout=0))
             except asyncio.QueueEmpty:
                 break
 
@@ -572,11 +559,11 @@ class Security:
 
 
 class _Packet:
-    """Class to construct a packet from a command."""
+    """Class to encode/decode command frames to packets."""
 
     @classmethod
-    def construct(cls, device_id: int, command: bytes):
-
+    def encode(cls, device_id: int, command: bytes):
+        """Encode a command frame to a LAN packet."""
         # Encrypt command
         encrypted_payload = Security.encrypt_aes(command)
         assert len(encrypted_payload) == 48
@@ -597,6 +584,36 @@ class _Packet:
 
         # Append hash
         return packet + Security.sign(packet)
+
+    @classmethod
+    def decode(cls, data: bytes):
+        """Decode a LAN packet to a command frame."""
+
+        with memoryview(data) as packet:
+            if len(packet) < 6:
+                raise ProtocolError(f"Packet is too short: {packet.hex()}")
+
+            if packet[:2] != b"\x5a\x5a":
+                # TODO old code handled raw frames? e.g start = 0xAA
+                raise ProtocolError(f"Unsupported packet: %s", packet.hex())
+
+            length = int.from_bytes(packet[4:6], "little")
+
+            if len(packet) < length:
+                raise ProtocolError(
+                    f"Packet is truncated. Expected {length} bytes, only have {len(packet)} bytes: {packet.hex()}")
+
+            packet = packet[:length]
+            encrypted_frame = packet[40:-16]
+            hash = packet[-16:]
+
+            # Check that received hash matches
+            if Security.sign(bytes(packet[:-16])) != hash:
+                raise ProtocolError(
+                    f"Calculated and received MD5 digest do not match.")
+
+            # Decrypt frame
+            return Security.decrypt_aes(encrypted_frame)
 
     @classmethod
     def _timestamp(cls):
