@@ -567,7 +567,6 @@ class _Packet:
         """Encode a command frame to a LAN packet."""
         # Encrypt command
         encrypted_payload = Security.encrypt_aes(command)
-        assert len(encrypted_payload) == 48
 
         # Compute total length
         length = 40 + len(encrypted_payload) + 16
