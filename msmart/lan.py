@@ -4,9 +4,11 @@ from Crypto.Cipher import AES
 from Crypto.Util import Padding
 from Crypto.Util.strxor import strxor
 from Crypto.Random import get_random_bytes
+from datetime import datetime
 from enum import IntEnum
 from hashlib import md5, sha256
 import logging
+import struct
 from typing import cast
 
 from msmart.types import Token, Key
@@ -393,9 +395,10 @@ class _LanProtocolV3(_LanProtocol):
 class LAN:
     RETRIES = 3
 
-    def __init__(self, ip: str, port: int = 6444):
+    def __init__(self, ip: str, port: int, device_id: int):
         self._ip = ip
         self._port = port
+        self._device_id = device_id
 
         self._token = None
         self._key = None
@@ -485,12 +488,14 @@ class LAN:
             if self._protocol_version == 3:
                 await self.authenticate()
 
+        packet = _Packet.construct(self._device_id, data)
+
         responses = []
         while retries > 0:
             # Send the request
-            _LOGGER.debug("Sending request to %s: %s",
-                          self._protocol.peer, data.hex())
-            self._protocol.write(data)
+            _LOGGER.debug("Sending packet to %s: %s",
+                          self._protocol.peer, packet.hex())
+            self._protocol.write(packet)
 
             try:
                 # Await a response
@@ -548,10 +553,55 @@ class Security:
         return cipher.encrypt(Padding.pad(data, 16))
 
     @classmethod
-    def encode32(cls, data: bytes):
+    def sign(cls, data: bytes):
         return md5(data + Security.SIGN_KEY).digest()
 
     @classmethod
     def udpid(cls, id: bytes):
         with memoryview(sha256(id).digest()) as hash:
             return strxor(hash[:16], hash[16:])
+
+
+class _Packet:
+    """Class to construct a packet from a command."""
+
+    @classmethod
+    def construct(cls, device_id: int, command: bytes):
+
+        # Encrypt command
+        encrypted_payload = Security.encrypt_aes(command)
+        assert len(encrypted_payload) == 48
+
+        # Compute total length
+        length = 40 + len(encrypted_payload) + 16
+
+        header = b"\x5A\x5A"  # Start of packet
+        header += b"\x01\x11"  # Message type
+        header += length.to_bytes(2, 'little')  # Packet size
+        header += b"\x20\x00"  # Magic bytes
+        header += bytes(4)  # Message ID
+        header += cls._timestamp()  # Timestamp
+        header += device_id.to_bytes(8, 'little')  # Device ID
+        header += bytes(12)  # ???
+
+        packet = header + encrypted_payload
+
+        # Append hash
+        return packet + Security.sign(packet)
+
+    @classmethod
+    def _timestamp(cls):
+        now = datetime.utcnow()
+
+        # Each byte is a 2 digit component of the timestamp
+        # YYYYMMDDHHMMSSmm
+        return struct.pack("BBBBBBBB",
+                           int(now.microsecond / 10000),
+                           now.second,
+                           now.minute,
+                           now.hour,
+                           now.day,
+                           now.month,
+                           now.year % 100,
+                           int(now.year / 100)
+                           )

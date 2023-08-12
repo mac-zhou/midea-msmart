@@ -5,7 +5,6 @@ import time
 from typing import Union
 
 from msmart.lan import LAN, ProtocolError
-from msmart.packet_builder import packet_builder
 from msmart.types import Token, Key
 
 _LOGGER = logging.getLogger(__name__)
@@ -22,7 +21,7 @@ class device(ABC):
         self._name = kwargs.get("name", None)
         self._type = kwargs.get("type", None)
 
-        self._lan = LAN(ip, port)
+        self._lan = LAN(ip, port, id)
         self._support = False
         self._online = False
 
@@ -37,14 +36,12 @@ class device(ABC):
     async def authenticate(self, token: Token, key: Key):
         return await self._lan.authenticate(token, key)
 
-    async def send_command(self, cmd):
-        # TODO push this logic into the LAN module
-        pkt_builder = packet_builder(self.id)
-        pkt_builder.set_command(cmd)
-        data = pkt_builder.finalize()
-        _LOGGER.debug(
-            "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
+    async def send_command(self, command: bytes):
 
+        data = command.pack()
+        _LOGGER.debug("Sending command to %s:%d: %s.",
+                      self.ip, self.port, data.hex())
+        
         start = time.time()
         responses = None
         try:
