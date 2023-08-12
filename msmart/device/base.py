@@ -46,15 +46,15 @@ class device(ABC):
             "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
 
         start = time.time()
-        response = None
+        responses = None
         try:
-            response = await self._lan.send(data)
+            responses = await self._lan.send(data)
         except (ProtocolError, TimeoutError) as e:
             _LOGGER.error("Network error: %s", e)
         finally:
             response_time = round(time.time() - start, 2)
 
-        if response is None:
+        if responses is None:
             _LOGGER.warning("No response from %s:%d in %f seconds. ",
                             self.ip, self.port, response_time)
             return None
@@ -62,7 +62,7 @@ class device(ABC):
         _LOGGER.debug("Response from %s:%d in %f seconds.",
                       self.ip, self.port, response_time)
 
-        return response
+        return responses
 
     @property
     def ip(self) -> str:

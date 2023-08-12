@@ -78,7 +78,7 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Disconnecting from %s.", self.peer)
         self._transport.close()
 
-    def _write(self, data: bytes) -> None:
+    def write(self, data: bytes) -> None:
         """Send data to the peer."""
 
         if self._transport is None:
@@ -90,16 +90,13 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Sending data to %s: %s", self.peer, data.hex())
         self._transport.write(data)
 
-    async def _read(self, timeout: int = 2) -> bytes:
+    async def read(self, timeout: int = 2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
 
+        if timeout == 0:
+            return self._queue.get_nowait()
+
         return await asyncio.wait_for(self._queue.get(), timeout=timeout)
-
-    async def request(self, *args, **kwargs) -> bytes:
-        """Send data to the peer and wait for a response."""
-
-        self._write(*args, **kwargs)
-        return await self._read()
 
 
 class _LanProtocolV3(_LanProtocol):
@@ -249,11 +246,11 @@ class _LanProtocolV3(_LanProtocol):
         else:
             raise ProtocolError(f"Unexpected type: {type}")
 
-    async def _read(self, timeout: int = 2) -> bytes:
+    async def read(self, timeout: int = 2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
 
         # Fetch a packet from the queue
-        packet = await super()._read(timeout=timeout)
+        packet = await super().read(timeout=timeout)
 
         with memoryview(packet) as packet_mv:
             return self._process_packet(packet_mv)
@@ -291,7 +288,7 @@ class _LanProtocolV3(_LanProtocol):
 
         return header + payload
 
-    def _write(self, data: bytes, *, type=PacketType.ENCRYPTED_REQUEST) -> None:
+    def write(self, data: bytes, *, type=PacketType.ENCRYPTED_REQUEST) -> None:
         """Send a packet of the specified type to the peer."""
 
         # Raise an error if attempting to send an encryptd request without authenticating
@@ -308,7 +305,7 @@ class _LanProtocolV3(_LanProtocol):
             raise TypeError(f"Unknown type: {type}")
 
         # Write to the peer
-        super()._write(packet)
+        super().write(packet)
 
         # Increment packet ID and handle rollover
         self._packet_id += 1
@@ -337,7 +334,8 @@ class _LanProtocolV3(_LanProtocol):
     async def authenticate(self, token: Token, key: Key):
         # Send request
         try:
-            response = await self.request(token, type=self.PacketType.HANDSHAKE_REQUEST)
+            self.write(token, type=self.PacketType.HANDSHAKE_REQUEST)
+            response = await self.read()
         except ProtocolError as e:
             raise self.AuthenticationError(e)
 
@@ -468,12 +466,16 @@ class LAN:
             if self._protocol_version == 3:
                 await self.authenticate()
 
+        responses = []
         while retries > 0:
+            # Send the request
+            _LOGGER.debug("Sending request to %s: %s",
+                          self._protocol.peer, data.hex())
+            self._protocol.write(data)
+
             try:
-                # Send the request and await a response
-                _LOGGER.debug("Sending request to %s: %s",
-                              self._protocol.peer, data.hex())
-                response = await self._protocol.request(data)
+                # Await a response
+                responses.append(await self._protocol.read())
                 break
             except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
@@ -482,15 +484,24 @@ class LAN:
                 else:
                     raise TimeoutError("Timeout waiting for response.")
 
-        _LOGGER.debug("Received response from %s: %s",
-                      self._protocol.peer, response.hex())
+        # Attempt to read any additional responses without blocking
+        while True:
+            try:
+                responses.append(await self._protocol.read(timeout=0))
+            except asyncio.QueueEmpty:
+                break
 
-        try:
-            with memoryview(response) as response_mv:
-                return self._process_response(response_mv)
-        except ProtocolError as e:
-            _LOGGER.error(e)
-            return None
+        # Define a local function to process each response
+        def _process(resp):
+            _LOGGER.debug("Received response from %s: %s",
+                          self._protocol.peer, resp.hex())
+            try:
+                with memoryview(resp) as mv:
+                    return self._process_response(mv)
+            except ProtocolError as e:
+                _LOGGER.error(e)
+
+        return list(map(_process, responses))
 
 
 class Security:

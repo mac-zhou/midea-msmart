@@ -133,13 +133,14 @@ class air_conditioning(device):
         await self.send_command(cmd)
 
     async def send_command(self, cmd, ignore_response=False):
-        response = await super().send_command(cmd)
+        responses = await super().send_command(cmd)
 
         # Ignore responses if requested
         if ignore_response:
             return
 
-        self.process_response(response)
+        for response in responses:
+            self.process_response(response)
 
     def process_response(self, data):
         if data:
