@@ -114,6 +114,9 @@ class _LanProtocol(asyncio.Protocol):
     def _process_packet(self, packet: memoryview):
         """Process a received packet into a decrypted frame."""
 
+        _LOGGER.debug("Received packet from %s: %s",
+                      self.peer, packet.hex())
+
         if len(packet) < 6:
             raise ProtocolError(f"Packet is too short: {packet.hex()}")
 
@@ -238,8 +241,6 @@ class _LanProtocolV3(_LanProtocol):
                     buf[total_size:])
 
                 # Queue the received packet
-                _LOGGER.debug("Received packet from %s: %s",
-                              self.peer, packet.hex())
                 self._queue.put_nowait(packet.tobytes())
 
     def _decode_encrypted_response(self, packet: memoryview):
