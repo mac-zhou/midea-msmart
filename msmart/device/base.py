@@ -1,5 +1,6 @@
 
 from abc import ABC, abstractmethod
+import asyncio
 import logging
 import time
 from typing import Union
@@ -46,7 +47,7 @@ class device(ABC):
         responses = None
         try:
             responses = await self._lan.send(data)
-        except (ProtocolError, TimeoutError) as e:
+        except (ProtocolError, TimeoutError, asyncio.TimeoutError) as e:
             _LOGGER.error("Network error: %s", e)
         finally:
             response_time = round(time.time() - start, 2)
