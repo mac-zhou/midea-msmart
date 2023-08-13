@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Union
+from typing import List, Optional
 
 from msmart.lan import LAN, AuthenticationError, ProtocolError
 from msmart.types import Key, Token
@@ -18,6 +18,7 @@ class Device():
         self._sn = kwargs.get("sn", None)
         self._name = kwargs.get("name", None)
         self._type = kwargs.get("type", None)
+        self._version = kwargs.get("version", None)
 
         self._lan = LAN(ip, port, device_id)
         self._supported = False
@@ -77,30 +78,34 @@ class Device():
         return self._id
 
     @property
-    def token(self) -> Union[str, None]:
+    def token(self) -> Optional[str]:
         if self._lan.token is None:
             return None
 
         return self._lan.token.hex()
 
     @property
-    def key(self) -> Union[str, None]:
+    def key(self) -> Optional[str]:
         if self._lan.key is None:
             return None
 
         return self._lan.key.hex()
 
     @property
-    def type(self) -> Union[str, None]:
+    def type(self) -> Optional[str]:
         return self._type
 
     @property
-    def name(self) -> Union[str, None]:
+    def name(self) -> Optional[str]:
         return self._name
 
     @property
-    def sn(self) -> Union[str, None]:
+    def sn(self) -> Optional[str]:
         return self._sn
+
+    @property
+    def version(self) -> Optional[int]:
+        return self._version
 
     @property
     def online(self) -> bool:
