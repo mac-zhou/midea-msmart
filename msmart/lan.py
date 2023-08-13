@@ -366,6 +366,11 @@ class _LanProtocolV3(_LanProtocol):
         return strxor(decrypted_payload, key)
 
     async def authenticate(self, token: Token, key: Key):
+
+        # Throw is someone tries to auth without any token or key
+        if not token or not key:
+            raise _LanProtocolV3.AuthenticationError("Token and key must be supplied.")
+
         # Send request
         try:
             self.write(token, type=self.PacketType.HANDSHAKE_REQUEST)
