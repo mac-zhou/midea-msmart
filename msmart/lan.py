@@ -516,6 +516,7 @@ class LAN:
                     _LOGGER.warning("Request timeout. Resending.")
                     retries -= 1
                 else:
+                    self._disconnect()
                     raise TimeoutError("Timeout waiting for response.")
 
         # Attempt to read any additional responses without blocking
