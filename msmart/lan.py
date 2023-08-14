@@ -369,7 +369,8 @@ class _LanProtocolV3(_LanProtocol):
 
         # Throw is someone tries to auth without any token or key
         if not token or not key:
-            raise _LanProtocolV3.AuthenticationError("Token and key must be supplied.")
+            raise _LanProtocolV3.AuthenticationError(
+                "Token and key must be supplied.")
 
         # Send request
         try:
