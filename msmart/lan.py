@@ -20,6 +20,10 @@ class ProtocolError(Exception):
     pass
 
 
+class AuthenticationError(ProtocolError):
+    pass
+
+
 class _LanProtocol(asyncio.Protocol):
     """Midea LAN protocol."""
 
@@ -135,9 +139,6 @@ class _LanProtocolV3(_LanProtocol):
         ENCRYPTED_RESPONSE = 0x3
         ENCRYPTED_REQUEST = 0x6
         ERROR = 0xF
-
-    class AuthenticationError(ProtocolError):
-        pass
 
     # V3 Packet Overview
     #
@@ -327,8 +328,7 @@ class _LanProtocolV3(_LanProtocol):
 
         # Raise an error if attempting to send an encryptd request without authenticating
         if type == self.PacketType.ENCRYPTED_REQUEST and self._local_key is None:
-            raise self.AuthenticationError(
-                "Protocol has not been authenticated successfully.")
+            raise ProtocolError("Protocol has not been authenticated.")
 
         # Encode the data according to the supplied type
         if type == self.PacketType.ENCRYPTED_REQUEST:
@@ -348,7 +348,7 @@ class _LanProtocolV3(_LanProtocol):
     def _get_local_key(self, key: Key, data: memoryview):
 
         if len(data) != 64:
-            raise self.AuthenticationError(
+            raise AuthenticationError(
                 "Invalid data length for key handshake.")
 
         # Extract payload and hash
@@ -359,25 +359,24 @@ class _LanProtocolV3(_LanProtocol):
         decrypted_payload = Security.decrypt_aes_cbc(key, payload)
 
         if sha256(decrypted_payload).digest() != hash:
-            raise _LanProtocolV3.AuthenticationError(
-                "Calculated hash does not match received hash.")
+            raise AuthenticationError(
+                "Calculated and received SHA256 digest do not match.")
 
         # Construct the local key
         return strxor(decrypted_payload, key)
 
     async def authenticate(self, token: Token, key: Key):
 
-        # Throw is someone tries to auth without any token or key
+        # Raise an exception if trying to auth without any token or key
         if not token or not key:
-            raise _LanProtocolV3.AuthenticationError(
-                "Token and key must be supplied.")
+            raise AuthenticationError("Token and key must be supplied.")
 
-        # Send request
         try:
             self.write(token, type=self.PacketType.HANDSHAKE_REQUEST)
             response = await self.read()
         except ProtocolError as e:
-            raise self.AuthenticationError(e)
+            # Promote any protocol error to auth error
+            raise AuthenticationError(e)
 
         # Generate local key from cloud key
         with memoryview(response) as response_mv:
@@ -451,16 +450,12 @@ class LAN:
             try:
                 await self._protocol.authenticate(token, key)
                 break
-            except (TimeoutError, asyncio.TimeoutError) as e:
+            except (TimeoutError, asyncio.TimeoutError):
                 if retries > 1:
                     _LOGGER.warning("Authentication timeout. Resending.")
                     retries -= 1
                 else:
-                    raise TimeoutError(
-                        "Timeout waiting for authentication response.")
-            except _LanProtocolV3.AuthenticationError as e:
-                _LOGGER.error("Authentication failed. Error: %s", e)
-                return False
+                    raise TimeoutError("No response from host.")
 
         # Update stored token and key if successful
         self._token = token
@@ -468,8 +463,6 @@ class LAN:
 
         # Sleep briefly before requesting more data
         await asyncio.sleep(1)
-
-        return True
 
     async def _read(self, **kwargs):
         """Read and decode a frame from the protocol."""
@@ -512,13 +505,13 @@ class LAN:
                 # Await a response
                 responses.append(await self._read())
                 break
-            except (TimeoutError, asyncio.TimeoutError) as e:
+            except (TimeoutError, asyncio.TimeoutError):
                 if retries > 1:
                     _LOGGER.warning("Request timeout. Resending.")
                     retries -= 1
                 else:
                     self._disconnect()
-                    raise TimeoutError("Timeout waiting for response.")
+                    raise TimeoutError("No response from host.")
 
         # Attempt to read any additional responses without blocking
         while True:

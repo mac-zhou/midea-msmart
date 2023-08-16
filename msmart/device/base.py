@@ -1,11 +1,10 @@
 
 from abc import ABC, abstractmethod
-import asyncio
 import logging
 import time
-from typing import Union
+from typing import Union, List
 
-from msmart.lan import LAN, ProtocolError
+from msmart.lan import LAN, ProtocolError, AuthenticationError
 from msmart.types import Token, Key
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,10 +33,17 @@ class device(ABC):
     async def apply(self):
         raise NotImplementedError()
 
-    async def authenticate(self, token: Token, key: Key):
-        return await self._lan.authenticate(token, key)
+    async def authenticate(self, token: Token, key: Key) -> bool:
+        """Authenticate with a V3 device."""
+        try:
+            await self._lan.authenticate(token, key)
+            return True
+        except (AuthenticationError, TimeoutError) as e:
+            _LOGGER.error("Authentication failed. Error: %s", e)
+            return False
 
-    async def send_command(self, command: bytes):
+    async def send_command(self, command: bytes) -> List[object]:
+        """Send a command to the device and return any responses."""
 
         data = command.pack()
         _LOGGER.debug("Sending command to %s:%d: %s.",
@@ -47,7 +53,7 @@ class device(ABC):
         responses = None
         try:
             responses = await self._lan.send(data)
-        except (ProtocolError, TimeoutError, asyncio.TimeoutError) as e:
+        except (ProtocolError, TimeoutError) as e:
             _LOGGER.error("Network error: %s", e)
         finally:
             response_time = round(time.time() - start, 2)
