@@ -60,7 +60,7 @@ async def main():
     device.power_state = True
     device.prompt_tone = False
     device.target_temperature = 25
-    device.operational_mode = ac.OperationalMode.cool
+    device.operational_mode = ac.OperationalMode.COOL
     await device.apply()
 
     print({

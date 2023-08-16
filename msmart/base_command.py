@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 class Command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type=0xAC, frame_type=FrameType.Request):
+    def __init__(self, device_type=0xAC, frame_type=FrameType.REQUEST):
         self.device_type = device_type
         self.frame_type = frame_type
         self.protocol_version = 0

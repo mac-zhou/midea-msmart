@@ -32,8 +32,8 @@ class DeviceType(IntEnum):
 
 
 class FrameType(IntEnum):
-    Unknown = 0
-    Set = 0x02
-    Request = 0x03
-    Report = 0x04
-    ABNL_REPORT = 0x06
+    UNKNOWN = 0
+    SET = 0x02
+    REQUEST = 0x03
+    REPORT = 0x04
+    ABNORMAL_REPORT = 0x06

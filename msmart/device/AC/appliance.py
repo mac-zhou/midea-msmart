@@ -32,36 +32,36 @@ class IntEnumHelper(IntEnum):
 class AirConditioner(Device):
 
     class FanSpeed(IntEnumHelper):
-        Auto = 102
-        Full = 100
-        High = 80
-        Medium = 60
-        Low = 40
-        Silent = 20
+        AUTO = 102
+        FULL = 100
+        HIGH = 80
+        MEDIUM = 60
+        LOW = 40
+        SILENT = 20
 
         @classmethod
-        def get(cls, value, default=Auto) -> IntEnum:
+        def get(cls, value, default=AUTO) -> IntEnum:
             return super().get(value, default)
 
     class OperationalMode(IntEnumHelper):
-        auto = 1
-        cool = 2
-        dry = 3
-        heat = 4
-        fan_only = 5
+        AUTO = 1
+        COOL = 2
+        DRY = 3
+        HEAT = 4
+        FAN_ONLY = 5
 
         @classmethod
-        def get(cls, value, default=fan_only) -> IntEnum:
+        def get(cls, value, default=FAN_ONLY) -> IntEnum:
             return super().get(value, default)
 
     class SwingMode(IntEnumHelper):
-        Off = 0x0
-        Vertical = 0xC
-        Horizontal = 0x3
-        Both = 0xF
+        OFF = 0x0
+        VERTICAL = 0xC
+        HORIZONTAL = 0x3
+        BOTH = 0xF
 
         @classmethod
-        def get(cls, value, default=Off) -> IntEnum:
+        def get(cls, value, default=OFF) -> IntEnum:
             return super().get(value, default)
 
     def __init__(self, ip: str, device_id: int,  port: int, **kwargs) -> None:
@@ -77,9 +77,9 @@ class AirConditioner(Device):
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
-        self._operational_mode = AirConditioner.OperationalMode.auto
-        self._fan_speed = AirConditioner.FanSpeed.Auto
-        self._swing_mode = AirConditioner.SwingMode.Off
+        self._operational_mode = AirConditioner.OperationalMode.AUTO
+        self._fan_speed = AirConditioner.FanSpeed.AUTO
+        self._swing_mode = AirConditioner.SwingMode.OFF
         self._eco_mode = False
         self._turbo_mode = False
         self._freeze_protection_mode = False
@@ -144,9 +144,9 @@ class AirConditioner(Device):
 
             self._supported = True
 
-            if response.id == ResponseId.State:
+            if response.id == ResponseId.STATE:
                 self.update(response)
-            elif response.id == ResponseId.Capabilities:
+            elif response.id == ResponseId.CAPABILITIES:
                 self.update_capabilities(response)
             else:
                 _LOGGER.debug("Ignored unknown response from %s:%d: %s",
@@ -223,26 +223,26 @@ class AirConditioner(Device):
 
     def update_capabilities(self, res: CapabilitiesResponse) -> None:
         # Build list of supported operation modes
-        op_modes = [AirConditioner.OperationalMode.fan_only]
+        op_modes = [AirConditioner.OperationalMode.FAN_ONLY]
         if res.dry_mode:
-            op_modes.append(AirConditioner.OperationalMode.dry)
+            op_modes.append(AirConditioner.OperationalMode.DRY)
         if res.cool_mode:
-            op_modes.append(AirConditioner.OperationalMode.cool)
+            op_modes.append(AirConditioner.OperationalMode.COOL)
         if res.heat_mode:
-            op_modes.append(AirConditioner.OperationalMode.heat)
+            op_modes.append(AirConditioner.OperationalMode.HEAT)
         if res.auto_mode:
-            op_modes.append(AirConditioner.OperationalMode.auto)
+            op_modes.append(AirConditioner.OperationalMode.AUTO)
 
         self._supported_op_modes = op_modes
 
         # Build list of supported swing modes
-        swing_modes = [AirConditioner.SwingMode.Off]
+        swing_modes = [AirConditioner.SwingMode.OFF]
         if res.swing_horizontal:
-            swing_modes.append(AirConditioner.SwingMode.Horizontal)
+            swing_modes.append(AirConditioner.SwingMode.HORIZONTAL)
         if res.swing_vertical:
-            swing_modes.append(AirConditioner.SwingMode.Vertical)
+            swing_modes.append(AirConditioner.SwingMode.VERTICAL)
         if res.swing_both:
-            swing_modes.append(AirConditioner.SwingMode.Both)
+            swing_modes.append(AirConditioner.SwingMode.BOTH)
 
         self._supported_swing_modes = swing_modes
 
