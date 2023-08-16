@@ -86,10 +86,6 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Received data from %s: %s", self.peer, data.hex())
         self._queue.put_nowait(data)
 
-    def error_received(self, ex):
-        """Log received errors."""
-        _LOGGER.error("Received error: %s.", ex)
-
     def connection_lost(self, ex):
         """Log connection lost."""
         if ex:

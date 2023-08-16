@@ -41,10 +41,6 @@ class _V1DeviceInfoProtocol(asyncio.Protocol):
 
         self.response = data
 
-    def error_received(self, ex):
-        """Handle asyncio.Protocol errors."""
-        _LOGGER.error("Got error: %s", ex)
-
     def connection_lost(self, ex):
         """NOP implementation of connection lost."""
 
