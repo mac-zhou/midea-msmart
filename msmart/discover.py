@@ -10,7 +10,7 @@ from msmart.cloud import Cloud
 from msmart.const import (DEVICE_INFO_MSG, DISCOVERY_MSG,
                           OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD,
                           DeviceType)
-from msmart.device import air_conditioning, device
+from msmart.device import AirConditioner, Device
 from msmart.lan import Security
 
 _LOGGER = logging.getLogger(__name__)
@@ -141,7 +141,7 @@ class Discover:
         interface=None,
         account=None,
         password=None,
-    ) -> [device]:
+    ) -> [Device]:
         """Discover devices via broadcast."""
 
         Discover._set_cloud_credentials(account, password)
@@ -179,7 +179,7 @@ class Discover:
         cls,
         host,
         **kwargs
-    ) -> device:
+    ) -> Device:
         """Discover a single device by hostname or IP."""
 
         devices = await Discover.discover(target=host, **kwargs)
@@ -316,13 +316,13 @@ class Discover:
         """Get the device class from the device type."""
 
         if device_type == DeviceType.AIR_CONDITIONER:
-            return air_conditioning
+            return AirConditioner
 
         # Unknown type return generic device
-        return device
+        return Device
 
     @classmethod
-    async def _authenticate_device(cls, dev: device):
+    async def _authenticate_device(cls, dev: Device):
         """Attempt to authenticate a V3 device."""
 
         # Get cloud connection

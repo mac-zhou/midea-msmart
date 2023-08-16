@@ -3,13 +3,13 @@ from enum import IntEnum
 from typing import Any, List, Optional
 
 from msmart.const import DeviceType
-from msmart.device.base import device
+from msmart.device.base import Device
 
-from .command import (InvalidResponseException, ResponseId,
-                      capabilities_response, get_capabilities_command,
-                      get_state_command)
-from .command import response as base_response
-from .command import set_state_command, state_response, toggle_display_command
+from .command import (CapabilitiesResponse, GetCapabilitiesCommand,
+                      GetStateCommand, InvalidResponseException)
+from .command import Response as base_response
+from .command import (ResponseId, SetStateCommand, StateResponse,
+                      ToggleDisplayCommand)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,9 +29,9 @@ class IntEnumHelper(IntEnum):
             return default
 
 
-class air_conditioning(device):
+class AirConditioner(Device):
 
-    class fan_speed_enum(IntEnumHelper):
+    class FanSpeed(IntEnumHelper):
         Auto = 102
         Full = 100
         High = 80
@@ -43,7 +43,7 @@ class air_conditioning(device):
         def get(cls, value, default=Auto) -> IntEnum:
             return super().get(value, default)
 
-    class operational_mode_enum(IntEnumHelper):
+    class OperationalMode(IntEnumHelper):
         auto = 1
         cool = 2
         dry = 3
@@ -54,7 +54,7 @@ class air_conditioning(device):
         def get(cls, value, default=fan_only) -> IntEnum:
             return super().get(value, default)
 
-    class swing_mode_enum(IntEnumHelper):
+    class SwingMode(IntEnumHelper):
         Off = 0x0
         Vertical = 0xC
         Horizontal = 0x3
@@ -77,9 +77,9 @@ class air_conditioning(device):
         self._prompt_tone = False
         self._power_state = False
         self._target_temperature = 17.0
-        self._operational_mode = air_conditioning.operational_mode_enum.auto
-        self._fan_speed = air_conditioning.fan_speed_enum.Auto
-        self._swing_mode = air_conditioning.swing_mode_enum.Off
+        self._operational_mode = AirConditioner.OperationalMode.auto
+        self._fan_speed = AirConditioner.FanSpeed.Auto
+        self._swing_mode = AirConditioner.SwingMode.Off
         self._eco_mode = False
         self._turbo_mode = False
         self._freeze_protection_mode = False
@@ -89,8 +89,8 @@ class air_conditioning(device):
         self._filter_alert = False
 
         # Support all known modes initially
-        self._supported_op_modes = air_conditioning.operational_mode_enum.list()
-        self._supported_swing_modes = air_conditioning.swing_mode_enum.list()
+        self._supported_op_modes = AirConditioner.OperationalMode.list()
+        self._supported_swing_modes = AirConditioner.SwingMode.list()
         self._supports_eco = True
         self._supports_turbo = True
         self._supports_freeze_protection_mode = True
@@ -104,21 +104,21 @@ class air_conditioning(device):
         self._outdoor_temperature = None
 
     async def get_capabilities(self) -> None:
-        cmd = get_capabilities_command(self.type)
+        cmd = GetCapabilitiesCommand(self.type)
         await self.send_command(cmd)
 
     async def toggle_display(self) -> None:
         if not self._supports_display_control:
             _LOGGER.warning("Device is not capable of display control.")
 
-        cmd = toggle_display_command(self.type)
+        cmd = ToggleDisplayCommand(self.type)
         await self.send_command(cmd, True)
 
         # Force a refresh to get the updated display state
         await self.refresh()
 
     async def refresh(self):
-        cmd = get_state_command(self.type)
+        cmd = GetStateCommand(self.type)
         await self.send_command(cmd)
 
     async def send_command(self, command, ignore_response=False) -> None:
@@ -175,7 +175,7 @@ class air_conditioning(device):
             if self._freeze_protection_mode and not self._supports_freeze_protection_mode:
                 _LOGGER.warning("Device is not capable of freeze protection.")
 
-            cmd = set_state_command(self.type)
+            cmd = SetStateCommand(self.type)
             cmd.beep_on = self._prompt_tone
             cmd.power_on = self._power_state
             cmd.target_temperature = self._target_temperature
@@ -192,17 +192,17 @@ class air_conditioning(device):
             self._updating = False
             self._defer_update = False
 
-    def update(self, res: state_response) -> None:
+    def update(self, res: StateResponse) -> None:
         self._power_state = res.power_on
 
         self._target_temperature = res.target_temperature
-        self._operational_mode = air_conditioning.operational_mode_enum.get(
+        self._operational_mode = AirConditioner.OperationalMode.get(
             res.operational_mode)
 
-        self._fan_speed = air_conditioning.fan_speed_enum.get(
+        self._fan_speed = AirConditioner.FanSpeed.get(
             res.fan_speed)
 
-        self._swing_mode = air_conditioning.swing_mode_enum.get(
+        self._swing_mode = AirConditioner.SwingMode.get(
             res.swing_mode)
 
         self._eco_mode = res.eco_mode
@@ -221,28 +221,28 @@ class air_conditioning(device):
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
 
-    def update_capabilities(self, res: capabilities_response) -> None:
+    def update_capabilities(self, res: CapabilitiesResponse) -> None:
         # Build list of supported operation modes
-        op_modes = [air_conditioning.operational_mode_enum.fan_only]
+        op_modes = [AirConditioner.OperationalMode.fan_only]
         if res.dry_mode:
-            op_modes.append(air_conditioning.operational_mode_enum.dry)
+            op_modes.append(AirConditioner.OperationalMode.dry)
         if res.cool_mode:
-            op_modes.append(air_conditioning.operational_mode_enum.cool)
+            op_modes.append(AirConditioner.OperationalMode.cool)
         if res.heat_mode:
-            op_modes.append(air_conditioning.operational_mode_enum.heat)
+            op_modes.append(AirConditioner.OperationalMode.heat)
         if res.auto_mode:
-            op_modes.append(air_conditioning.operational_mode_enum.auto)
+            op_modes.append(AirConditioner.OperationalMode.auto)
 
         self._supported_op_modes = op_modes
 
         # Build list of supported swing modes
-        swing_modes = [air_conditioning.swing_mode_enum.Off]
+        swing_modes = [AirConditioner.SwingMode.Off]
         if res.swing_horizontal:
-            swing_modes.append(air_conditioning.swing_mode_enum.Horizontal)
+            swing_modes.append(AirConditioner.SwingMode.Horizontal)
         if res.swing_vertical:
-            swing_modes.append(air_conditioning.swing_mode_enum.Vertical)
+            swing_modes.append(AirConditioner.SwingMode.Vertical)
         if res.swing_both:
-            swing_modes.append(air_conditioning.swing_mode_enum.Both)
+            swing_modes.append(AirConditioner.SwingMode.Both)
 
         self._supported_swing_modes = swing_modes
 
@@ -290,7 +290,7 @@ class air_conditioning(device):
         return self._operational_mode
 
     @operational_mode.setter
-    def operational_mode(self, mode: operational_mode_enum) -> None:
+    def operational_mode(self, mode: OperationalMode) -> None:
         if self._updating:
             self._defer_update = True
         self._operational_mode = mode
@@ -300,7 +300,7 @@ class air_conditioning(device):
         return self._fan_speed
 
     @fan_speed.setter
-    def fan_speed(self, speed: fan_speed_enum) -> None:
+    def fan_speed(self, speed: FanSpeed) -> None:
         if self._updating:
             self._defer_update = True
         self._fan_speed = speed
@@ -310,7 +310,7 @@ class air_conditioning(device):
         return self._swing_mode
 
     @swing_mode.setter
-    def swing_mode(self, mode: swing_mode_enum) -> None:
+    def swing_mode(self, mode: SwingMode) -> None:
         if self._updating:
             self._defer_update = True
         self._swing_mode = mode

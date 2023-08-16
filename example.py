@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from msmart.device import air_conditioning as ac
+from msmart.device import AirConditioner as ac
 from msmart.discover import Discover
 
 logging.basicConfig(level=logging.INFO)
@@ -60,7 +60,7 @@ async def main():
     device.power_state = True
     device.prompt_tone = False
     device.target_temperature = 25
-    device.operational_mode = ac.operational_mode_enum.cool
+    device.operational_mode = ac.OperationalMode.cool
     await device.apply()
 
     print({

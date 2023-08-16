@@ -1,7 +1,7 @@
 import unittest
 
 from msmart.const import DeviceType
-from msmart.device import air_conditioning as AC
+from msmart.device import AirConditioner as AC
 from msmart.discover import Discover
 
 

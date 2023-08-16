@@ -5,8 +5,8 @@ from collections import namedtuple
 from enum import IntEnum
 
 import msmart.crc8 as crc8
-from msmart.base_command import command
-from msmart.const import FRAME_TYPE
+from msmart.base_command import Command
+from msmart.const import FrameType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -45,15 +45,15 @@ class CapabilityId(IntEnum):
     Buzzer = 0x022C
 
 
-class temperature_type(IntEnum):
+class TemperatureType(IntEnum):
     Unknown = 0
     Indoor = 0x2
     Outdoor = 0x3
 
 
-class get_capabilities_command(command):
+class GetCapabilitiesCommand(Command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FrameType.Request)
 
     @property
     def payload(self):
@@ -65,11 +65,11 @@ class get_capabilities_command(command):
         ])
 
 
-class get_state_command(command):
+class GetStateCommand(Command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FrameType.Request)
 
-        self.temperature_type = temperature_type.Indoor
+        self.temperature_type = TemperatureType.Indoor
 
     @property
     def payload(self):
@@ -89,9 +89,9 @@ class get_state_command(command):
         ])
 
 
-class set_state_command(command):
+class SetStateCommand(Command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=FRAME_TYPE.Set)
+        super().__init__(device_type, frame_type=FrameType.Set)
 
         self.beep_on = True
         self.power_on = False
@@ -163,10 +163,10 @@ class set_state_command(command):
         ])
 
 
-class toggle_display_command(command):
+class ToggleDisplayCommand(Command):
     def __init__(self, device_type):
         # For whatever reason, toggle display uses a request type...
-        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FrameType.Request)
 
     @property
     def payload(self):
@@ -183,7 +183,7 @@ class toggle_display_command(command):
         ])
 
 
-class response():
+class Response():
     def __init__(self, payload: memoryview):
         # Set ID and copy the payload
         self._id = payload[0]
@@ -200,7 +200,7 @@ class response():
     @staticmethod
     def validate(frame: memoryview):
         # Validate frame checksum
-        frame_checksum = command.checksum(frame[1:-1])
+        frame_checksum = Command.checksum(frame[1:-1])
         if frame_checksum != frame[-1]:
             raise InvalidResponseException(
                 f"Frame '{frame.hex()}' failed checksum. Received: 0x{frame[-1]:X}, Expected: 0x{frame_checksum:X}.")
@@ -210,7 +210,7 @@ class response():
 
         # Some devices use a CRC others seem to use a 2nd checksum
         payload_crc = crc8.calculate(payload[0:-1])
-        payload_checksum = command.checksum(payload[0:-1])
+        payload_checksum = Command.checksum(payload[0:-1])
 
         if payload_crc != payload[-1] and payload_checksum != payload[-1]:
             raise InvalidResponseException(
@@ -221,20 +221,20 @@ class response():
         # Build a memoryview of the frame for zero-copy slicing
         with memoryview(frame) as frame_mv:
             # Ensure frame is valid before parsing
-            response.validate(frame_mv)
+            Response.validate(frame_mv)
 
             # Parse frame depending on id
             response_id = frame_mv[10]
             payload = frame_mv[10:-2]
             if response_id == ResponseId.State:
-                return state_response(payload)
+                return StateResponse(payload)
             elif response_id == ResponseId.Capabilities:
-                return capabilities_response(payload)
+                return CapabilitiesResponse(payload)
             else:
-                return response(payload)
+                return Response(payload)
 
 
-class capabilities_response(response):
+class CapabilitiesResponse(Response):
     def __init__(self, payload: memoryview):
         super().__init__(payload)
 
@@ -429,7 +429,7 @@ class capabilities_response(response):
         return self._capabilities.get("freeze_protection", False)
 
 
-class state_response(response):
+class StateResponse(Response):
     def __init__(self, payload: memoryview):
         super().__init__(payload)
 

@@ -8,7 +8,7 @@ from msmart.types import Key, Token
 _LOGGER = logging.getLogger(__name__)
 
 
-class device():
+class Device():
 
     def __init__(self, *, ip: str, port: int, device_id: int, **kwargs) -> None:
         self._ip = ip

@@ -2,15 +2,15 @@ import logging
 from abc import ABC, abstractmethod
 
 import msmart.crc8 as crc8
-from msmart.const import FRAME_TYPE
+from msmart.const import FrameType
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class command(ABC):
+class Command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type=0xAC, frame_type=FRAME_TYPE.Request):
+    def __init__(self, device_type=0xAC, frame_type=FrameType.Request):
         self.device_type = device_type
         self.frame_type = frame_type
         self.protocol_version = 0
@@ -51,7 +51,7 @@ class command(ABC):
         frame = header + payload_crc
 
         # Calculate total frame checksum
-        frame.append(command.checksum(frame[1:]))
+        frame.append(Command.checksum(frame[1:]))
 
         _LOGGER.debug("Frame data: %s", frame.hex())
 
@@ -63,20 +63,10 @@ class command(ABC):
 
     @property
     def message_id(self):
-        command._message_id += 1
-        return command._message_id & 0xFF
+        Command._message_id += 1
+        return Command._message_id & 0xFF
 
     @property
     @abstractmethod
     def payload(self):
         return bytes()
-
-
-class set_customize_command(command):
-    def __init__(self, device_type, frame_type, customize_cmd,):
-        super().__init__(device_type, frame_type=frame_type.Request)
-        self.customize_cmd = customize_cmd
-
-    @property
-    def payload(self):
-        return bytearray.fromhex(self.customize_cmd)
