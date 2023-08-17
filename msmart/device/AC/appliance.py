@@ -1,12 +1,15 @@
 
-from enum import IntEnum
 import logging
+from enum import IntEnum
+
 from msmart.const import DeviceId
 from msmart.device.base import device
-from .command import ResponseId, InvalidResponseException, response as base_response
-from .command import state_response, capabilities_response
-from .command import get_state_command, set_state_command, get_capabilities_command, toggle_display_command
 
+from .command import (InvalidResponseException, ResponseId,
+                      capabilities_response, get_capabilities_command,
+                      get_state_command)
+from .command import response as base_response
+from .command import set_state_command, state_response, toggle_display_command
 
 _LOGGER = logging.getLogger(__name__)
 

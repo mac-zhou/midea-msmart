@@ -1,5 +1,6 @@
 import unittest
-from msmart.lan import _Packet, _LanProtocolV3
+
+from msmart.lan import _LanProtocolV3, _Packet
 
 
 class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):

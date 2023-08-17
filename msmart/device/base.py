@@ -1,11 +1,11 @@
 
-from abc import ABC, abstractmethod
 import logging
 import time
-from typing import Union, List
+from abc import ABC, abstractmethod
+from typing import List, Union
 
-from msmart.lan import LAN, ProtocolError, AuthenticationError
-from msmart.types import Token, Key
+from msmart.lan import LAN, AuthenticationError, ProtocolError
+from msmart.types import Key, Token
 
 _LOGGER = logging.getLogger(__name__)
 

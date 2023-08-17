@@ -1,7 +1,8 @@
 import unittest
-from msmart.discover import Discover
+
 from msmart.const import DeviceId
 from msmart.device import air_conditioning as AC
+from msmart.discover import Discover
 
 
 class TestDiscover(unittest.IsolatedAsyncioTestCase):

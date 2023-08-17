@@ -1,4 +1,5 @@
 import unittest
+
 from msmart.cloud import Cloud
 from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 

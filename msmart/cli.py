@@ -1,10 +1,10 @@
-import asyncio
 import argparse
+import asyncio
 import logging
 
+from msmart import __version__
 from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 from msmart.discover import Discover
-from msmart import __version__
 
 _LOGGER = logging.getLogger(__name__)
 

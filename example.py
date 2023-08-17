@@ -1,8 +1,8 @@
-import logging
 import asyncio
+import logging
 
-from msmart.discover import Discover
 from msmart.device import air_conditioning as ac
+from msmart.discover import Discover
 
 logging.basicConfig(level=logging.INFO)
 
