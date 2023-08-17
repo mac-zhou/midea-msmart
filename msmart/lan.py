@@ -400,6 +400,7 @@ class LAN:
 
         protocol_class = _LanProtocolV3 if self._protocol_version == 3 else _LanProtocol
 
+        # TODO throws OSError and ???
         loop = asyncio.get_event_loop()
         _transport, protocol = await loop.create_connection(
             lambda: protocol_class(), self._ip, self._port)
