@@ -313,7 +313,7 @@ class capabilities_response(response):
         caps = payload[2:]
 
         # Loop through each capability
-        for i in range(0, count):
+        for _ in range(0, count):
             # Stop if out of data
             if len(caps) < 3:
                 break

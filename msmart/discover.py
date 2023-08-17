@@ -81,7 +81,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 
         for port in [6445, 20086]:
             _LOGGER.debug("Discovery sent to %s:%d.", self._target, port)
-            for i in range(self._discovery_packets):
+            for _ in range(self._discovery_packets):
                 self._transport.sendto(DISCOVERY_MSG, (self._target, port))
 
     def datagram_received(self, data, addr) -> None:
