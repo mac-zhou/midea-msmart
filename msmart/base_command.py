@@ -11,9 +11,9 @@ _LOGGER = logging.getLogger(__name__)
 class command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type=0xAC, FRAME_TYPE=FRAME_TYPE.Request):
+    def __init__(self, device_type=0xAC, frame_type=FRAME_TYPE.Request):
         self.device_type = device_type
-        self.FRAME_TYPE = FRAME_TYPE
+        self.frame_type = frame_type
         self.protocol_version = 0
 
     def pack(self):
@@ -45,7 +45,7 @@ class command(ABC):
             # Device protocol version
             self.protocol_version,
             # Frame type
-            self.FRAME_TYPE
+            self.frame_type
         ])
 
         # Build frame from header and payload with CRC
@@ -74,8 +74,8 @@ class command(ABC):
 
 
 class set_customize_command(command):
-    def __init__(self, device_type, FRAME_TYPE, customize_cmd,):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+    def __init__(self, device_type, frame_type, customize_cmd,):
+        super().__init__(device_type, frame_type=frame_type.Request)
         self.customize_cmd = customize_cmd
 
     @property

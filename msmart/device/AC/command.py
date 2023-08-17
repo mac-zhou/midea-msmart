@@ -54,7 +54,7 @@ class temperature_type(IntEnum):
 
 class get_capabilities_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
 
     @property
     def payload(self):
@@ -68,7 +68,7 @@ class get_capabilities_command(command):
 
 class get_state_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
 
         self.temperature_type = temperature_type.Indoor
 
@@ -92,7 +92,7 @@ class get_state_command(command):
 
 class set_state_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Set)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Set)
 
         self.beep_on = True
         self.power_on = False
@@ -167,7 +167,7 @@ class set_state_command(command):
 class toggle_display_command(command):
     def __init__(self, device_type):
         # For whatever reason, toggle display uses a request type...
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
 
     @property
     def payload(self):
