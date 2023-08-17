@@ -36,7 +36,7 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
 
         # Check that device can be built
         device = device_class(**info)
-        self.assertIsNotNone(device_class)
+        self.assertIsNotNone(device)
 
     async def test_discover_v3(self):
         """Test that we can parse a V3 discovery response."""
