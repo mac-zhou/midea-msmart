@@ -57,6 +57,9 @@ def main():
 
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
+        # Keep httpx as info level
+        logging.getLogger("httpx").setLevel(logging.INFO)
+        logging.getLogger("httpcore").setLevel(logging.INFO)
     else:
         logging.basicConfig(level=logging.INFO)
 
