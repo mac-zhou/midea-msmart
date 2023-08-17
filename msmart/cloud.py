@@ -1,15 +1,16 @@
 # -*- coding: UTF-8 -*-
-from datetime import datetime
 import json
 import logging
-import requests
-from time import time
-
-from threading import Lock
-from msmart.security import security
+import os
+from datetime import datetime
 # from msmart.security import loginKey
 from secrets import token_hex, token_urlsafe
-import os
+from threading import Lock
+from time import time
+
+import requests
+
+from msmart.security import security
 
 # The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
 # this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3

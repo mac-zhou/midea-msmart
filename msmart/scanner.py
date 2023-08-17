@@ -1,15 +1,18 @@
 # -*- coding: UTF-8 -*-
 import asyncio
-from ipaddress import IPv4Network
-import ifaddr
 import logging
 import socket
+from ipaddress import IPv4Network
 from threading import Lock
 
+import ifaddr
+
 from msmart.cloud import cloud
-from msmart.const import BROADCAST_MSG, DEVICE_INFO_MSG, OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
+from msmart.const import (BROADCAST_MSG, DEVICE_INFO_MSG,
+                          OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD)
 from msmart.device import air_conditioning as ac
 from msmart.security import get_udpid, security
+
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
