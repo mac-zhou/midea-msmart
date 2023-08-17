@@ -1,4 +1,3 @@
-
 import logging
 import time
 from abc import ABC, abstractmethod
