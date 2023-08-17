@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-from collections import namedtuple
 
 import msmart.crc8 as crc8
 from msmart.const import FRAME_TYPE

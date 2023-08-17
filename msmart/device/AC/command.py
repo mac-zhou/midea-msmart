@@ -1,7 +1,6 @@
 import logging
 import math
 import struct
-from abc import ABC, abstractmethod
 from collections import namedtuple
 from enum import IntEnum
 
