@@ -342,16 +342,16 @@ class capabilities_response(response):
             # Apply predefined capability reader if it exists
             if capability_id in capability_readers:
                 # Local function to apply a reader
-                def apply(d): return {d.name: d.read(value)}
+                def apply(d, v): return {d.name: d.read(v)}
 
                 reader = capability_readers[raw_id]
                 if isinstance(reader, list):
                     # Apply each reader in the list
                     for r in reader:
-                        self._capabilities.update(apply(r))
+                        self._capabilities.update(apply(r, value))
                 else:
                     # Apply the single reader
-                    self._capabilities.update(apply(reader))
+                    self._capabilities.update(apply(reader, value))
 
             elif capability_id == CapabilityId.Temperatures:
                 # Skip if capability size is too small
