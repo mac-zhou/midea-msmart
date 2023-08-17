@@ -225,11 +225,11 @@ class response():
             response.validate(frame_mv)
 
             # Parse frame depending on id
-            id = frame_mv[10]
+            response_id = frame_mv[10]
             payload = frame_mv[10:-2]
-            if id == ResponseId.State:
+            if response_id == ResponseId.State:
                 return state_response(payload)
-            elif id == ResponseId.Capabilities:
+            elif response_id == ResponseId.Capabilities:
                 return capabilities_response(payload)
             else:
                 return response(payload)
@@ -325,14 +325,14 @@ class capabilities_response(response):
                 continue
 
             # Unpack 16 bit ID
-            (cap_id, ) = struct.unpack("<H", caps[0:2])
+            (raw_id, ) = struct.unpack("<H", caps[0:2])
 
             # Covert ID to enumerate type
             try:
-                id = CapabilityId(cap_id)
+                capability_id = CapabilityId(raw_id)
             except ValueError:
                 _LOGGER.warning(
-                    "Unknown capability. ID: 0x%4X, Size: %d.", cap_id, size)
+                    "Unknown capability. ID: 0x%4X, Size: %d.", raw_id, size)
                 # Advanced to next capability
                 caps = caps[3+size:]
                 continue
@@ -341,11 +341,11 @@ class capabilities_response(response):
             value = caps[3]
 
             # Apply predefined capability reader if it exists
-            if id in capability_readers:
+            if capability_id in capability_readers:
                 # Local function to apply a reader
                 def apply(d): return {d.name: d.read(value)}
 
-                reader = capability_readers[cap_id]
+                reader = capability_readers[raw_id]
                 if isinstance(reader, list):
                     # Apply each reader in the list
                     for r in reader:
@@ -354,7 +354,7 @@ class capabilities_response(response):
                     # Apply the single reader
                     self._capabilities.update(apply(reader))
 
-            elif id == CapabilityId.Temperatures:
+            elif capability_id == CapabilityId.Temperatures:
                 # Skip if capability size is too small
                 if size < 6:
                     continue
@@ -370,7 +370,7 @@ class capabilities_response(response):
 
             else:
                 _LOGGER.warning(
-                    "Unsupported capability. ID: 0x%04X, Size: %d.", id, size)
+                    "Unsupported capability. ID: 0x%04X, Size: %d.", capability_id, size)
 
             # Advanced to next capability
             caps = caps[3+size:]

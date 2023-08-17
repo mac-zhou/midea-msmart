@@ -74,11 +74,11 @@ class air_conditioning(device):
         def get(value):
             return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
 
-    def __init__(self, ip: str, id: int,  port: int, **kwargs):
+    def __init__(self, ip: str, device_id: int,  port: int, **kwargs):
         # Ensure type is set
         kwargs["type"] = DeviceType.AIR_CONDITIONER.value
 
-        super().__init__(ip=ip, port=port, id=id, **kwargs)
+        super().__init__(ip=ip, port=port, device_id=device_id, **kwargs)
 
         self._updating = False
         self._keep_last_known_online_state = False

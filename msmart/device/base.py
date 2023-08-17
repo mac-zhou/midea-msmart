@@ -11,16 +11,16 @@ _LOGGER = logging.getLogger(__name__)
 
 class device(ABC):
 
-    def __init__(self, *, ip: str, port: int, id: int, **kwargs):
+    def __init__(self, *, ip: str, port: int, device_id: int, **kwargs) -> None:
         self._ip = ip
         self._port = port
 
-        self._id = id
+        self._id = device_id
         self._sn = kwargs.get("sn", None)
         self._name = kwargs.get("name", None)
         self._type = kwargs.get("type", None)
 
-        self._lan = LAN(ip, port, id)
+        self._lan = LAN(ip, port, device_id)
         self._support = False
         self._online = False
 

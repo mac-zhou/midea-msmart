@@ -273,7 +273,7 @@ class Discover:
                 encrypted_data = data_mv[40:-16]
 
                 # Extract ID
-                id = int.from_bytes(data_mv[20:26], 'little')
+                device_id = int.from_bytes(data_mv[20:26], 'little')
 
                 # Attempt to decrypt the packet
                 try:
@@ -302,16 +302,16 @@ class Discover:
                 name_length = decrypted_mv[40]
                 name = decrypted_mv[41:41+name_length].tobytes().decode()
 
-                type = int(name.split('_')[1], 16)
+                device_type = int(name.split('_')[1], 16)
 
             # Return dictionary of device info
-            return {"ip": ip_address, "port": port, "id": id, "name": name, "sn": sn, "type": type}
+            return {"ip": ip_address, "port": port, "id": device_id, "name": name, "sn": sn, "type": device_type}
 
     @classmethod
-    def _get_device_class(cls, type: int):
+    def _get_device_class(cls, device_type: int):
         """Get the device class from the device type."""
 
-        if type == DeviceType.AIR_CONDITIONER:
+        if device_type == DeviceType.AIR_CONDITIONER:
             return air_conditioning
 
         # Unknown type return generic device
