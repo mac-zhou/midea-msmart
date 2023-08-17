@@ -37,7 +37,7 @@ class _V1DeviceInfoProtocol(asyncio.Protocol):
 
         self.response = data
 
-    def connection_lost(self, ex):
+    def connection_lost(self, exc) -> None:
         """NOP implementation of connection lost."""
 
 
@@ -107,11 +107,11 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         task = asyncio.create_task(Discover._get_device(ip, version, data))
         self.tasks.add(task)
 
-    def error_received(self, ex):
+    def error_received(self, exc) -> None:
         """Handle asyncio.Protocol errors."""
-        _LOGGER.error("Got error: %s", ex)
+        _LOGGER.error("Got error: %s", exc)
 
-    def connection_lost(self, ex):
+    def connection_lost(self, exc) -> None:
         """NOP implementation of connection lost."""
 
 

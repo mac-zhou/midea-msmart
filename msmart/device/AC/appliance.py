@@ -134,8 +134,8 @@ class air_conditioning(device):
         cmd = get_state_command(self.type)
         await self.send_command(cmd)
 
-    async def send_command(self, cmd, ignore_response=False):
-        responses = await super().send_command(cmd)
+    async def send_command(self, command, ignore_response=False):
+        responses = await super().send_command(command)
 
         # Ignore responses if requested, or nonexistent
         if ignore_response or responses is None:

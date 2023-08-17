@@ -87,10 +87,10 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Received data from %s: %s", self.peer, data.hex())
         self._queue.put_nowait(data)
 
-    def connection_lost(self, ex):
+    def connection_lost(self, exc) -> None:
         """Log connection lost."""
-        if ex:
-            _LOGGER.error("Connection to %s lost. Error: %s.", self.peer, ex)
+        if exc:
+            _LOGGER.error("Connection to %s lost. Error: %s.", self.peer, exc)
 
     def disconnect(self) -> None:
         """Disconnect from the peer."""
