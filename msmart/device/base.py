@@ -1,6 +1,5 @@
 import logging
 import time
-from abc import ABC, abstractmethod
 from typing import List, Union
 
 from msmart.lan import LAN, AuthenticationError, ProtocolError
@@ -9,7 +8,7 @@ from msmart.types import Key, Token
 _LOGGER = logging.getLogger(__name__)
 
 
-class device(ABC):
+class device():
 
     def __init__(self, *, ip: str, port: int, device_id: int, **kwargs) -> None:
         self._ip = ip
@@ -24,11 +23,9 @@ class device(ABC):
         self._support = False
         self._online = False
 
-    @abstractmethod
     async def refresh(self):
         raise NotImplementedError()
 
-    @abstractmethod
     async def apply(self):
         raise NotImplementedError()
 
