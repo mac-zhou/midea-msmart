@@ -64,7 +64,7 @@ class air_conditioning(device):
         def get(cls, value, default=Off) -> IntEnum:
             return super().get(value, default)
 
-    def __init__(self, ip: str, device_id: int,  port: int, **kwargs):
+    def __init__(self, ip: str, device_id: int,  port: int, **kwargs) -> None:
         # Ensure type is set
         kwargs["type"] = DeviceType.AIR_CONDITIONER.value
 
@@ -106,11 +106,11 @@ class air_conditioning(device):
     def __str__(self):
         return str(self.__dict__)
 
-    async def get_capabilities(self):
+    async def get_capabilities(self) -> None:
         cmd = get_capabilities_command(self.type)
         await self.send_command(cmd)
 
-    async def toggle_display(self):
+    async def toggle_display(self) -> None:
         if not self._supports_display_control:
             _LOGGER.warning("Device is not capable of display control.")
 
@@ -124,7 +124,7 @@ class air_conditioning(device):
         cmd = get_state_command(self.type)
         await self.send_command(cmd)
 
-    async def send_command(self, command, ignore_response=False):
+    async def send_command(self, command, ignore_response=False) -> None:
         responses = await super().send_command(command)
 
         # Ignore responses if requested, or nonexistent
@@ -134,7 +134,7 @@ class air_conditioning(device):
         for response in responses:
             self.process_response(response)
 
-    def process_response(self, data):
+    def process_response(self, data) -> None:
         if data:
             self._online = True
 
@@ -157,7 +157,7 @@ class air_conditioning(device):
         elif not self._keep_last_known_online_state:
             self._online = False
 
-    async def apply(self):
+    async def apply(self) -> None:
         self._updating = True
         try:
             # Warn if trying to apply unsupported modes
@@ -195,7 +195,7 @@ class air_conditioning(device):
             self._updating = False
             self._defer_update = False
 
-    def update(self, res: state_response):
+    def update(self, res: state_response) -> None:
         self._power_state = res.power_on
 
         self._target_temperature = res.target_temperature
@@ -224,7 +224,7 @@ class air_conditioning(device):
         # self._on_timer = res.on_timer
         # self._off_timer = res.off_timer
 
-    def update_capabilities(self, res: capabilities_response):
+    def update_capabilities(self, res: capabilities_response) -> None:
         # Build list of supported operation modes
         op_modes = [air_conditioning.operational_mode_enum.fan_only]
         if res.dry_mode:
@@ -259,133 +259,133 @@ class air_conditioning(device):
         self._max_target_temperature = res.max_temperature
 
     @property
-    def prompt_tone(self):
+    def prompt_tone(self) -> bool:
         return self._prompt_tone
 
     @prompt_tone.setter
-    def prompt_tone(self, feedback: bool):
+    def prompt_tone(self, feedback: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._prompt_tone = feedback
 
     @property
-    def power_state(self):
+    def power_state(self) -> Optional[bool]:
         return self._power_state
 
     @power_state.setter
-    def power_state(self, state: bool):
+    def power_state(self, state: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._power_state = state
 
     @property
-    def target_temperature(self):
+    def target_temperature(self) -> Optional[float]:
         return self._target_temperature
 
     @target_temperature.setter
-    def target_temperature(self, temperature_celsius: float):
+    def target_temperature(self, temperature_celsius: float) -> None:
         if self._updating:
             self._defer_update = True
         self._target_temperature = temperature_celsius
 
     @property
-    def operational_mode(self):
+    def operational_mode(self) -> operational_mode_enum:
         return self._operational_mode
 
     @operational_mode.setter
-    def operational_mode(self, mode: operational_mode_enum):
+    def operational_mode(self, mode: operational_mode_enum) -> None:
         if self._updating:
             self._defer_update = True
         self._operational_mode = mode
 
     @property
-    def fan_speed(self):
+    def fan_speed(self) -> fan_speed_enum:
         return self._fan_speed
 
     @fan_speed.setter
-    def fan_speed(self, speed: fan_speed_enum):
+    def fan_speed(self, speed: fan_speed_enum) -> None:
         if self._updating:
             self._defer_update = True
         self._fan_speed = speed
 
     @property
-    def swing_mode(self):
+    def swing_mode(self) -> swing_mode_enum:
         return self._swing_mode
 
     @swing_mode.setter
-    def swing_mode(self, mode: swing_mode_enum):
+    def swing_mode(self, mode: swing_mode_enum) -> None:
         if self._updating:
             self._defer_update = True
         self._swing_mode = mode
 
     @property
-    def eco_mode(self):
+    def eco_mode(self) -> Optional[bool]:
         return self._eco_mode
 
     @eco_mode.setter
-    def eco_mode(self, enabled: bool):
+    def eco_mode(self, enabled: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._eco_mode = enabled
 
     @property
-    def turbo_mode(self):
+    def turbo_mode(self) -> Optional[bool]:
         return self._turbo_mode
 
     @turbo_mode.setter
-    def turbo_mode(self, enabled: bool):
+    def turbo_mode(self, enabled: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._turbo_mode = enabled
 
     @property
-    def supports_freeze_protection_mode(self):
+    def supports_freeze_protection_mode(self) -> Optional[bool]:
         return self._supports_freeze_protection_mode
 
     @property
-    def freeze_protection_mode(self):
+    def freeze_protection_mode(self) -> Optional[bool]:
         return self._freeze_protection_mode
 
     @freeze_protection_mode.setter
-    def freeze_protection_mode(self, enabled: bool):
+    def freeze_protection_mode(self, enabled: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._freeze_protection_mode = enabled
 
     @property
-    def sleep_mode(self):
+    def sleep_mode(self) -> Optional[bool]:
         return self._sleep_mode
 
     @sleep_mode.setter
-    def sleep_mode(self, enabled: bool):
+    def sleep_mode(self, enabled: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._sleep_mode = enabled
 
     @property
-    def fahrenheit(self):
+    def fahrenheit(self) -> Optional[bool]:
         return self._fahrenheit_unit
 
     @fahrenheit.setter
-    def fahrenheit(self, enabled: bool):
+    def fahrenheit(self, enabled: bool) -> None:
         if self._updating:
             self._defer_update = True
         self._fahrenheit_unit = enabled
 
     @property
-    def display_on(self):
+    def display_on(self) -> Optional[bool]:
         return self._display_on
 
     @property
-    def filter_alert(self):
+    def filter_alert(self) -> Optional[bool]:
         return self._filter_alert
 
     @property
-    def indoor_temperature(self):
+    def indoor_temperature(self) -> Optional[float]:
         return self._indoor_temperature
 
     @property
-    def outdoor_temperature(self):
+    def outdoor_temperature(self) -> Optional[float]:
         return self._outdoor_temperature
 
     @property
@@ -405,9 +405,9 @@ class air_conditioning(device):
         return self._supported_swing_modes
 
     @property
-    def min_target_temperature(self):
+    def min_target_temperature(self) -> Optional[int]:
         return self._min_target_temperature
 
     @property
-    def max_target_temperature(self):
+    def max_target_temperature(self)-> Optional[int] :
         return self._max_target_temperature
