@@ -99,13 +99,17 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         _LOGGER.debug("Discovery response from %s: %s", ip, data.hex())
 
         try:
+            # pylint: disable=protected-access
             version = Discover._get_device_version(data)
         except Discover.UnknownDeviceVersion:
             _LOGGER.error("Unknown device version for %s.", ip)
             return
 
         # Construct a task
-        task = asyncio.create_task(Discover._get_device(ip, version, data))
+        task = asyncio.create_task(
+            # pylint: disable=protected-access
+            Discover._get_device(ip, version, data)
+        )
         self.tasks.add(task)
 
     def error_received(self, exc) -> None:
@@ -121,7 +125,6 @@ class Discover:
 
     class UnknownDeviceVersion(Exception):
         """Exception for unknown device version."""
-        pass
 
     _account = OPEN_MIDEA_APP_ACCOUNT
     _password = OPEN_MIDEA_APP_PASSWORD
@@ -247,7 +250,7 @@ class Discover:
 
             loop = asyncio.get_event_loop()
             transport, protocol = await loop.create_connection(
-                lambda: _V1DeviceInfoProtocol(), ip, port)
+                lambda: _V1DeviceInfoProtocol(), ip, port)  # pylint: disable=unnecessary-lambda
             protocol = cast(_V1DeviceInfoProtocol, protocol)
 
             try:

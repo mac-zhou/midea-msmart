@@ -404,7 +404,7 @@ class LAN:
         # TODO throws OSError and ???
         loop = asyncio.get_event_loop()
         _transport, protocol = await loop.create_connection(
-            lambda: protocol_class(), self._ip, self._port)
+            lambda: protocol_class(), self._ip, self._port)  # pylint: disable=unnecessary-lambda
 
         if self._protocol_version == 3:
             self._protocol = cast(_LanProtocolV3, protocol)
