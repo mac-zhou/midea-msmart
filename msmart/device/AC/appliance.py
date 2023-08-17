@@ -1,6 +1,6 @@
 import logging
 from enum import IntEnum
-from typing import Any, List, Type
+from typing import Any, List, Optional
 
 from msmart.const import DeviceType
 from msmart.device.base import device
@@ -17,12 +17,8 @@ _LOGGER = logging.getLogger(__name__)
 class IntEnumHelper(IntEnum):
     """Helper class to convert IntEnums to strings."""
     @classmethod
-    def list(cls) -> List[str]:
-        return IntEnumHelper.names(cls)
-        
-    @classmethod
-    def names(cls, enum: List[IntEnum] | IntEnum) -> List[str]:
-        return list(map(lambda c: c.name, enum))
+    def list(cls) -> List[IntEnum]:
+        return list(map(lambda c: c, cls))
 
     @classmethod
     def get(cls, value, default=None) -> Any:
@@ -44,7 +40,7 @@ class air_conditioning(device):
         Silent = 20
 
         @classmethod
-        def get(cls, value, default=Auto) -> Any:
+        def get(cls, value, default=Auto) -> IntEnum:
             return super().get(value, default)
 
     class operational_mode_enum(IntEnumHelper):
@@ -55,7 +51,7 @@ class air_conditioning(device):
         fan_only = 5
 
         @classmethod
-        def get(cls, value, default=fan_only) -> Any:
+        def get(cls, value, default=fan_only) -> IntEnum:
             return super().get(value, default)
 
     class swing_mode_enum(IntEnumHelper):
@@ -65,7 +61,7 @@ class air_conditioning(device):
         Both = 0xF
 
         @classmethod
-        def get(cls, value, default=Off) -> Any:
+        def get(cls, value, default=Off) -> IntEnum:
             return super().get(value, default)
 
     def __init__(self, ip: str, device_id: int,  port: int, **kwargs):
@@ -401,12 +397,12 @@ class air_conditioning(device):
         return self._off_timer
 
     @property
-    def supported_operation_modes(self):
-        return IntEnumHelper.names(self._supported_op_modes)
+    def supported_operation_modes(self) -> List[operational_mode_enum]:
+        return self._supported_op_modes
 
     @property
-    def supported_swing_modes(self):
-        return IntEnumHelper.names(self._supported_swing_modes)
+    def supported_swing_modes(self) -> List[swing_mode_enum]:
+        return self._supported_swing_modes
 
     @property
     def min_target_temperature(self):
