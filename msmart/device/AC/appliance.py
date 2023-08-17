@@ -1,5 +1,6 @@
 import logging
 from enum import IntEnum
+from typing import Any, List, Type
 
 from msmart.const import DeviceType
 from msmart.device.base import device
@@ -14,16 +15,21 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class IntEnumHelper(IntEnum):
-    @staticmethod
-    def names(enum):
+    """Helper class to convert IntEnums to strings."""
+    @classmethod
+    def list(cls) -> List[str]:
+        return IntEnumHelper.names(cls)
+        
+    @classmethod
+    def names(cls, enum: List[IntEnum] | IntEnum) -> List[str]:
         return list(map(lambda c: c.name, enum))
 
-    @staticmethod
-    def get(enum_class, value, default=None):
+    @classmethod
+    def get(cls, value, default=None) -> Any:
         try:
-            return enum_class(value)
+            return cls(value)
         except ValueError:
-            _LOGGER.debug("Unknown %s: %d", enum_class, value)
+            _LOGGER.debug("Unknown %s: %d", cls, value)
             return default
 
 
@@ -37,13 +43,9 @@ class air_conditioning(device):
         Low = 40
         Silent = 20
 
-        @staticmethod
-        def list():
-            return IntEnumHelper.names(__class__)
-
-        @staticmethod
-        def get(value):
-            return IntEnumHelper.get(__class__, value, air_conditioning.fan_speed_enum.Auto)
+        @classmethod
+        def get(cls, value, default=Auto) -> Any:
+            return super().get(value, default)
 
     class operational_mode_enum(IntEnumHelper):
         auto = 1
@@ -52,13 +54,9 @@ class air_conditioning(device):
         heat = 4
         fan_only = 5
 
-        @staticmethod
-        def list():
-            return IntEnumHelper.names(__class__)
-
-        @staticmethod
-        def get(value):
-            return IntEnumHelper.get(__class__, value, air_conditioning.operational_mode_enum.fan_only)
+        @classmethod
+        def get(cls, value, default=fan_only) -> Any:
+            return super().get(value, default)
 
     class swing_mode_enum(IntEnumHelper):
         Off = 0x0
@@ -66,13 +64,9 @@ class air_conditioning(device):
         Horizontal = 0x3
         Both = 0xF
 
-        @staticmethod
-        def list():
-            return IntEnumHelper.names(__class__)
-
-        @staticmethod
-        def get(value):
-            return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
+        @classmethod
+        def get(cls, value, default=Off) -> Any:
+            return super().get(value, default)
 
     def __init__(self, ip: str, device_id: int,  port: int, **kwargs):
         # Ensure type is set
