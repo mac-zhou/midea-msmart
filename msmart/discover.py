@@ -306,7 +306,7 @@ class Discover:
                 device_type = int(name.split('_')[1], 16)
 
             # Return dictionary of device info
-            return {"ip": ip_address, "port": port, "id": device_id, "name": name, "sn": sn, "type": device_type}
+            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "type": device_type}
 
     @classmethod
     def _get_device_class(cls, device_type: int):

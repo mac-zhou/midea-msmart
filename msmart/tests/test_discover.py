@@ -25,7 +25,7 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info["ip"], IP_ADDRESS)
         self.assertEqual(info["port"], 6444)
 
-        self.assertEqual(info["id"], 15393162840672)
+        self.assertEqual(info["device_id"], 15393162840672)
         self.assertEqual(info["type"], DeviceType.AIR_CONDITIONER)
 
         self.assertEqual(info["name"], "net_ac_F7B4")
@@ -56,7 +56,7 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info["ip"], IP_ADDRESS)
         self.assertEqual(info["port"], 6444)
 
-        self.assertEqual(info["id"], 147334558165565)
+        self.assertEqual(info["device_id"], 147334558165565)
         self.assertEqual(info["type"], DeviceType.AIR_CONDITIONER)
 
         self.assertEqual(info["name"], "net_ac_63BA")
