@@ -23,6 +23,7 @@ class _V1DeviceInfoProtocol(asyncio.Protocol):
 
     def __init__(self):
         self._transport = None
+        self.response = None
 
     def connection_made(self, transport) -> None:
         """Send device info request on connection."""
