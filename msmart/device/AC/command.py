@@ -1,14 +1,13 @@
-
+import logging
+import math
+import struct
 from abc import ABC, abstractmethod
 from collections import namedtuple
 from enum import IntEnum
-import logging
-import math
-import msmart.crc8 as crc8
-import struct
-from msmart.const import FRAME_TYPE
-from msmart.base_command import command
 
+import msmart.crc8 as crc8
+from msmart.base_command import command
+from msmart.const import FRAME_TYPE
 
 _LOGGER = logging.getLogger(__name__)
 

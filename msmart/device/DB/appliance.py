@@ -1,10 +1,10 @@
-
 import logging
 import time
 from enum import Enum
-from .command import get_state_command, appliance_response
+
 from msmart.device.base import device
 
+from .command import appliance_response, get_state_command
 
 _LOGGER = logging.getLogger(__name__)
 

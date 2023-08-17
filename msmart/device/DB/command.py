@@ -1,10 +1,9 @@
-
 import logging
 from enum import IntEnum
-from msmart.utils import getBit, getBits
-from msmart.const import FRAME_TYPE
-from msmart.base_command import command as base_command
 
+from msmart.base_command import command as base_command
+from msmart.const import FRAME_TYPE
+from msmart.utils import getBit, getBits
 
 _LOGGER = logging.getLogger(__name__)
 

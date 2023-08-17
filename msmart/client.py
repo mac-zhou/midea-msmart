@@ -3,10 +3,10 @@
 # The orignal Ruby version can be found here https://github.com/yitsushi/midea-air-condition
 # License MIT - Use as you please and at your own risk
 from typing import Dict
+
 from msmart.cloud import cloud
 from msmart.device import air_conditioning, dehumidifier_device, unknown_device
 from msmart.lan import lan
-
 
 DEVICE_TYPES = {
     0xAC: air_conditioning,

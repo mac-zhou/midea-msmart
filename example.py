@@ -1,8 +1,9 @@
+import logging
+import time
 
 from msmart.device import air_conditioning as ac
 from msmart.device.base import device
-import logging
-import time
+
 logging.basicConfig(level=logging.DEBUG)
 
 # first take device's ip and id, port is generally 6444

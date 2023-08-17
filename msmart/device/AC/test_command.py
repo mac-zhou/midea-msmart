@@ -1,4 +1,5 @@
 import unittest
+
 from .command import response
 
 # V3 state response with checksum as CRC, and shorter than expected

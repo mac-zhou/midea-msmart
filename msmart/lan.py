@@ -2,9 +2,9 @@
 import logging
 import socket
 import time
+
 from msmart.const import MSGTYPE_ENCRYPTED_REQUEST, MSGTYPE_HANDSHAKE_REQUEST
 from msmart.security import security
-
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -1,9 +1,8 @@
-
 import logging
-from msmart.lan import lan
-from msmart.packet_builder import packet_builder
 import time
 
+from msmart.lan import lan
+from msmart.packet_builder import packet_builder
 
 _LOGGER = logging.getLogger(__name__)
 

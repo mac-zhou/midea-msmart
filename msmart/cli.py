@@ -1,14 +1,14 @@
-
 # -*- coding: UTF-8 -*-
 import asyncio
+import logging
+import os
+import sys
+
+import click
+
+from msmart import __version__
 from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 from msmart.scanner import MideaDiscovery
-from msmart import __version__
-import click
-import logging
-import sys
-import os
-
 
 _LOGGER = logging.getLogger(__name__)
 
