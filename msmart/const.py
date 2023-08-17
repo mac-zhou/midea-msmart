@@ -27,7 +27,7 @@ OPEN_MIDEA_APP_ACCOUNT = 'midea_is_best@outlook.com'
 OPEN_MIDEA_APP_PASSWORD = 'lovemidea4ever'
 
 
-class DeviceId(IntEnum):
+class DeviceType(IntEnum):
     AIR_CONDITIONER = 0xAC
 
 

@@ -9,7 +9,7 @@ from typing import Optional, cast
 from msmart.cloud import Cloud
 from msmart.const import (DEVICE_INFO_MSG, DISCOVERY_MSG,
                           OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD,
-                          DeviceId)
+                          DeviceType)
 from msmart.device import air_conditioning, device
 from msmart.lan import Security
 
@@ -23,6 +23,7 @@ class _V1DeviceInfoProtocol(asyncio.Protocol):
 
     def __init__(self):
         self._transport = None
+        self.response = None
 
     def connection_made(self, transport) -> None:
         """Send device info request on connection."""
@@ -37,7 +38,7 @@ class _V1DeviceInfoProtocol(asyncio.Protocol):
 
         self.response = data
 
-    def connection_lost(self, ex):
+    def connection_lost(self, exc) -> None:
         """NOP implementation of connection lost."""
 
 
@@ -81,7 +82,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 
         for port in [6445, 20086]:
             _LOGGER.debug("Discovery sent to %s:%d.", self._target, port)
-            for i in range(self._discovery_packets):
+            for _ in range(self._discovery_packets):
                 self._transport.sendto(DISCOVERY_MSG, (self._target, port))
 
     def datagram_received(self, data, addr) -> None:
@@ -98,20 +99,24 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         _LOGGER.debug("Discovery response from %s: %s", ip, data.hex())
 
         try:
+            # pylint: disable=protected-access
             version = Discover._get_device_version(data)
         except Discover.UnknownDeviceVersion:
             _LOGGER.error("Unknown device version for %s.", ip)
             return
 
         # Construct a task
-        task = asyncio.create_task(Discover._get_device(ip, version, data))
+        task = asyncio.create_task(
+            # pylint: disable=protected-access
+            Discover._get_device(ip, version, data)
+        )
         self.tasks.add(task)
 
-    def error_received(self, ex):
+    def error_received(self, exc) -> None:
         """Handle asyncio.Protocol errors."""
-        _LOGGER.error("Got error: %s", ex)
+        _LOGGER.error("Got error: %s", exc)
 
-    def connection_lost(self, ex):
+    def connection_lost(self, exc) -> None:
         """NOP implementation of connection lost."""
 
 
@@ -120,7 +125,6 @@ class Discover:
 
     class UnknownDeviceVersion(Exception):
         """Exception for unknown device version."""
-        pass
 
     _account = OPEN_MIDEA_APP_ACCOUNT
     _password = OPEN_MIDEA_APP_PASSWORD
@@ -246,7 +250,7 @@ class Discover:
 
             loop = asyncio.get_event_loop()
             transport, protocol = await loop.create_connection(
-                lambda: _V1DeviceInfoProtocol(), ip, port)
+                lambda: _V1DeviceInfoProtocol(), ip, port)  # pylint: disable=unnecessary-lambda
             protocol = cast(_V1DeviceInfoProtocol, protocol)
 
             try:
@@ -273,7 +277,7 @@ class Discover:
                 encrypted_data = data_mv[40:-16]
 
                 # Extract ID
-                id = int.from_bytes(data_mv[20:26], 'little')
+                device_id = int.from_bytes(data_mv[20:26], 'little')
 
                 # Attempt to decrypt the packet
                 try:
@@ -302,16 +306,16 @@ class Discover:
                 name_length = decrypted_mv[40]
                 name = decrypted_mv[41:41+name_length].tobytes().decode()
 
-                type = int(name.split('_')[1], 16)
+                device_type = int(name.split('_')[1], 16)
 
             # Return dictionary of device info
-            return {"ip": ip_address, "port": port, "id": id, "name": name, "sn": sn, "type": type}
+            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "type": device_type}
 
     @classmethod
-    def _get_device_class(cls, type: int):
+    def _get_device_class(cls, device_type: int):
         """Get the device class from the device type."""
 
-        if type == DeviceId.AIR_CONDITIONER:
+        if device_type == DeviceType.AIR_CONDITIONER:
             return air_conditioning
 
         # Unknown type return generic device

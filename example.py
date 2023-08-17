@@ -26,7 +26,7 @@ async def main():
 
     # Manually construct the device
     #  - See midea-discover to read ID, token and key
-    device = ac(ip=DEVICE_IP, port=6444, id=int(DEVICE_ID))
+    device = ac(ip=DEVICE_IP, port=6444, device_id=int(DEVICE_ID))
     if DEVICE_TOKEN and DEVICE_KEY:
         await device.authenticate(DEVICE_TOKEN, DEVICE_KEY)
 

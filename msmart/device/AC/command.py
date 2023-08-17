@@ -1,7 +1,6 @@
 import logging
 import math
 import struct
-from abc import ABC, abstractmethod
 from collections import namedtuple
 from enum import IntEnum
 
@@ -54,7 +53,7 @@ class temperature_type(IntEnum):
 
 class get_capabilities_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
 
     @property
     def payload(self):
@@ -68,7 +67,7 @@ class get_capabilities_command(command):
 
 class get_state_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
 
         self.temperature_type = temperature_type.Indoor
 
@@ -92,7 +91,7 @@ class get_state_command(command):
 
 class set_state_command(command):
     def __init__(self, device_type):
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Set)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Set)
 
         self.beep_on = True
         self.power_on = False
@@ -167,7 +166,7 @@ class set_state_command(command):
 class toggle_display_command(command):
     def __init__(self, device_type):
         # For whatever reason, toggle display uses a request type...
-        super().__init__(device_type, FRAME_TYPE=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
 
     @property
     def payload(self):
@@ -225,11 +224,11 @@ class response():
             response.validate(frame_mv)
 
             # Parse frame depending on id
-            id = frame_mv[10]
+            response_id = frame_mv[10]
             payload = frame_mv[10:-2]
-            if id == ResponseId.State:
+            if response_id == ResponseId.State:
                 return state_response(payload)
-            elif id == ResponseId.Capabilities:
+            elif response_id == ResponseId.Capabilities:
                 return capabilities_response(payload)
             else:
                 return response(payload)
@@ -314,7 +313,7 @@ class capabilities_response(response):
         caps = payload[2:]
 
         # Loop through each capability
-        for i in range(0, count):
+        for _ in range(0, count):
             # Stop if out of data
             if len(caps) < 3:
                 break
@@ -325,14 +324,14 @@ class capabilities_response(response):
                 continue
 
             # Unpack 16 bit ID
-            (cap_id, ) = struct.unpack("<H", caps[0:2])
+            (raw_id, ) = struct.unpack("<H", caps[0:2])
 
             # Covert ID to enumerate type
             try:
-                id = CapabilityId(cap_id)
+                capability_id = CapabilityId(raw_id)
             except ValueError:
                 _LOGGER.warning(
-                    "Unknown capability. ID: 0x%4X, Size: %d.", cap_id, size)
+                    "Unknown capability. ID: 0x%4X, Size: %d.", raw_id, size)
                 # Advanced to next capability
                 caps = caps[3+size:]
                 continue
@@ -341,20 +340,20 @@ class capabilities_response(response):
             value = caps[3]
 
             # Apply predefined capability reader if it exists
-            if id in capability_readers:
+            if capability_id in capability_readers:
                 # Local function to apply a reader
-                def apply(d): return {d.name: d.read(value)}
+                def apply(d, v): return {d.name: d.read(v)}
 
-                reader = capability_readers[cap_id]
+                reader = capability_readers[raw_id]
                 if isinstance(reader, list):
                     # Apply each reader in the list
                     for r in reader:
-                        self._capabilities.update(apply(r))
+                        self._capabilities.update(apply(r, value))
                 else:
                     # Apply the single reader
-                    self._capabilities.update(apply(reader))
+                    self._capabilities.update(apply(reader, value))
 
-            elif id == CapabilityId.Temperatures:
+            elif capability_id == CapabilityId.Temperatures:
                 # Skip if capability size is too small
                 if size < 6:
                     continue
@@ -370,7 +369,7 @@ class capabilities_response(response):
 
             else:
                 _LOGGER.warning(
-                    "Unsupported capability. ID: 0x%04X, Size: %d.", id, size)
+                    "Unsupported capability. ID: 0x%04X, Size: %d.", capability_id, size)
 
             # Advanced to next capability
             caps = caps[3+size:]

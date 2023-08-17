@@ -1,7 +1,7 @@
 import logging
 from enum import IntEnum
 
-from msmart.const import DeviceId
+from msmart.const import DeviceType
 from msmart.device.base import device
 
 from .command import (InvalidResponseException, ResponseId,
@@ -74,11 +74,11 @@ class air_conditioning(device):
         def get(value):
             return IntEnumHelper.get(__class__, value, air_conditioning.swing_mode_enum.Off)
 
-    def __init__(self, ip: str, id: int,  port: int, **kwargs):
+    def __init__(self, ip: str, device_id: int,  port: int, **kwargs):
         # Ensure type is set
-        kwargs["type"] = DeviceId.AIR_CONDITIONER.value
+        kwargs["type"] = DeviceType.AIR_CONDITIONER.value
 
-        super().__init__(ip=ip, port=port, id=id, **kwargs)
+        super().__init__(ip=ip, port=port, device_id=device_id, **kwargs)
 
         self._updating = False
         self._keep_last_known_online_state = False
@@ -134,8 +134,8 @@ class air_conditioning(device):
         cmd = get_state_command(self.type)
         await self.send_command(cmd)
 
-    async def send_command(self, cmd, ignore_response=False):
-        responses = await super().send_command(cmd)
+    async def send_command(self, command, ignore_response=False):
+        responses = await super().send_command(command)
 
         # Ignore responses if requested, or nonexistent
         if ignore_response or responses is None:

@@ -87,10 +87,10 @@ class _LanProtocol(asyncio.Protocol):
         _LOGGER.debug("Received data from %s: %s", self.peer, data.hex())
         self._queue.put_nowait(data)
 
-    def connection_lost(self, ex):
+    def connection_lost(self, exc) -> None:
         """Log connection lost."""
-        if ex:
-            _LOGGER.error("Connection to %s lost. Error: %s.", self.peer, ex)
+        if exc:
+            _LOGGER.error("Connection to %s lost. Error: %s.", self.peer, exc)
 
     def disconnect(self) -> None:
         """Disconnect from the peer."""
@@ -217,7 +217,7 @@ class _LanProtocolV3(_LanProtocol):
         # Extract header, encrypted payload and hash
         header = packet[:6]
         payload = packet[6:-32]
-        hash = packet[-32:]
+        rx_hash = packet[-32:]
 
         # Decrypt payload
         decrypted_payload = Security.decrypt_aes_cbc(self._local_key, payload)
@@ -225,7 +225,7 @@ class _LanProtocolV3(_LanProtocol):
         # TODO could padding module handle this padding?
 
         # Verify hash
-        if sha256(bytes(header) + decrypted_payload).digest() != hash:
+        if sha256(bytes(header) + decrypted_payload).digest() != rx_hash:
             raise ProtocolError(
                 "Calculated and received SHA256 digest do not match.")
 
@@ -259,15 +259,15 @@ class _LanProtocolV3(_LanProtocol):
                 f"Invalid magic byte: 0x{packet[4]:X}")
 
         # Handle packet based on type
-        type = packet[5] & 0xF
-        if type == self.PacketType.ENCRYPTED_RESPONSE:
+        packet_type = packet[5] & 0xF
+        if packet_type == self.PacketType.ENCRYPTED_RESPONSE:
             return self._decode_encrypted_response(packet)
-        elif type == self.PacketType.HANDSHAKE_RESPONSE:
+        elif packet_type == self.PacketType.HANDSHAKE_RESPONSE:
             return self._decode_handshake_response(packet)
-        elif type == self.PacketType.ERROR:
+        elif packet_type == self.PacketType.ERROR:
             raise ProtocolError("Error packet received.")
         else:
-            raise ProtocolError(f"Unexpected type: {type}")
+            raise ProtocolError(f"Unexpected type: {packet_type}")
 
     async def read(self, timeout: int = 2) -> bytes:
         """Asynchronously read data from the peer via the queue."""
@@ -305,8 +305,8 @@ class _LanProtocolV3(_LanProtocol):
         # Build payload to encrypt
         payload = packet_id.to_bytes(2, "big") + data + get_random_bytes(pad)
 
-        hash = sha256(header + payload).digest()
-        return header + Security.encrypt_aes_cbc(self._local_key, payload) + hash
+        calc_hash = sha256(header + payload).digest()
+        return header + Security.encrypt_aes_cbc(self._local_key, payload) + calc_hash
 
     def _encode_handshake_request(self, packet_id: int, data: bytes):
         """Encode a handshake request packet."""
@@ -320,20 +320,20 @@ class _LanProtocolV3(_LanProtocol):
 
         return header + payload
 
-    def write(self, data: bytes, *, type=PacketType.ENCRYPTED_REQUEST) -> None:
+    def write(self, data: bytes, *, packet_type=PacketType.ENCRYPTED_REQUEST) -> None:
         """Send a packet of the specified type to the peer."""
 
         # Raise an error if attempting to send an encryptd request without authenticating
-        if type == self.PacketType.ENCRYPTED_REQUEST and self._local_key is None:
+        if packet_type == self.PacketType.ENCRYPTED_REQUEST and self._local_key is None:
             raise ProtocolError("Protocol has not been authenticated.")
 
         # Encode the data according to the supplied type
-        if type == self.PacketType.ENCRYPTED_REQUEST:
+        if packet_type == self.PacketType.ENCRYPTED_REQUEST:
             packet = self._encode_encrypted_request(self._packet_id, data)
-        elif type == self.PacketType.HANDSHAKE_REQUEST:
+        elif packet_type == self.PacketType.HANDSHAKE_REQUEST:
             packet = self._encode_handshake_request(self._packet_id, data)
         else:
-            raise TypeError(f"Unknown type: {type}")
+            raise TypeError(f"Unknown type: {packet_type}")
 
         # Write to the peer
         super().write(packet)
@@ -350,12 +350,12 @@ class _LanProtocolV3(_LanProtocol):
 
         # Extract payload and hash
         payload = data[:32]
-        hash = data[32:]
+        rx_hash = data[32:]
 
         # Decrypt the payload with the provided key
         decrypted_payload = Security.decrypt_aes_cbc(key, payload)
 
-        if sha256(decrypted_payload).digest() != hash:
+        if sha256(decrypted_payload).digest() != rx_hash:
             raise AuthenticationError(
                 "Calculated and received SHA256 digest do not match.")
 
@@ -369,11 +369,11 @@ class _LanProtocolV3(_LanProtocol):
             raise AuthenticationError("Token and key must be supplied.")
 
         try:
-            self.write(token, type=self.PacketType.HANDSHAKE_REQUEST)
+            self.write(token, packet_type=self.PacketType.HANDSHAKE_REQUEST)
             response = await self.read()
         except ProtocolError as e:
             # Promote any protocol error to auth error
-            raise AuthenticationError(e)
+            raise AuthenticationError(e) from e
 
         # Generate local key from cloud key
         with memoryview(response) as response_mv:
@@ -404,7 +404,7 @@ class LAN:
         # TODO throws OSError and ???
         loop = asyncio.get_event_loop()
         _transport, protocol = await loop.create_connection(
-            lambda: protocol_class(), self._ip, self._port)
+            lambda: protocol_class(), self._ip, self._port)  # pylint: disable=unnecessary-lambda
 
         if self._protocol_version == 3:
             self._protocol = cast(_LanProtocolV3, protocol)
@@ -448,12 +448,12 @@ class LAN:
             try:
                 await self._protocol.authenticate(token, key)
                 break
-            except (TimeoutError, asyncio.TimeoutError):
+            except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
                     _LOGGER.warning("Authentication timeout. Resending.")
                     retries -= 1
                 else:
-                    raise TimeoutError("No response from host.")
+                    raise TimeoutError("No response from host.") from e
 
         # Update stored token and key if successful
         self._token = token
@@ -503,13 +503,13 @@ class LAN:
                 # Await a response
                 responses.append(await self._read())
                 break
-            except (TimeoutError, asyncio.TimeoutError):
+            except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
                     _LOGGER.warning("Request timeout. Resending.")
                     retries -= 1
                 else:
                     self._disconnect()
-                    raise TimeoutError("No response from host.")
+                    raise TimeoutError("No response from host.") from e
 
         # Attempt to read any additional responses without blocking
         while True:
@@ -552,9 +552,9 @@ class Security:
         return md5(data + Security.SIGN_KEY).digest()
 
     @classmethod
-    def udpid(cls, id: bytes):
-        with memoryview(sha256(id).digest()) as hash:
-            return strxor(hash[:16], hash[16:])
+    def udpid(cls, device_id: bytes):
+        with memoryview(sha256(device_id).digest()) as mv_hash:
+            return strxor(mv_hash[:16], mv_hash[16:])
 
 
 class _Packet:
@@ -593,7 +593,7 @@ class _Packet:
 
             if packet[:2] != b"\x5a\x5a":
                 # TODO old code handled raw frames? e.g start = 0xAA
-                raise ProtocolError(f"Unsupported packet: %s", packet.hex())
+                raise ProtocolError(f"Unsupported packet: {packet.hex()}")
 
             length = int.from_bytes(packet[4:6], "little")
 
@@ -603,12 +603,12 @@ class _Packet:
 
             packet = packet[:length]
             encrypted_frame = packet[40:-16]
-            hash = packet[-16:]
+            rx_hash = packet[-16:]
 
             # Check that received hash matches
-            if Security.sign(bytes(packet[:-16])) != hash:
+            if Security.sign(bytes(packet[:-16])) != rx_hash:
                 raise ProtocolError(
-                    f"Calculated and received MD5 digest do not match.")
+                    "Calculated and received MD5 digest do not match.")
 
             # Decrypt frame
             return Security.decrypt_aes(encrypted_frame)
