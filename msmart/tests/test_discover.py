@@ -1,6 +1,6 @@
 import unittest
 
-from msmart.const import DeviceId
+from msmart.const import DeviceType
 from msmart.device import air_conditioning as AC
 from msmart.discover import Discover
 
@@ -25,7 +25,7 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info["port"], 6444)
 
         self.assertEqual(info["id"], 15393162840672)
-        self.assertEqual(info["type"], DeviceId.AIR_CONDITIONER)
+        self.assertEqual(info["type"], DeviceType.AIR_CONDITIONER)
 
         self.assertEqual(info["name"], "net_ac_F7B4")
         self.assertEqual(info["sn"], "000000P0000000Q1F0C9D153F7B40000")
@@ -56,7 +56,7 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(info["port"], 6444)
 
         self.assertEqual(info["id"], 147334558165565)
-        self.assertEqual(info["type"], DeviceId.AIR_CONDITIONER)
+        self.assertEqual(info["type"], DeviceType.AIR_CONDITIONER)
 
         self.assertEqual(info["name"], "net_ac_63BA")
         self.assertEqual(info["sn"], "000000P0000000Q1B88C29C963BA0000")
