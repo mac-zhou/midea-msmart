@@ -41,10 +41,6 @@ class _V1DeviceInfoProtocol(asyncio.Protocol):
 
         self.response = data
 
-    def error_received(self, ex):
-        """Handle asyncio.Protocol errors."""
-        _LOGGER.error("Got error: %s", ex)
-
     def connection_lost(self, ex):
         """NOP implementation of connection lost."""
 
@@ -340,7 +336,7 @@ class Discover:
                 "Fetching token and key for udpid '%s' (%s).", udpid, endian)
             token, key = await cloud.get_token(udpid)
 
-            if dev.authenticate(token, key):
+            if await dev.authenticate(token, key):
                 return token, key
 
     @classmethod
@@ -363,6 +359,6 @@ class Discover:
         if version == 3:
             await Discover._authenticate_device(dev)
 
-        dev.refresh()
+        await dev.refresh()
 
         return dev

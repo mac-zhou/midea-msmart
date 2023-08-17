@@ -2,9 +2,10 @@
 from abc import ABC, abstractmethod
 import logging
 import time
-from msmart.lan import lan
-from msmart.packet_builder import packet_builder
+from typing import Union, List
 
+from msmart.lan import LAN, ProtocolError, AuthenticationError
+from msmart.types import Token, Key
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -20,73 +21,52 @@ class device(ABC):
         self._name = kwargs.get("name", None)
         self._type = kwargs.get("type", None)
 
-        # For V3 devices
-        self._token = None
-        self._key = None
-
-        self._lan_service = lan(ip, id, port)
+        self._lan = LAN(ip, port, id)
         self._support = False
         self._online = False
 
-    def authenticate(self, token: str = None, key: str = None):
-        # Use existing token and key if none provided
-        if token is None or key is None:
-            token = self._token
-            key = self._key
-
-        def convert(x):
-            if isinstance(x, str):
-                return bytes.fromhex(x)
-
-        success = self._lan_service.authenticate(convert(token), convert(key))
-
-        # Update token and key if successful
-        if success:
-            self._token = token
-            self._key = key
-
-        return success
+    @abstractmethod
+    async def refresh(self):
+        raise NotImplementedError()
 
     @abstractmethod
-    def refresh(self):
-        pass
+    async def apply(self):
+        raise NotImplementedError()
 
-    @abstractmethod
-    def apply(self):
-        pass
+    async def authenticate(self, token: Token, key: Key) -> bool:
+        """Authenticate with a V3 device."""
+        try:
+            await self._lan.authenticate(token, key)
+            return True
+        except (AuthenticationError, TimeoutError) as e:
+            _LOGGER.error("Authentication failed. Error: %s", e)
+            return False
 
-    def send_cmd(self, cmd):
-        pkt_builder = packet_builder(self.id)
-        pkt_builder.set_command(cmd)
-        data = pkt_builder.finalize()
-        _LOGGER.debug(
-            "pkt_builder: %s:%d len: %d data: %s", self.ip, self.port, len(data), data.hex())
-        send_time = time.time()
+    async def send_command(self, command: bytes) -> List[object]:
+        """Send a command to the device and return any responses."""
 
-        responses = self._lan_service.send(data)
+        data = command.pack()
+        _LOGGER.debug("Sending command to %s:%d: %s.",
+                      self.ip, self.port, data.hex())
 
-        request_time = round(time.time() - send_time, 2)
-        _LOGGER.debug(
-            "Got responses from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
-        if len(responses) == 0:
-            _LOGGER.warning(
-                "Got Null from %s:%d Version: %d Count: %d Spend time: %f", self.ip, self.port, self._lan_service.protocol_version, len(responses), request_time)
-            self._support = False
+        start = time.time()
+        responses = None
+        try:
+            responses = await self._lan.send(data)
+        except (ProtocolError, TimeoutError) as e:
+            _LOGGER.error("Network error: %s", e)
+        finally:
+            response_time = round(time.time() - start, 2)
 
-        # sort, put CMD_TYPE_QUERRY last, so we can get END(machine_status) from the last response
-        responses.sort()
+        if responses is None:
+            _LOGGER.warning("No response from %s:%d in %f seconds. ",
+                            self.ip, self.port, response_time)
+            return None
+
+        _LOGGER.debug("Response from %s:%d in %f seconds.",
+                      self.ip, self.port, response_time)
 
         return responses
-
-    def process_response(self, data):
-        _LOGGER.debug("Update from %s:%d %s", self.ip, self.port, data.hex())
-        if len(data) > 0:
-            self._online = True
-            if data == b'ERROR':
-                self._support = False
-                _LOGGER.warning("Got ERROR from %s, %s", self.ip, self.id)
-                return
-            return data
 
     @property
     def ip(self) -> str:
@@ -101,15 +81,15 @@ class device(ABC):
         return self._id
 
     @property
-    def type(self) -> str:
+    def type(self) -> Union[str, None]:
         return self._type
 
     @property
-    def name(self) -> str:
+    def name(self) -> Union[str, None]:
         return self._name
 
     @property
-    def sn(self) -> str:
+    def sn(self) -> Union[str, None]:
         return self._sn
 
     @property

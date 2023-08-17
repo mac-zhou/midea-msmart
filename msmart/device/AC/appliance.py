@@ -114,37 +114,38 @@ class air_conditioning(device):
     def __str__(self):
         return str(self.__dict__)
 
-    def get_capabilities(self):
+    async def get_capabilities(self):
         cmd = get_capabilities_command(self.type)
-        self.send_cmd(cmd)
+        await self.send_command(cmd)
 
-    def toggle_display(self):
+    async def toggle_display(self):
         if not self._supports_display_control:
             _LOGGER.warning("Device is not capable of display control.")
 
         cmd = toggle_display_command(self.type)
-        self.send_cmd(cmd, True)
+        await self.send_command(cmd, True)
 
         # Force a refresh to get the updated display state
-        self.refresh()
+        await self.refresh()
 
-    def refresh(self):
+    async def refresh(self):
         cmd = get_state_command(self.type)
-        self.send_cmd(cmd)
+        await self.send_command(cmd)
 
-    def send_cmd(self, cmd, ignore_response=False):
-        responses = super().send_cmd(cmd)
+    async def send_command(self, cmd, ignore_response=False):
+        responses = await super().send_command(cmd)
 
-        # Ignore responses if requested
-        if ignore_response:
+        # Ignore responses if requested, or nonexistent
+        if ignore_response or responses is None:
             return
 
-        # Process each response
         for response in responses:
             self.process_response(response)
 
     def process_response(self, data):
-        if super().process_response(data):
+        if data:
+            self._online = True
+
             # Construct response from data
             try:
                 response = base_response.construct(data)
@@ -158,13 +159,13 @@ class air_conditioning(device):
                 self.update(response)
             elif response.id == ResponseId.Capabilities:
                 self.update_capabilities(response)
-            elif response.id == 0xa1 or response.id == 0xa0:
-                _LOGGER.info("Ignored special response. %s:%d %s",
-                             self.ip, self.port, response.payload.hex())
+            else:
+                _LOGGER.debug("Ignored unknown response from %s:%d: %s",
+                              self.ip, self.port, response.payload.hex())
         elif not self._keep_last_known_online_state:
             self._online = False
 
-    def apply(self):
+    async def apply(self):
         self._updating = True
         try:
             # Warn if trying to apply unsupported modes
@@ -197,7 +198,7 @@ class air_conditioning(device):
             cmd.freeze_protection_mode = self._freeze_protection_mode
             cmd.sleep_mode = self._sleep_mode
             cmd.fahrenheit = self._fahrenheit_unit
-            self.send_cmd(cmd, self._defer_update)
+            await self.send_command(cmd, self._defer_update)
         finally:
             self._updating = False
             self._defer_update = False
