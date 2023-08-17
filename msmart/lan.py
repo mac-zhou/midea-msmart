@@ -593,7 +593,7 @@ class _Packet:
 
             if packet[:2] != b"\x5a\x5a":
                 # TODO old code handled raw frames? e.g start = 0xAA
-                raise ProtocolError(f"Unsupported packet: %s", packet.hex())
+                raise ProtocolError(f"Unsupported packet: {packet.hex()}")
 
             length = int.from_bytes(packet[4:6], "little")
 
@@ -608,7 +608,7 @@ class _Packet:
             # Check that received hash matches
             if Security.sign(bytes(packet[:-16])) != rx_hash:
                 raise ProtocolError(
-                    f"Calculated and received MD5 digest do not match.")
+                    "Calculated and received MD5 digest do not match.")
 
             # Decrypt frame
             return Security.decrypt_aes(encrypted_frame)

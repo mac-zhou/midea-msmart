@@ -12,9 +12,9 @@ _LOGGER = logging.getLogger(__name__)
 async def _discover(ip: str, count: int, account: str, password: str, china: bool, **_kwargs):
     """Discover Midea devices and print configuration information."""
 
-    _LOGGER.info(f"msmart version: {__version__}")
+    _LOGGER.info("msmart version: %s", __version__)
     _LOGGER.info(
-        f"Only supports AC devices. Only supports MSmartHome and 美的美居.")
+        "Only supports AC devices. Only supports MSmartHome and 美的美居.")
 
     if china and (account == OPEN_MIDEA_APP_ACCOUNT or password == OPEN_MIDEA_APP_PASSWORD):
         _LOGGER.error(
