@@ -5,6 +5,7 @@ from msmart.const import OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD
 
 
 class TestCloud(unittest.IsolatedAsyncioTestCase):
+    # pylint: disable=protected-access
 
     async def _login(self) -> Cloud:
         client = Cloud(account=OPEN_MIDEA_APP_ACCOUNT,

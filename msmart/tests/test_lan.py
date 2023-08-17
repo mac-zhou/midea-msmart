@@ -4,6 +4,7 @@ from msmart.lan import _LanProtocolV3, _Packet
 
 
 class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
+    # pylint: disable=protected-access
 
     async def test_enocde_packet_roundtrip(self):
         """Test that we can encode and decode a frame."""

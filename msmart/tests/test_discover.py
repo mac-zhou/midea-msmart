@@ -6,6 +6,7 @@ from msmart.discover import Discover
 
 
 class TestDiscover(unittest.IsolatedAsyncioTestCase):
+    # pylint: disable=protected-access
 
     async def test_discover_v2(self):
         """Test that we can parse a V2 discovery response."""
