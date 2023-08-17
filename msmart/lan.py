@@ -373,7 +373,7 @@ class _LanProtocolV3(_LanProtocol):
             response = await self.read()
         except ProtocolError as e:
             # Promote any protocol error to auth error
-            raise AuthenticationError(e)
+            raise AuthenticationError(e) from e
 
         # Generate local key from cloud key
         with memoryview(response) as response_mv:
@@ -448,12 +448,12 @@ class LAN:
             try:
                 await self._protocol.authenticate(token, key)
                 break
-            except (TimeoutError, asyncio.TimeoutError):
+            except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
                     _LOGGER.warning("Authentication timeout. Resending.")
                     retries -= 1
                 else:
-                    raise TimeoutError("No response from host.")
+                    raise TimeoutError("No response from host.") from e
 
         # Update stored token and key if successful
         self._token = token
@@ -503,13 +503,13 @@ class LAN:
                 # Await a response
                 responses.append(await self._read())
                 break
-            except (TimeoutError, asyncio.TimeoutError):
+            except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
                     _LOGGER.warning("Request timeout. Resending.")
                     retries -= 1
                 else:
                     self._disconnect()
-                    raise TimeoutError("No response from host.")
+                    raise TimeoutError("No response from host.") from e
 
         # Attempt to read any additional responses without blocking
         while True:
