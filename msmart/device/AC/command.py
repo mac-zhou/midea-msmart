@@ -5,8 +5,8 @@ from collections import namedtuple
 from enum import IntEnum
 
 import msmart.crc8 as crc8
-from msmart.base_command import command
-from msmart.const import FRAME_TYPE
+from msmart.base_command import Command
+from msmart.const import FrameType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,44 +16,44 @@ class InvalidResponseException(Exception):
 
 
 class ResponseId(IntEnum):
-    State = 0xC0
-    Capabilities = 0xB5
+    STATE = 0xC0
+    CAPABILITIES = 0xB5
 
 
 class CapabilityId(IntEnum):
-    IndoorHumidity = 0x0015
-    SilkyCool = 0x0018
-    SmartEye = 0x0030
-    WindOnMe = 0x0032
-    WindOffMe = 0x0033
-    ActiveClean = 0x0039
-    OneKeyNoWindOnMe = 0x0042
-    BreezeControl = 0x0043
-    FanSpeedControl = 0x0210
-    PresetEco = 0x0212
-    PresetFreezeProtection = 0x0213
-    Modes = 0x0214
-    SwingModes = 0x0215
-    Power = 0x0216
-    Nest = 0x0217
-    AuxElectricHeat = 0x0219
-    PresetTurbo = 0x021A
-    Humidity = 0x021F
-    UnitChangeable = 0x0222
-    LightControl = 0x0224
-    Temperatures = 0x0225
-    Buzzer = 0x022C
+    INDOOR_HUMIDITY = 0x0015
+    SILKY_COOL = 0x0018
+    SMART_EYE = 0x0030
+    WIND_ON_ME = 0x0032
+    WIND_OFF_ME = 0x0033
+    ACTIVE_CLEAN = 0x0039
+    ONE_KEY_NO_WIND_ON_ME = 0x0042
+    BREEZE_CONTROL = 0x0043
+    FAN_SPEED_CONTROL = 0x0210
+    PRESET_ECO = 0x0212
+    PRESET_FREEZE_PROTECTION = 0x0213
+    MODES = 0x0214
+    SWING_MODES = 0x0215
+    POWER = 0x0216
+    NEST = 0x0217
+    AUX_ELECTRIC_HEAT = 0x0219
+    PRESET_TURBO = 0x021A
+    HUMIDITY = 0x021F
+    UNIT_CHANGEABLE = 0x0222
+    LIGHT_CONTROL = 0x0224
+    TEMPERATURES = 0x0225
+    BUZZER = 0x022C
 
 
-class temperature_type(IntEnum):
-    Unknown = 0
-    Indoor = 0x2
-    Outdoor = 0x3
+class TemperatureType(IntEnum):
+    UNKNOWN = 0
+    INDOOR = 0x2
+    OUTDOOR = 0x3
 
 
-class get_capabilities_command(command):
+class GetCapabilitiesCommand(Command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FrameType.REQUEST)
 
     @property
     def payload(self):
@@ -65,11 +65,11 @@ class get_capabilities_command(command):
         ])
 
 
-class get_state_command(command):
+class GetStateCommand(Command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FrameType.REQUEST)
 
-        self.temperature_type = temperature_type.Indoor
+        self.temperature_type = TemperatureType.INDOOR
 
     @property
     def payload(self):
@@ -89,9 +89,9 @@ class get_state_command(command):
         ])
 
 
-class set_state_command(command):
+class SetStateCommand(Command):
     def __init__(self, device_type):
-        super().__init__(device_type, frame_type=FRAME_TYPE.Set)
+        super().__init__(device_type, frame_type=FrameType.SET)
 
         self.beep_on = True
         self.power_on = False
@@ -163,10 +163,10 @@ class set_state_command(command):
         ])
 
 
-class toggle_display_command(command):
+class ToggleDisplayCommand(Command):
     def __init__(self, device_type):
         # For whatever reason, toggle display uses a request type...
-        super().__init__(device_type, frame_type=FRAME_TYPE.Request)
+        super().__init__(device_type, frame_type=FrameType.REQUEST)
 
     @property
     def payload(self):
@@ -183,7 +183,7 @@ class toggle_display_command(command):
         ])
 
 
-class response():
+class Response():
     def __init__(self, payload: memoryview):
         # Set ID and copy the payload
         self._id = payload[0]
@@ -200,7 +200,7 @@ class response():
     @staticmethod
     def validate(frame: memoryview):
         # Validate frame checksum
-        frame_checksum = command.checksum(frame[1:-1])
+        frame_checksum = Command.checksum(frame[1:-1])
         if frame_checksum != frame[-1]:
             raise InvalidResponseException(
                 f"Frame '{frame.hex()}' failed checksum. Received: 0x{frame[-1]:X}, Expected: 0x{frame_checksum:X}.")
@@ -210,7 +210,7 @@ class response():
 
         # Some devices use a CRC others seem to use a 2nd checksum
         payload_crc = crc8.calculate(payload[0:-1])
-        payload_checksum = command.checksum(payload[0:-1])
+        payload_checksum = Command.checksum(payload[0:-1])
 
         if payload_crc != payload[-1] and payload_checksum != payload[-1]:
             raise InvalidResponseException(
@@ -221,20 +221,20 @@ class response():
         # Build a memoryview of the frame for zero-copy slicing
         with memoryview(frame) as frame_mv:
             # Ensure frame is valid before parsing
-            response.validate(frame_mv)
+            Response.validate(frame_mv)
 
             # Parse frame depending on id
             response_id = frame_mv[10]
             payload = frame_mv[10:-2]
-            if response_id == ResponseId.State:
-                return state_response(payload)
-            elif response_id == ResponseId.Capabilities:
-                return capabilities_response(payload)
+            if response_id == ResponseId.STATE:
+                return StateResponse(payload)
+            elif response_id == ResponseId.CAPABILITIES:
+                return CapabilitiesResponse(payload)
             else:
-                return response(payload)
+                return Response(payload)
 
 
-class capabilities_response(response):
+class CapabilitiesResponse(Response):
     def __init__(self, payload: memoryview):
         super().__init__(payload)
 
@@ -260,53 +260,53 @@ class capabilities_response(response):
 
         # Create a map of capability ID to decoders
         capability_readers = {
-            CapabilityId.IndoorHumidity: reader("indoor_humidity", get_bool),
-            CapabilityId.SilkyCool: reader("silky_cool", get_value(1)),
-            CapabilityId.SmartEye:  reader("smart_eye", get_value(1)),
-            CapabilityId.WindOnMe:  reader("wind_on_me", get_value(1)),
-            CapabilityId.WindOffMe:  reader("wind_off_me", get_value(1)),
-            CapabilityId.ActiveClean:  reader("active_clean", get_value(1)),
-            CapabilityId.OneKeyNoWindOnMe: reader("one_key_no_wind_on_me", get_value(1)),
-            CapabilityId.BreezeControl: reader("breeze_control", get_value(1)),
+            CapabilityId.INDOOR_HUMIDITY: reader("indoor_humidity", get_bool),
+            CapabilityId.SILKY_COOL: reader("silky_cool", get_value(1)),
+            CapabilityId.SMART_EYE:  reader("smart_eye", get_value(1)),
+            CapabilityId.WIND_ON_ME:  reader("wind_on_me", get_value(1)),
+            CapabilityId.WIND_OFF_ME:  reader("wind_off_me", get_value(1)),
+            CapabilityId.ACTIVE_CLEAN:  reader("active_clean", get_value(1)),
+            CapabilityId.ONE_KEY_NO_WIND_ON_ME: reader("one_key_no_wind_on_me", get_value(1)),
+            CapabilityId.BREEZE_CONTROL: reader("breeze_control", get_value(1)),
             # Fan speed control always seems to return false, even if unit can
-            CapabilityId.FanSpeedControl: reader("fan_speed_control", get_no_value(1)),
-            CapabilityId.PresetEco: [
+            CapabilityId.FAN_SPEED_CONTROL: reader("fan_speed_control", get_no_value(1)),
+            CapabilityId.PRESET_ECO: [
                 reader("eco_mode", get_value(1)),
                 reader("eco_mode_2", get_value(2)),
             ],
-            CapabilityId.PresetFreezeProtection: reader("freeze_protection", get_value(1)),
-            CapabilityId.Modes: [
+            CapabilityId.PRESET_FREEZE_PROTECTION: reader("freeze_protection", get_value(1)),
+            CapabilityId.MODES: [
                 reader("heat_mode", lambda v: v == 1 or v == 2),
                 reader("cool_mode", lambda v: v != 2),
                 reader("dry_mode", lambda v: v < 2),
                 reader("auto_mode", lambda v: v < 3),
             ],
-            CapabilityId.SwingModes: [
+            CapabilityId.SWING_MODES: [
                 reader("swing_horizontal", lambda v: v == 1 or v == 3),
                 reader("swing_vertical", lambda v: v < 2),
             ],
-            CapabilityId.Power: [
+            CapabilityId.POWER: [
                 reader("power_cal", lambda v: v == 2 or v == 3),
                 reader("power_cal_setting", lambda v: v == 3),
             ],
-            CapabilityId.Nest: [
+            CapabilityId.NEST: [
                 reader("nest_check", lambda v: v == 1 or v == 2 or v == 4),
                 reader("nest_need_change", lambda v: v == 3 or v == 4),
             ],
-            CapabilityId.AuxElectricHeat: reader("aux_electric_heat", get_bool),
-            CapabilityId.PresetTurbo:  [
+            CapabilityId.AUX_ELECTRIC_HEAT: reader("aux_electric_heat", get_bool),
+            CapabilityId.PRESET_TURBO:  [
                 reader("turbo_heat", lambda v: v == 1 or v == 3),
                 reader("turbo_cool", lambda v: v < 2),
             ],
-            CapabilityId.Humidity:
+            CapabilityId.HUMIDITY:
             [
                 reader("humidity_auto_set", lambda v: v == 1 or v == 2),
                 reader("humidity_manual_set", lambda v: v == 2 or v == 3),
             ],
-            CapabilityId.UnitChangeable: reader("unit_changeable", get_value(0)),
-            CapabilityId.LightControl: reader("light_control", get_bool),
+            CapabilityId.UNIT_CHANGEABLE: reader("unit_changeable", get_value(0)),
+            CapabilityId.LIGHT_CONTROL: reader("light_control", get_bool),
             # Temperatures capability too complex to be handled here
-            CapabilityId.Buzzer:  reader("buzzer", get_bool),
+            CapabilityId.BUZZER:  reader("buzzer", get_bool),
         }
 
         count = payload[1]
@@ -353,7 +353,7 @@ class capabilities_response(response):
                     # Apply the single reader
                     self._capabilities.update(apply(reader, value))
 
-            elif capability_id == CapabilityId.Temperatures:
+            elif capability_id == CapabilityId.TEMPERATURES:
                 # Skip if capability size is too small
                 if size < 6:
                     continue
@@ -429,7 +429,7 @@ class capabilities_response(response):
         return self._capabilities.get("freeze_protection", False)
 
 
-class state_response(response):
+class StateResponse(Response):
     def __init__(self, payload: memoryview):
         super().__init__(payload)
 

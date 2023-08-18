@@ -31,9 +31,9 @@ class DeviceType(IntEnum):
     AIR_CONDITIONER = 0xAC
 
 
-class FRAME_TYPE(IntEnum):
-    Unknown = 0
-    Set = 0x02
-    Request = 0x03
-    Report = 0x04
-    ABNL_REPORT = 0x06
+class FrameType(IntEnum):
+    UNKNOWN = 0
+    SET = 0x02
+    REQUEST = 0x03
+    REPORT = 0x04
+    ABNORMAL_REPORT = 0x06

@@ -1,6 +1,6 @@
 import unittest
 
-from .command import response
+from .command import Response
 
 
 class TestStateResponse(unittest.TestCase):
@@ -10,7 +10,7 @@ class TestStateResponse(unittest.TestCase):
                         msg=f"Object {obj} lacks attribute '{attr}'.")
 
     def _test_build_response(self, msg):
-        resp = response.construct(msg)
+        resp = Response.construct(msg)
         self.assertIsNotNone(resp)
 
         return resp
