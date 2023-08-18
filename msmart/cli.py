@@ -50,7 +50,7 @@ def discover(debug: bool, amount: int, account: str, password: str, ip: str, chi
         loop.close()
         if not found_devices:
             _LOGGER.error(
-                "*** \033[0;31mDevice not found, please read: https://github.com/mac-zhou/midea-ac-py#how-to-get-configuration-variables \033[0m")
+                "*** \033[0;31mDevice not found \033[0m")
         else:
             for device in found_devices:
                 _LOGGER.info(
