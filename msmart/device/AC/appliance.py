@@ -103,9 +103,6 @@ class air_conditioning(device):
         self._indoor_temperature = None
         self._outdoor_temperature = None
 
-    def __str__(self):
-        return str(self.__dict__)
-
     async def get_capabilities(self) -> None:
         cmd = get_capabilities_command(self.type)
         await self.send_command(cmd)
@@ -145,7 +142,7 @@ class air_conditioning(device):
                 _LOGGER.error(e)
                 return
 
-            self._support = True
+            self._supported = True
 
             if response.id == ResponseId.State:
                 self.update(response)

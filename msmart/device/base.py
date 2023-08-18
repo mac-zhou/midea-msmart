@@ -20,7 +20,7 @@ class device():
         self._type = kwargs.get("type", None)
 
         self._lan = LAN(ip, port, device_id)
-        self._support = False
+        self._supported = False
         self._online = False
 
     async def refresh(self):
@@ -106,5 +106,20 @@ class device():
     def online(self) -> bool:
         return self._online
 
+    @property
+    def supported(self) -> bool:
+        return self._supported
+
     def __str__(self) -> str:
-        return f"{self.ip}:{self.port} Type: {self.type} ID: {self.id}"
+        return str({
+            "ip" : self.ip,
+            "port": self.port,
+            "id": self.id,
+            "online": self.online,
+            "supported": self.supported,
+            "type": self.type,
+            "name": self.name,
+            "sn": self.sn,
+            "key": self.key,
+            "token": self.token
+        })
