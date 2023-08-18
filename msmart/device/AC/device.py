@@ -36,6 +36,7 @@ class IntEnumHelper(IntEnum):
             _LOGGER.debug("Unknown %s: %d", cls, name)
             return cls[default]
 
+
 class AirConditioner(Device):
 
     class FanSpeed(IntEnumHelper):
@@ -49,7 +50,7 @@ class AirConditioner(Device):
         @classmethod
         def get_from_value(cls, value, default=AUTO) -> IntEnum:
             return super().get_from_value(value, default)
-        
+
         @classmethod
         def get_from_name(cls, name, default=AUTO) -> IntEnum:
             return super().get_from_name(name, default)
@@ -78,7 +79,7 @@ class AirConditioner(Device):
         @classmethod
         def get_from_value(cls, value, default=OFF) -> IntEnum:
             return super().get_from_value(value, default)
-        
+
         @classmethod
         def get_from_name(cls, name, default=OFF) -> IntEnum:
             return super().get_from_name(name, default)
