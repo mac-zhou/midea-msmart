@@ -286,7 +286,7 @@ class AirConditioner(Device):
         self._target_temperature = temperature_celsius
 
     @property
-    def operational_mode(self) -> operational_mode_enum:
+    def operational_mode(self) -> OperationalMode:
         return self._operational_mode
 
     @operational_mode.setter
@@ -296,7 +296,7 @@ class AirConditioner(Device):
         self._operational_mode = mode
 
     @property
-    def fan_speed(self) -> fan_speed_enum:
+    def fan_speed(self) -> FanSpeed:
         return self._fan_speed
 
     @fan_speed.setter
@@ -306,7 +306,7 @@ class AirConditioner(Device):
         self._fan_speed = speed
 
     @property
-    def swing_mode(self) -> swing_mode_enum:
+    def swing_mode(self) -> SwingMode:
         return self._swing_mode
 
     @swing_mode.setter
@@ -394,11 +394,11 @@ class AirConditioner(Device):
         return self._off_timer
 
     @property
-    def supported_operation_modes(self) -> List[operational_mode_enum]:
+    def supported_operation_modes(self) -> List[OperationalMode]:
         return self._supported_op_modes
 
     @property
-    def supported_swing_modes(self) -> List[swing_mode_enum]:
+    def supported_swing_modes(self) -> List[SwingMode]:
         return self._supported_swing_modes
 
     @property
