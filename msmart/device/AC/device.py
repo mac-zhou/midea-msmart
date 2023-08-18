@@ -21,12 +21,20 @@ class IntEnumHelper(IntEnum):
         return list(map(lambda c: c, cls))
 
     @classmethod
-    def get(cls, value, default=None) -> Any:
+    def get_from_value(cls, value, default=None) -> Any:
         try:
             return cls(value)
         except ValueError:
             _LOGGER.debug("Unknown %s: %d", cls, value)
-            return default
+            return cls(default)
+
+    @classmethod
+    def get_from_name(cls, name, default=None) -> Any:
+        try:
+            return cls[name]
+        except KeyError:
+            _LOGGER.debug("Unknown %s: %d", cls, name)
+            return cls[default]
 
 
 class AirConditioner(Device):
@@ -40,8 +48,12 @@ class AirConditioner(Device):
         SILENT = 20
 
         @classmethod
-        def get(cls, value, default=AUTO) -> IntEnum:
-            return super().get(value, default)
+        def get_from_value(cls, value, default=AUTO) -> IntEnum:
+            return super().get_from_value(value, default)
+
+        @classmethod
+        def get_from_name(cls, name, default=AUTO) -> IntEnum:
+            return super().get_from_name(name, default)
 
     class OperationalMode(IntEnumHelper):
         AUTO = 1
@@ -51,8 +63,12 @@ class AirConditioner(Device):
         FAN_ONLY = 5
 
         @classmethod
-        def get(cls, value, default=FAN_ONLY) -> IntEnum:
-            return super().get(value, default)
+        def get_from_value(cls, value, default=FAN_ONLY) -> IntEnum:
+            return super().get_from_value(value, default)
+
+        @classmethod
+        def get_from_name(cls, name, default=FAN_ONLY) -> IntEnum:
+            return super().get_from_name(name, default)
 
     class SwingMode(IntEnumHelper):
         OFF = 0x0
@@ -61,8 +77,12 @@ class AirConditioner(Device):
         BOTH = 0xF
 
         @classmethod
-        def get(cls, value, default=OFF) -> IntEnum:
-            return super().get(value, default)
+        def get_from_value(cls, value, default=OFF) -> IntEnum:
+            return super().get_from_value(value, default)
+
+        @classmethod
+        def get_from_name(cls, name, default=OFF) -> IntEnum:
+            return super().get_from_name(name, default)
 
     def __init__(self, ip: str, device_id: int,  port: int, **kwargs) -> None:
         # Ensure type is set
@@ -196,13 +216,13 @@ class AirConditioner(Device):
         self._power_state = res.power_on
 
         self._target_temperature = res.target_temperature
-        self._operational_mode = AirConditioner.OperationalMode.get(
+        self._operational_mode = AirConditioner.OperationalMode.get_from_value(
             res.operational_mode)
 
-        self._fan_speed = AirConditioner.FanSpeed.get(
+        self._fan_speed = AirConditioner.FanSpeed.get_from_value(
             res.fan_speed)
 
-        self._swing_mode = AirConditioner.SwingMode.get(
+        self._swing_mode = AirConditioner.SwingMode.get_from_value(
             res.swing_mode)
 
         self._eco_mode = res.eco_mode

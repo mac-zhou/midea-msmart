@@ -4,9 +4,9 @@ import ipaddress
 import logging
 import socket
 import xml.etree.ElementTree as ET
-from typing import Optional, cast
+from typing import Any, Dict, Optional, Type, cast
 
-from msmart.cloud import Cloud
+from msmart.cloud import ApiError, Cloud
 from msmart.const import (DEVICE_INFO_MSG, DISCOVERY_MSG,
                           OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD,
                           DeviceType)
@@ -130,6 +130,7 @@ class Discover:
     _password = OPEN_MIDEA_APP_PASSWORD
     _lock = asyncio.Lock()
     _cloud = None
+    _auto_connect = False
 
     @classmethod
     async def discover(
@@ -141,10 +142,18 @@ class Discover:
         interface=None,
         account=None,
         password=None,
+        auto_connect=True
     ) -> [Device]:
         """Discover devices via broadcast."""
 
+        # Always use a new cloud connection
+        cls._cloud = None
+
+        # Save cloud credentials
         Discover._set_cloud_credentials(account, password)
+
+        # Save auto connect arg
+        cls._auto_connect = auto_connect
 
         # Start discover protocol
         loop = asyncio.get_event_loop()
@@ -191,7 +200,7 @@ class Discover:
         return None
 
     @classmethod
-    def _set_cloud_credentials(cls, account, password):
+    def _set_cloud_credentials(cls, account, password) -> None:
         """Set credentials for cloud access."""
 
         if account and password:
@@ -201,14 +210,18 @@ class Discover:
             raise ValueError("Both account and password must be specified.")
 
     @classmethod
-    async def _get_cloud(cls):
+    async def _get_cloud(cls) -> Cloud:
         """Return a cloud connection, creating it if necessary."""
 
         async with cls._lock:
             # Create cloud connection if nonexistent
             if cls._cloud is None:
-                cls._cloud = Cloud(cls._account, cls._password)
-                await cls._cloud.login()
+                cloud = Cloud(cls._account, cls._password)
+                try:
+                    await cloud.login()
+                    cls._cloud = cloud
+                except ApiError as e:
+                    _LOGGER.error("Failed to login to cloud. Error: %s", e)
 
         return cls._cloud
 
@@ -234,7 +247,7 @@ class Discover:
         raise Discover.UnknownDeviceVersion()
 
     @classmethod
-    async def _get_device_info(cls, ip: str, version: int, data: bytes):
+    async def _get_device_info(cls, ip: str, version: int, data: bytes) -> Dict[str, Any]:
         """Get device information. 
 
         V2/V3 devices return sufficient information in their discovery response.
@@ -309,10 +322,10 @@ class Discover:
                 device_type = int(name.split('_')[1], 16)
 
             # Return dictionary of device info
-            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "type": device_type}
+            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "type": device_type, "version": version}
 
     @classmethod
-    def _get_device_class(cls, device_type: int):
+    def _get_device_class(cls, device_type: int) -> Type[Device]:
         """Get the device class from the device type."""
 
         if device_type == DeviceType.AIR_CONDITIONER:
@@ -322,11 +335,14 @@ class Discover:
         return Device
 
     @classmethod
-    async def _authenticate_device(cls, dev: Device):
+    async def _authenticate_device(cls, dev: Device) -> bool:
         """Attempt to authenticate a V3 device."""
 
         # Get cloud connection
         cloud = await Discover._get_cloud()
+        if cloud is None:
+            _LOGGER.error("Could not establish cloud connection.")
+            return False
 
         # Try authenticating with udpids generated from both endians
         for endian in ["little", "big"]:
@@ -337,10 +353,12 @@ class Discover:
             token, key = await cloud.get_token(udpid)
 
             if await dev.authenticate(token, key):
-                return token, key
+                return True
+
+        return False
 
     @classmethod
-    async def _get_device(cls, ip: str, version: int, data: bytes):
+    async def _get_device(cls, ip: str, version: int, data: bytes) -> Device:
         """Get device information and construct a device instance from the discovery response data."""
 
         # Fetch device information
@@ -356,9 +374,20 @@ class Discover:
         # Build device, authenticate as needed and refresh
         dev = device_class(**info)
 
-        if version == 3:
-            await Discover._authenticate_device(dev)
+        # Don't query device if requested
+        if cls._auto_connect:
+            await Discover.connect(dev)
+
+        return dev
+
+    @classmethod
+    async def connect(cls, dev) -> bool:
+        """Connect, authenticate as needed and refresh a device."""
+        if dev.version == 3:
+            success = await Discover._authenticate_device(dev)
+            if not success:
+                return False
 
         await dev.refresh()
 
-        return dev
+        return True
