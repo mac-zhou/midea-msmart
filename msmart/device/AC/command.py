@@ -344,7 +344,7 @@ class capabilities_response(response):
                 # Local function to apply a reader
                 def apply(d, v): return {d.name: d.read(v)}
 
-                reader = capability_readers[raw_id]
+                reader = capability_readers[capability_id]
                 if isinstance(reader, list):
                     # Apply each reader in the list
                     for r in reader:
