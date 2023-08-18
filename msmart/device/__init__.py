@@ -1,2 +1,3 @@
-from .AC.appliance import AirConditioner
-from .base import Device
+from msmart.base_device import Device
+
+from .AC.device import AirConditioner

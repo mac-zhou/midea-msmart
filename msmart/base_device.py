@@ -112,7 +112,7 @@ class Device():
 
     def __str__(self) -> str:
         return str({
-            "ip" : self.ip,
+            "ip": self.ip,
             "port": self.port,
             "id": self.id,
             "online": self.online,

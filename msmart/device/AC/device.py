@@ -2,8 +2,8 @@ import logging
 from enum import IntEnum
 from typing import Any, List, Optional
 
+from msmart.base_device import Device
 from msmart.const import DeviceType
-from msmart.device.base import Device
 
 from .command import (CapabilitiesResponse, GetCapabilitiesCommand,
                       GetStateCommand, InvalidResponseException)
@@ -406,5 +406,5 @@ class AirConditioner(Device):
         return self._min_target_temperature
 
     @property
-    def max_target_temperature(self)-> Optional[int] :
+    def max_target_temperature(self) -> Optional[int]:
         return self._max_target_temperature

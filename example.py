@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from msmart.device import AirConditioner as ac
+from msmart.device import AirConditioner as AC
 from msmart.discover import Discover
 
 logging.basicConfig(level=logging.INFO)
@@ -26,7 +26,7 @@ async def main():
 
     # Manually construct the device
     #  - See midea-discover to read ID, token and key
-    device = ac(ip=DEVICE_IP, port=6444, device_id=int(DEVICE_ID))
+    device = AC(ip=DEVICE_IP, port=6444, device_id=int(DEVICE_ID))
     if DEVICE_TOKEN and DEVICE_KEY:
         await device.authenticate(DEVICE_TOKEN, DEVICE_KEY)
 
@@ -60,7 +60,7 @@ async def main():
     device.power_state = True
     device.prompt_tone = False
     device.target_temperature = 25
-    device.operational_mode = ac.OperationalMode.COOL
+    device.operational_mode = AC.OperationalMode.COOL
     await device.apply()
 
     print({
