@@ -14,7 +14,14 @@ import httpx
 _LOGGER = logging.getLogger(__name__)
 
 
-class ApiError(Exception):
+class CloudError(Exception):
+    """Generic exception for Midea cloud errors."""
+    pass
+
+
+class ApiError(CloudError):
+    """Exception class for API errors."""
+
     def __init__(self, message, code=None) -> None:
         super().__init__(message, code)
 
@@ -92,12 +99,11 @@ class Cloud:
                     # Parse the response
                     return self._parse_response(r)
                 except httpx.TimeoutException as e:
-                    _LOGGER.warning("Request to %s timed out.", url)
-                    retries -= 1
-
-                    # Rethrow the exception after retries expire
-                    if retries == 0:
-                        raise e
+                    if retries > 1:
+                        _LOGGER.warning("Request to %s timed out.", url)
+                        retries -= 1
+                    else:
+                        raise CloudError("No response from server.") from e
 
     async def _api_request(self, endpoint, body) -> Optional[dict]:
         """Make a request to the Midea cloud return the results."""
@@ -148,7 +154,9 @@ class Cloud:
 
         response = await self._api_request(
             "/v1/user/login/id/get",
-            self._build_request_body({"loginAccount": self._account})
+            self._build_request_body(
+                {"loginAccount": self._account}
+            )
         )
 
         # Assert response is not None since we should throw on errors
@@ -213,7 +221,7 @@ class Cloud:
                 return token["token"], token["key"]
 
         # No matching udpId in the tokenlist
-        return None, None
+        raise CloudError(f"No token/key found for udpid {udpid}.")
 
 
 class _Security:
