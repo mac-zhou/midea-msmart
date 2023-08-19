@@ -90,19 +90,21 @@ class TestCapabilitiesResponse(_TestResponseBase):
 
     def test_capabilities(self):
         """Test that we decode capabilities responses as expected."""
-        
+
         TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
             "aa29ac00000000000303b5071202010113020101140201011502010116020101170201001a020101dedb")
         resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
 
-        EXPECTED_RAW_CAPABILITIES = {"eco_mode": True, "eco_mode_2": False,
-                                     "freeze_protection": True, "heat_mode": True,
-                                     "cool_mode": True, "dry_mode": True,
-                                     "auto_mode": True,
-                                     "swing_horizontal": True, "swing_vertical": True,
-                                     "power_cal": False, "power_cal_setting": False,
-                                     "nest_check": False, "nest_need_change": False,
-                                     "turbo_heat": True, "turbo_cool": True}
+        EXPECTED_RAW_CAPABILITIES = {
+            "eco_mode": True, "eco_mode_2": False,
+            "freeze_protection": True, "heat_mode": True,
+            "cool_mode": True, "dry_mode": True,
+            "auto_mode": True,
+            "swing_horizontal": True, "swing_vertical": True,
+            "power_cal": False, "power_cal_setting": False,
+            "nest_check": False, "nest_need_change": False,
+            "turbo_heat": True, "turbo_cool": True
+        }
         # Ensure raw decoded capabilities match
         self.assertEqual(resp._capabilities, EXPECTED_RAW_CAPABILITIES)
 
@@ -113,7 +115,38 @@ class TestCapabilitiesResponse(_TestResponseBase):
             "freeze_protection_mode": True, "display_control": False,
             "min_temperature": 16, "max_temperature": 30
         }
+        # Check capabilities properties match
+        for prop in self.EXPECTED_PROPERTIES:
+            self.assertEqual(getattr(resp, prop), EXPECTED_CAPABILITIES[prop])
 
+    def test_capabilities_2(self):
+        """Test that we decode capabilities responses as expected."""
+
+        TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
+            "aa3dac00000000000203b50a12020101180001001402010115020101160201001a020101100201011f020100250207203c203c203c00400001000100c83a")
+        resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
+
+        EXPECTED_RAW_CAPABILITIES = {
+            'eco_mode': True, 'eco_mode_2': False, 'silky_cool': False,
+            'heat_mode': True, 'cool_mode': True, 'dry_mode': True,
+            'auto_mode': True, 'swing_horizontal': True, 'swing_vertical': True,
+            'power_cal': False, 'power_cal_setting': False, 'turbo_heat': True,
+            'turbo_cool': True, 'fan_speed_control': False, 'humidity_auto_set': False,
+            'humidity_manual_set': False, 'cool_min_temperature': 16.0,
+            'cool_max_temperature': 30.0, 'auto_min_temperature': 16.0,
+            'auto_max_temperature': 30.0, 'heat_min_temperature': 16.0,
+            'heat_max_temperature': 30.0, 'decimals': True
+        }
+        # Ensure raw decoded capabilities match
+        self.assertEqual(resp._capabilities, EXPECTED_RAW_CAPABILITIES)
+
+        EXPECTED_CAPABILITIES = {
+            "swing_horizontal": True, "swing_vertical": True, "swing_both": True,
+            "dry_mode": True, "heat_mode": True, "cool_mode": True,
+            "auto_mode": True, "eco_mode": True, "turbo_mode": True,
+            "freeze_protection_mode": False, "display_control": False,
+            "min_temperature": 16, "max_temperature": 30
+        }
         # Check capabilities properties match
         for prop in self.EXPECTED_PROPERTIES:
             self.assertEqual(getattr(resp, prop), EXPECTED_CAPABILITIES[prop])
