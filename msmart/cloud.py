@@ -20,7 +20,7 @@ class CloudError(Exception):
 
 
 class ApiError(CloudError):
-    """Exception class for API errors."""
+    """Exception class for Midea cloud API errors."""
 
     def __init__(self, message, code=None) -> None:
         super().__init__(message, code)
@@ -58,10 +58,10 @@ class Cloud:
         self._account = account
         self._password = password
 
-        # A session dictionary that holds the login information of the current user
+        # Attributes that holds the login information of the current user
         self._login_id = None
-        self._session = {}
         self._access_token = ""
+        self._session = {}
 
         self._api_lock = Lock()
         self._security = _Security(use_china_server)
@@ -72,6 +72,7 @@ class Cloud:
                      self._base_url, use_china_server)
 
     def _timestamp(self):
+        """Format a timestamp for the API."""
         return datetime.now().strftime("%Y%m%d%H%M%S")
 
     def _parse_response(self, response):
@@ -225,7 +226,7 @@ class Cloud:
 
 
 class _Security:
-    """"Class for cloud specific security."""
+    """"Class for Midea cloud specific security."""
 
     HMAC_KEY = "PROD_VnoClJI9aikS8dyy"
 
@@ -240,13 +241,16 @@ class _Security:
 
     @property
     def _iot_key(self) -> str:
+        """Get the IOT key for the appropriate server."""
         return _Security.IOT_KEY_CHINA if self._use_china_server else _Security.IOT_KEY
 
     @property
     def _login_key(self) -> str:
+        """Get the login key for the appropriate server."""
         return _Security.LOGIN_KEY_CHINA if self._use_china_server else _Security.LOGIN_KEY
 
     def sign(self, data: str, random: str) -> str:
+        """Generate a HMAC signature for the provided data and random data."""
         msg = self._iot_key + data + random
 
         sign = hmac.new(self.HMAC_KEY.encode("ASCII"),
