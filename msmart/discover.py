@@ -6,7 +6,7 @@ import socket
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, Optional, Type, cast
 
-from msmart.cloud import ApiError, Cloud
+from msmart.cloud import ApiError, Cloud, CloudError
 from msmart.const import (DEVICE_INFO_MSG, DISCOVERY_MSG,
                           OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD,
                           DeviceType)
@@ -220,7 +220,7 @@ class Discover:
                 try:
                     await cloud.login()
                     cls._cloud = cloud
-                except ApiError as e:
+                except CloudError as e:
                     _LOGGER.error("Failed to login to cloud. Error: %s", e)
 
         return cls._cloud
@@ -350,7 +350,11 @@ class Discover:
 
             _LOGGER.debug(
                 "Fetching token and key for udpid '%s' (%s).", udpid, endian)
-            token, key = await cloud.get_token(udpid)
+            try:
+                token, key = await cloud.get_token(udpid)
+            except CloudError as e:
+                _LOGGER.error(e)
+                continue
 
             if await dev.authenticate(token, key):
                 return True

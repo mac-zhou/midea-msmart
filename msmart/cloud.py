@@ -7,21 +7,28 @@ import os
 from asyncio import Lock
 from datetime import datetime
 from secrets import token_hex, token_urlsafe
-from typing import Optional
+from typing import Any, Dict, Optional, Tuple
 
 import httpx
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class ApiError(Exception):
+class CloudError(Exception):
+    """Generic exception for Midea cloud errors."""
+    pass
+
+
+class ApiError(CloudError):
+    """Exception class for Midea cloud API errors."""
+
     def __init__(self, message, code=None) -> None:
         super().__init__(message, code)
 
         self.message = message
         self.code = code
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Code: {self.code}, Message: {self.message}"
 
 
@@ -43,7 +50,8 @@ class Cloud:
     # Default number of request retries
     RETRIES = 3
 
-    def __init__(self, account, password, use_china_server=False):
+    def __init__(self, account: str, password: str,
+                 use_china_server: bool = False) -> None:
         # Allow override Chia server from environment
         if os.getenv("MIDEA_CHINA_SERVER", "0") == "1":
             use_china_server = True
@@ -51,10 +59,10 @@ class Cloud:
         self._account = account
         self._password = password
 
-        # A session dictionary that holds the login information of the current user
+        # Attributes that holds the login information of the current user
         self._login_id = None
-        self._session = {}
         self._access_token = ""
+        self._session = {}
 
         self._api_lock = Lock()
         self._security = _Security(use_china_server)
@@ -64,10 +72,11 @@ class Cloud:
         _LOGGER.info("Using Midea cloud server: %s (China: %s).",
                      self._base_url, use_china_server)
 
-    def _timestamp(self):
-        return datetime.now().strftime("%Y%m%d%H%M%S")
+    def _timestamp(self) -> str:
+        """Format a timestamp for the API."""
+        return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
-    def _parse_response(self, response):
+    def _parse_response(self, response) -> Any:
         """Parse a response from the API."""
 
         _LOGGER.debug("API response: %s", response.text)
@@ -79,7 +88,8 @@ class Cloud:
 
         raise ApiError(body["msg"], code=response_code)
 
-    async def _post_request(self, url, headers, contents, retries=RETRIES) -> Optional[dict]:
+    async def _post_request(self, url: str, headers: Dict[str, Any],
+                            contents: str, retries: int = RETRIES) -> Optional[dict]:
         """Post a request to the API."""
 
         async with httpx.AsyncClient() as client:
@@ -92,14 +102,13 @@ class Cloud:
                     # Parse the response
                     return self._parse_response(r)
                 except httpx.TimeoutException as e:
-                    _LOGGER.warning("Request to %s timed out.", url)
-                    retries -= 1
+                    if retries > 1:
+                        _LOGGER.warning("Request to %s timed out.", url)
+                        retries -= 1
+                    else:
+                        raise CloudError("No response from server.") from e
 
-                    # Rethrow the exception after retries expire
-                    if retries == 0:
-                        raise e
-
-    async def _api_request(self, endpoint, body) -> Optional[dict]:
+    async def _api_request(self, endpoint: str, body: Dict[str, Any]) -> Optional[dict]:
         """Make a request to the Midea cloud return the results."""
 
         # Encode body as JSON
@@ -123,7 +132,7 @@ class Cloud:
         async with self._api_lock:
             return await self._post_request(url, headers, contents)
 
-    def _build_request_body(self, data):
+    def _build_request_body(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Build a request body."""
 
         # Set up the initial body
@@ -143,12 +152,14 @@ class Cloud:
 
         return body
 
-    async def _get_login_id(self):
+    async def _get_login_id(self) -> str:
         """Get a login ID for the cloud account."""
 
         response = await self._api_request(
             "/v1/user/login/id/get",
-            self._build_request_body({"loginAccount": self._account})
+            self._build_request_body(
+                {"loginAccount": self._account}
+            )
         )
 
         # Assert response is not None since we should throw on errors
@@ -156,7 +167,7 @@ class Cloud:
 
         return response["loginId"]
 
-    async def login(self, force=False):
+    async def login(self, force: bool = False) -> None:
         """Login to the cloud API."""
 
         # Don't login if session already exists
@@ -197,7 +208,7 @@ class Cloud:
         self._access_token = response["mdata"]["accessToken"]
         _LOGGER.debug("Received accessToken: %s", self._access_token)
 
-    async def get_token(self, udpid):
+    async def get_token(self, udpid: str) -> Tuple[str, str]:
         """Get token and key for the provided udpid."""
 
         response = await self._api_request(
@@ -213,11 +224,11 @@ class Cloud:
                 return token["token"], token["key"]
 
         # No matching udpId in the tokenlist
-        return None, None
+        raise CloudError(f"No token/key found for udpid {udpid}.")
 
 
 class _Security:
-    """"Class for cloud specific security."""
+    """"Class for Midea cloud specific security."""
 
     HMAC_KEY = "PROD_VnoClJI9aikS8dyy"
 
@@ -232,20 +243,23 @@ class _Security:
 
     @property
     def _iot_key(self) -> str:
+        """Get the IOT key for the appropriate server."""
         return _Security.IOT_KEY_CHINA if self._use_china_server else _Security.IOT_KEY
 
     @property
     def _login_key(self) -> str:
+        """Get the login key for the appropriate server."""
         return _Security.LOGIN_KEY_CHINA if self._use_china_server else _Security.LOGIN_KEY
 
     def sign(self, data: str, random: str) -> str:
+        """Generate a HMAC signature for the provided data and random data."""
         msg = self._iot_key + data + random
 
         sign = hmac.new(self.HMAC_KEY.encode("ASCII"),
                         msg.encode("ASCII"), hashlib.sha256)
         return sign.hexdigest()
 
-    def encrypt_password(self, login_id, password):
+    def encrypt_password(self, login_id: str, password: str) -> str:
         """Encrypt the password for cloud API password."""
         # Hash the password
         m1 = hashlib.sha256(password.encode("ASCII"))
@@ -256,7 +270,7 @@ class _Security:
 
         return m2.hexdigest()
 
-    def encrypt_iam_password(self, login_id, password) -> str:
+    def encrypt_iam_password(self, login_id: str, password: str) -> str:
         """Encrypts password for cloud API iampwd field."""
 
         # Hash the password
