@@ -7,7 +7,7 @@ import os
 from asyncio import Lock
 from datetime import datetime
 from secrets import token_hex, token_urlsafe
-from typing import Optional
+from typing import Any, Optional, Tuple
 
 import httpx
 
@@ -28,7 +28,7 @@ class ApiError(CloudError):
         self.message = message
         self.code = code
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Code: {self.code}, Message: {self.message}"
 
 
@@ -50,7 +50,8 @@ class Cloud:
     # Default number of request retries
     RETRIES = 3
 
-    def __init__(self, account, password, use_china_server=False):
+    def __init__(self, account: str, password: str,
+                 use_china_server: bool = False) -> None:
         # Allow override Chia server from environment
         if os.getenv("MIDEA_CHINA_SERVER", "0") == "1":
             use_china_server = True
@@ -71,11 +72,11 @@ class Cloud:
         _LOGGER.info("Using Midea cloud server: %s (China: %s).",
                      self._base_url, use_china_server)
 
-    def _timestamp(self):
+    def _timestamp(self) -> str:
         """Format a timestamp for the API."""
         return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
-    def _parse_response(self, response):
+    def _parse_response(self, response) -> Any:
         """Parse a response from the API."""
 
         _LOGGER.debug("API response: %s", response.text)
@@ -87,7 +88,8 @@ class Cloud:
 
         raise ApiError(body["msg"], code=response_code)
 
-    async def _post_request(self, url, headers, contents, retries=RETRIES) -> Optional[dict]:
+    async def _post_request(self, url: str, headers: dict[str, Any],
+                            contents: str, retries: int = RETRIES) -> Optional[dict]:
         """Post a request to the API."""
 
         async with httpx.AsyncClient() as client:
@@ -106,7 +108,7 @@ class Cloud:
                     else:
                         raise CloudError("No response from server.") from e
 
-    async def _api_request(self, endpoint, body) -> Optional[dict]:
+    async def _api_request(self, endpoint: str, body: dict[str, Any]) -> Optional[dict]:
         """Make a request to the Midea cloud return the results."""
 
         # Encode body as JSON
@@ -130,7 +132,7 @@ class Cloud:
         async with self._api_lock:
             return await self._post_request(url, headers, contents)
 
-    def _build_request_body(self, data):
+    def _build_request_body(self, data: dict[str, Any]) -> dict[str, Any]:
         """Build a request body."""
 
         # Set up the initial body
@@ -150,7 +152,7 @@ class Cloud:
 
         return body
 
-    async def _get_login_id(self):
+    async def _get_login_id(self) -> str:
         """Get a login ID for the cloud account."""
 
         response = await self._api_request(
@@ -165,7 +167,7 @@ class Cloud:
 
         return response["loginId"]
 
-    async def login(self, force=False):
+    async def login(self, force: bool = False) -> None:
         """Login to the cloud API."""
 
         # Don't login if session already exists
@@ -206,7 +208,7 @@ class Cloud:
         self._access_token = response["mdata"]["accessToken"]
         _LOGGER.debug("Received accessToken: %s", self._access_token)
 
-    async def get_token(self, udpid):
+    async def get_token(self, udpid: str) -> Tuple[str, str]:
         """Get token and key for the provided udpid."""
 
         response = await self._api_request(
@@ -257,7 +259,7 @@ class _Security:
                         msg.encode("ASCII"), hashlib.sha256)
         return sign.hexdigest()
 
-    def encrypt_password(self, login_id, password):
+    def encrypt_password(self, login_id: str, password: str) -> str:
         """Encrypt the password for cloud API password."""
         # Hash the password
         m1 = hashlib.sha256(password.encode("ASCII"))
@@ -268,7 +270,7 @@ class _Security:
 
         return m2.hexdigest()
 
-    def encrypt_iam_password(self, login_id, password) -> str:
+    def encrypt_iam_password(self, login_id: str, password: str) -> str:
         """Encrypts password for cloud API iampwd field."""
 
         # Hash the password
