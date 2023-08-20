@@ -7,7 +7,7 @@ import os
 from asyncio import Lock
 from datetime import datetime
 from secrets import token_hex, token_urlsafe
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import httpx
 
@@ -88,7 +88,7 @@ class Cloud:
 
         raise ApiError(body["msg"], code=response_code)
 
-    async def _post_request(self, url: str, headers: dict[str, Any],
+    async def _post_request(self, url: str, headers: Dict[str, Any],
                             contents: str, retries: int = RETRIES) -> Optional[dict]:
         """Post a request to the API."""
 
@@ -108,7 +108,7 @@ class Cloud:
                     else:
                         raise CloudError("No response from server.") from e
 
-    async def _api_request(self, endpoint: str, body: dict[str, Any]) -> Optional[dict]:
+    async def _api_request(self, endpoint: str, body: Dict[str, Any]) -> Optional[dict]:
         """Make a request to the Midea cloud return the results."""
 
         # Encode body as JSON
@@ -132,7 +132,7 @@ class Cloud:
         async with self._api_lock:
             return await self._post_request(url, headers, contents)
 
-    def _build_request_body(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _build_request_body(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Build a request body."""
 
         # Set up the initial body
