@@ -73,7 +73,7 @@ class Cloud:
 
     def _timestamp(self):
         """Format a timestamp for the API."""
-        return datetime.now().strftime("%Y%m%d%H%M%S")
+        return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
     def _parse_response(self, response):
         """Parse a response from the API."""
