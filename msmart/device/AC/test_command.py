@@ -1,7 +1,7 @@
 import unittest
-
-from .command import response, capabilities_response, state_response
 from typing import cast
+
+from .command import capabilities_response, response, state_response
 
 
 class _TestResponseBase(unittest.TestCase):
