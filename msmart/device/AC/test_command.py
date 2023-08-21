@@ -1,3 +1,4 @@
+import logging
 import unittest
 from typing import cast
 
@@ -126,10 +127,18 @@ class TestCapabilitiesResponse(_TestResponseBase):
     def test_capabilities_2(self) -> None:
         """Test that we decode capabilities responses as expected."""
         # https://github.com/mac-zhou/midea-ac-py/pull/177#issuecomment-1259772244
+        # Test case includes an unknown capabilitiy 0x40
+        # Supress any warnings from capability parsing
+        level = logging.getLogger("msmart").getEffectiveLevel()
+        logging.getLogger("msmart").setLevel(logging.ERROR)
+
         TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
             "aa3dac00000000000203b50a12020101180001001402010115020101160201001a020101100201011f020100250207203c203c203c00400001000100c83a")
         resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
         resp = cast(capabilities_response, resp)
+
+        # Restore original level
+        logging.getLogger("msmart").setLevel(level)
 
         EXPECTED_RAW_CAPABILITIES = {
             "eco_mode": True, "eco_mode_2": False, "silky_cool": False,
