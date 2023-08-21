@@ -132,15 +132,15 @@ class TestCapabilitiesResponse(_TestResponseBase):
         resp = cast(capabilities_response, resp)
 
         EXPECTED_RAW_CAPABILITIES = {
-            'eco_mode': True, 'eco_mode_2': False, 'silky_cool': False,
-            'heat_mode': True, 'cool_mode': True, 'dry_mode': True,
-            'auto_mode': True, 'swing_horizontal': True, 'swing_vertical': True,
-            'power_cal': False, 'power_cal_setting': False, 'turbo_heat': True,
-            'turbo_cool': True, 'fan_speed_control': False, 'humidity_auto_set': False,
-            'humidity_manual_set': False, 'cool_min_temperature': 16.0,
-            'cool_max_temperature': 30.0, 'auto_min_temperature': 16.0,
-            'auto_max_temperature': 30.0, 'heat_min_temperature': 16.0,
-            'heat_max_temperature': 30.0, 'decimals': True
+            "eco_mode": True, "eco_mode_2": False, "silky_cool": False,
+            "heat_mode": True, "cool_mode": True, "dry_mode": True,
+            "auto_mode": True, "swing_horizontal": True, "swing_vertical": True,
+            "power_cal": False, "power_cal_setting": False, "turbo_heat": True,
+            "turbo_cool": True, "fan_speed_control": False, "humidity_auto_set": False,
+            "humidity_manual_set": False, "cool_min_temperature": 16.0,
+            "cool_max_temperature": 30.0, "auto_min_temperature": 16.0,
+            "auto_max_temperature": 30.0, "heat_min_temperature": 16.0,
+            "heat_max_temperature": 30.0, "decimals": True
         }
         # Ensure raw decoded capabilities match
         self.assertEqual(resp._capabilities, EXPECTED_RAW_CAPABILITIES)
@@ -150,6 +150,68 @@ class TestCapabilitiesResponse(_TestResponseBase):
             "dry_mode": True, "heat_mode": True, "cool_mode": True,
             "auto_mode": True, "eco_mode": True, "turbo_mode": True,
             "freeze_protection_mode": False, "display_control": False,
+            "min_temperature": 16, "max_temperature": 30
+        }
+        # Check capabilities properties match
+        for prop in self.EXPECTED_PROPERTIES:
+            self.assertEqual(getattr(resp, prop), EXPECTED_CAPABILITIES[prop])
+
+    def test_capabilities_3(self) -> None:
+        """Test that we decode capabilities responses as expected."""
+        # Toshiba Smart Window Unit (2019)
+        TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
+            "aa29ac00000000000303b507120201021402010015020102170201021a0201021002010524020101990d")
+        resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
+        resp = cast(capabilities_response, resp)
+
+        EXPECTED_RAW_CAPABILITIES = {
+            "eco_mode": False, "eco_mode_2": True, "heat_mode": False,
+            "cool_mode": True, "dry_mode": True, "auto_mode": True,
+            "swing_horizontal": False, "swing_vertical": False,
+            "nest_check": True, "nest_need_change": False, "turbo_heat": False,
+            "turbo_cool": False, "fan_speed_control": True, "light_control": True
+        }
+        # Ensure raw decoded capabilities match
+        self.assertEqual(resp._capabilities, EXPECTED_RAW_CAPABILITIES)
+
+        EXPECTED_CAPABILITIES = {
+            "swing_horizontal": False, "swing_vertical": False, "swing_both": False,
+            "dry_mode": True, "heat_mode": False, "cool_mode": True,
+            "auto_mode": True, "eco_mode": True, "turbo_mode": False,
+            "freeze_protection_mode": False, "display_control": True,
+            "min_temperature": 16, "max_temperature": 30
+        }
+        # Check capabilities properties match
+        for prop in self.EXPECTED_PROPERTIES:
+            self.assertEqual(getattr(resp, prop), EXPECTED_CAPABILITIES[prop])
+
+    def test_capabilities_4(self) -> None:
+        """Test that we decode capabilities responses as expected."""
+        # Midea U-shaped Window Unit (2022)
+        TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
+            "aa39ac00000000000303b50912020102130201001402010015020100170201021a02010010020101250207203c203c203c00240201010102a1a0")
+        resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
+        resp = cast(capabilities_response, resp)
+
+        EXPECTED_RAW_CAPABILITIES = {
+            "eco_mode": False, "eco_mode_2": True, "freeze_protection": False,
+            "heat_mode": False, "cool_mode": True, "dry_mode": True, "auto_mode": True,
+            "swing_horizontal": False, "swing_vertical": True, "nest_check": True,
+            "nest_need_change": False, "turbo_heat": False, "turbo_cool": True,
+            "fan_speed_control": False,
+            "cool_min_temperature": 16.0, "cool_max_temperature": 30.0,
+            "auto_min_temperature": 16.0, "auto_max_temperature": 30.0,
+            "heat_min_temperature": 16.0, "heat_max_temperature": 30.0,
+            "decimals": True, "light_control": True
+        }
+        # Ensure raw decoded capabilities match
+        self.assertEqual(resp._capabilities, EXPECTED_RAW_CAPABILITIES)
+
+        EXPECTED_CAPABILITIES = {
+            "swing_horizontal": False, "swing_vertical": True, "swing_both": False,
+            "dry_mode": True, "heat_mode": False, "cool_mode": True,
+            "auto_mode": True, "eco_mode": True, "turbo_mode": True,
+            "freeze_protection_mode": False, "display_control": True,
             "min_temperature": 16, "max_temperature": 30
         }
         # Check capabilities properties match
