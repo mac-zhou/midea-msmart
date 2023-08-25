@@ -9,7 +9,7 @@ from msmart.discover import Discover
 _LOGGER = logging.getLogger(__name__)
 
 
-async def _discover(ip: str, count: int, account: str, password: str, china: bool, **_kwargs):
+async def _discover(ip: str, count: int, account: str, password: str, china: bool, **_kwargs) -> None:
     """Discover Midea devices and print configuration information."""
 
     _LOGGER.info("msmart version: %s", __version__)
@@ -38,7 +38,7 @@ async def _discover(ip: str, count: int, account: str, password: str, china: boo
         _LOGGER.info("Found device:\n%s", device)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Discover Midea devices and print device information.",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
