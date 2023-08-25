@@ -1,6 +1,6 @@
 import logging
 from enum import IntEnum
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from msmart.base_device import Device
 from msmart.const import DeviceType
@@ -165,8 +165,10 @@ class AirConditioner(Device):
             self._supported = True
 
             if response.id == ResponseId.STATE:
+                response = cast(StateResponse, response)
                 self.update(response)
             elif response.id == ResponseId.CAPABILITIES:
+                response = cast(CapabilitiesResponse, response)
                 self.update_capabilities(response)
             else:
                 _LOGGER.debug("Ignored unknown response from %s:%d: %s",
@@ -195,18 +197,24 @@ class AirConditioner(Device):
             if self._freeze_protection_mode and not self._supports_freeze_protection_mode:
                 _LOGGER.warning("Device is not capable of freeze protection.")
 
+            # Define function to return value or a default if value is None
+            def or_default(v, d) -> Any: return v if v is not None else d
+
             cmd = SetStateCommand(self.type)
             cmd.beep_on = self._beep_on
-            cmd.power_on = self._power_state
-            cmd.target_temperature = self._target_temperature
+            cmd.power_on = or_default(self._power_state, False)
+            cmd.target_temperature = or_default(
+                self._target_temperature, 25)  # TODO?
             cmd.operational_mode = self._operational_mode
             cmd.fan_speed = self._fan_speed
             cmd.swing_mode = self._swing_mode
-            cmd.eco_mode = self._eco_mode
-            cmd.turbo_mode = self._turbo_mode
-            cmd.freeze_protection_mode = self._freeze_protection_mode
-            cmd.sleep_mode = self._sleep_mode
-            cmd.fahrenheit = self._fahrenheit_unit
+            cmd.eco_mode = or_default(self._eco_mode, False)
+            cmd.turbo_mode = or_default(self._turbo_mode, False)
+            cmd.freeze_protection_mode = or_default(
+                self._freeze_protection_mode, False)
+            cmd.sleep_mode = or_default(self._sleep_mode, False)
+            cmd.fahrenheit = or_default(self._fahrenheit_unit, False)
+
             await self.send_command(cmd, self._defer_update)
         finally:
             self._updating = False
