@@ -93,7 +93,7 @@ class Device():
         return self._lan.key.hex()
 
     @property
-    def type(self) -> Optional[str]:
+    def type(self) -> DeviceType:
         return self._type
 
     @property
