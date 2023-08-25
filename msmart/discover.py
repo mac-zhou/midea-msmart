@@ -4,9 +4,9 @@ import ipaddress
 import logging
 import socket
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, Optional, Type, cast
+from typing import Any, Dict, List, Optional, Type, cast
 
-from msmart.cloud import ApiError, Cloud, CloudError
+from msmart.cloud import Cloud, CloudError
 from msmart.const import (DEVICE_INFO_MSG, DISCOVERY_MSG,
                           OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD,
                           DeviceType)
@@ -21,12 +21,14 @@ _IPV4_BROADCAST = "255.255.255.255"
 class _V1DeviceInfoProtocol(asyncio.Protocol):
     """V1 device info protocol."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._transport = None
         self.response = None
 
     def connection_made(self, transport) -> None:
         """Send device info request on connection."""
+
+        transport = cast(asyncio.Transport, transport)
 
         self._transport = transport
         transport.write(DEVICE_INFO_MSG)
@@ -51,7 +53,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         target: str = _IPV4_BROADCAST,
         discovery_packets: int = 3,
         interface: Optional[str] = None,
-    ):
+    ) -> None:
         self._transport = None
         self._discovery_packets = discovery_packets
         self._interface = interface
@@ -63,6 +65,8 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport) -> None:
         """Set socket options for broadcasting."""
 
+        transport = cast(asyncio.DatagramTransport, transport)
+
         self._transport = transport
 
         # Set broadcast if broadcasting
@@ -71,6 +75,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         if self._interface is not None:
+            sock = transport.get_extra_info("socket")
             sock.setsockopt(
                 socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self._interface.encode()
             )
@@ -79,6 +84,9 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 
     def _send_discovery(self) -> None:
         """Send discovery messages to the target."""
+
+        # Transport should always exist
+        assert self._transport is not None
 
         for port in [6445, 20086]:
             _LOGGER.debug("Discovery sent to %s:%d.", self._target, port)
@@ -143,7 +151,7 @@ class Discover:
         account=None,
         password=None,
         auto_connect=True
-    ) -> [Device]:
+    ) -> List[Device]:
         """Discover devices via broadcast."""
 
         # Always use a new cloud connection
@@ -188,7 +196,7 @@ class Discover:
         cls,
         host,
         **kwargs
-    ) -> Device:
+    ) -> Optional[Device]:
         """Discover a single device by hostname or IP."""
 
         devices = await Discover.discover(target=host, **kwargs)
@@ -210,7 +218,7 @@ class Discover:
             raise ValueError("Both account and password must be specified.")
 
     @classmethod
-    async def _get_cloud(cls) -> Cloud:
+    async def _get_cloud(cls) -> Optional[Cloud]:
         """Return a cloud connection, creating it if necessary."""
 
         async with cls._lock:
@@ -247,7 +255,7 @@ class Discover:
         raise Discover.UnknownDeviceVersion()
 
     @classmethod
-    async def _get_device_info(cls, ip: str, version: int, data: bytes) -> Dict[str, Any]:
+    async def _get_device_info(cls, ip: str, version: int, data: bytes) -> Optional[Dict[str, Any]]:
         """Get device information. 
 
         V2/V3 devices return sufficient information in their discovery response.
@@ -259,7 +267,11 @@ class Discover:
             with memoryview(data) as data_mv:
                 root = ET.fromstring(data_mv)
 
-            port = root.find("body/device").attrib["port"]
+            device = root.find("body/device")
+            if device is None:
+                return None
+
+            port = int(device.attrib["port"])
 
             loop = asyncio.get_event_loop()
             transport, protocol = await loop.create_connection(
@@ -273,9 +285,13 @@ class Discover:
             finally:
                 transport.close()
 
+            if protocol.response is None:
+                _LOGGER.error("No response from device.")
+                return None
+
             # Parse response
-            root = ET.fromstring(protocol.response)
-            _LOGGER.debug("Device info response:\n%s", ET.indent(root))
+            root = ET.fromstring(protocol.response.decode())
+            _LOGGER.debug("Device info response:\n%s", ET.tostring(root))
 
             raise NotImplementedError("V1 device not supported yet.")
 
@@ -297,7 +313,7 @@ class Discover:
                     decrypted_data = Security.decrypt_aes(encrypted_data)
                 except ValueError:
                     _LOGGER.error("Discovery packet decrypt failed.")
-                    return
+                    return None
 
             with memoryview(decrypted_data) as decrypted_mv:
                 _LOGGER.debug("Decrypted data from %s: %s",
@@ -346,7 +362,8 @@ class Discover:
 
         # Try authenticating with udpids generated from both endians
         for endian in ["little", "big"]:
-            udpid = Security.udpid(dev.id.to_bytes(6, endian)).hex()
+            udpid = Security.udpid(dev.id.to_bytes(
+                6, endian)).hex()  # type: ignore
 
             _LOGGER.debug(
                 "Fetching token and key for udpid '%s' (%s).", udpid, endian)
@@ -362,7 +379,7 @@ class Discover:
         return False
 
     @classmethod
-    async def _get_device(cls, ip: str, version: int, data: bytes) -> Device:
+    async def _get_device(cls, ip: str, version: int, data: bytes) -> Optional[Device]:
         """Get device information and construct a device instance from the discovery response data."""
 
         # Fetch device information
@@ -370,6 +387,9 @@ class Discover:
             info = await Discover._get_device_info(ip, version, data)
         except NotImplementedError as e:
             _LOGGER.error(e)
+            return None
+
+        if info is None:
             return None
 
         # Get device class corresponding to type
