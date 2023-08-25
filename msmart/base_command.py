@@ -57,8 +57,8 @@ class Command(ABC):
 
         return bytes(frame)
 
-    @staticmethod
-    def checksum(frame: bytes) -> int:
+    @classmethod
+    def checksum(cls, frame: bytes) -> int:
         return (~sum(frame) + 1) & 0xFF
 
     @property
