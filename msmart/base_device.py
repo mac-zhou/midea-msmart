@@ -2,6 +2,7 @@ import logging
 import time
 from typing import List, Optional
 
+from msmart.base_command import Command
 from msmart.lan import LAN, AuthenticationError, ProtocolError
 from msmart.types import Key, Token
 
@@ -39,7 +40,7 @@ class Device():
             _LOGGER.error("Authentication failed. Error: %s", e)
             return False
 
-    async def send_command(self, command: bytes) -> List[object]:
+    async def send_command(self, command: Command) -> Optional[List[bytes]]:
         """Send a command to the device and return any responses."""
 
         data = command.pack()
