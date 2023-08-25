@@ -94,7 +94,7 @@ class AirConditioner(Device):
         self._keep_last_known_online_state = False
         self._defer_update = False
 
-        self._prompt_tone = False
+        self._beep_on = False
         self._power_state = False
         self._target_temperature = 17.0
         self._operational_mode = AirConditioner.OperationalMode.AUTO
@@ -196,7 +196,7 @@ class AirConditioner(Device):
                 _LOGGER.warning("Device is not capable of freeze protection.")
 
             cmd = SetStateCommand(self.type)
-            cmd.beep_on = self._prompt_tone
+            cmd.beep_on = self._beep_on
             cmd.power_on = self._power_state
             cmd.target_temperature = self._target_temperature
             cmd.operational_mode = self._operational_mode
@@ -276,14 +276,14 @@ class AirConditioner(Device):
         self._max_target_temperature = res.max_temperature
 
     @property
-    def prompt_tone(self) -> bool:
-        return self._prompt_tone
+    def beep(self) -> bool:
+        return self._beep_on
 
-    @prompt_tone.setter
-    def prompt_tone(self, feedback: bool) -> None:
+    @beep.setter
+    def beep(self, tone: bool) -> None:
         if self._updating:
             self._defer_update = True
-        self._prompt_tone = feedback
+        self._beep_on = tone
 
     @property
     def power_state(self) -> Optional[bool]:

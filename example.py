@@ -40,9 +40,9 @@ async def main():
         'id': device.id,
         'ip': device.ip,
         "online": device.online,
-        "support": device.supported,
+        "supported": device.supported,
         'power_state': device.power_state,
-        'prompt_tone': device.prompt_tone,
+        'beep': device.beep,
         'target_temperature': device.target_temperature,
         'operational_mode': device.operational_mode,
         'fan_speed': device.fan_speed,
@@ -58,7 +58,7 @@ async def main():
 
     # Change some device properties and apply them
     device.power_state = True
-    device.prompt_tone = False
+    device.beep = False
     device.target_temperature = 25
     device.operational_mode = AC.OperationalMode.COOL
     await device.apply()
@@ -67,9 +67,9 @@ async def main():
         'id': device.id,
         'ip': device.ip,
         "online": device.online,
-        "support": device.supported,
+        "supported": device.supported,
         'power_state': device.power_state,
-        'prompt_tone': device.prompt_tone,
+        'beep': device.beep,
         'target_temperature': device.target_temperature,
         'operational_mode': device.operational_mode,
         'fan_speed': device.fan_speed,
