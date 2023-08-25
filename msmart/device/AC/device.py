@@ -129,21 +129,21 @@ class AirConditioner(Device):
         self._outdoor_temperature = None
 
     async def get_capabilities(self) -> None:
-        cmd = GetCapabilitiesCommand(self.type)
+        cmd = GetCapabilitiesCommand()
         await self.send_command(cmd)
 
     async def toggle_display(self) -> None:
         if not self._supports_display_control:
             _LOGGER.warning("Device is not capable of display control.")
 
-        cmd = ToggleDisplayCommand(self.type)
+        cmd = ToggleDisplayCommand()
         await self.send_command(cmd, True)
 
         # Force a refresh to get the updated display state
         await self.refresh()
 
     async def refresh(self):
-        cmd = GetStateCommand(self.type)
+        cmd = GetStateCommand()
         await self.send_command(cmd)
 
     async def send_command(self, command, ignore_response=False) -> None:
@@ -205,7 +205,7 @@ class AirConditioner(Device):
             # Define function to return value or a default if value is None
             def or_default(v, d) -> Any: return v if v is not None else d
 
-            cmd = SetStateCommand(self.type)
+            cmd = SetStateCommand()
             cmd.beep_on = self._beep_on
             cmd.power_on = or_default(self._power_state, False)
             cmd.target_temperature = or_default(
