@@ -12,7 +12,8 @@ from Crypto.Random import get_random_bytes
 from Crypto.Util import Padding
 from Crypto.Util.strxor import strxor
 
-from msmart.types import Key, Token
+Token = Union[str, bytes, None]
+Key = Union[str, bytes, None]
 
 _LOGGER = logging.getLogger(__name__)
 

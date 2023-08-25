@@ -4,8 +4,7 @@ from typing import List, Optional
 
 from msmart.base_command import Command
 from msmart.const import DeviceType
-from msmart.lan import LAN, AuthenticationError, ProtocolError
-from msmart.types import Key, Token
+from msmart.lan import LAN, AuthenticationError, Key, ProtocolError, Token
 
 _LOGGER = logging.getLogger(__name__)
 
