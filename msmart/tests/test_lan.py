@@ -6,7 +6,7 @@ from msmart.lan import _LanProtocolV3, _Packet
 class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
     # pylint: disable=protected-access
 
-    async def test_enocde_packet_roundtrip(self):
+    async def test_encode_packet_roundtrip(self):
         """Test that we can encode and decode a frame."""
         FRAME = bytes.fromhex(
             "aa21ac8d000000000003418100ff03ff000200000000000000000000000003016971")
@@ -21,12 +21,12 @@ class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
         """Test that we can decode a packet to a frame."""
         PACKET = bytes.fromhex(
             "5a5a01116800208000000000000000000000000060ca0000000e0000000000000000000001000000c6a90377a364cb55af337259514c6f96bf084e8c7a899b50b68920cdea36cecf11c882a88861d1f46cd87912f201218c66151f0c9fbe5941c5384e707c36ff76")
-        EXPTECTED_FRAME = bytes.fromhex(
+        EXPECTED_FRAME = bytes.fromhex(
             "aa22ac00000000000303c0014566000000300010045cff2070000000000000008bed19")
 
         frame = _Packet.decode(PACKET)
         self.assertIsNotNone(frame)
-        self.assertEqual(frame, EXPTECTED_FRAME)
+        self.assertEqual(frame, EXPECTED_FRAME)
 
     async def test_decode_v3_packet(self):
         """Test that we can decode a V3 packet to payload to a frame."""
@@ -36,7 +36,7 @@ class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
 
         EXPECTED_PAYLOAD = bytes.fromhex(
             "5a5a01116800208000000000eaa908020c0817143daa0000008600000000000000000180000000003e99f93bb0cf9ffa100cb24dbae7838641d6e63ccbcd366130cd74a372932526d98479ff1725dce7df687d32e1776bf68a3fa6fd6259d7eb25f32769fcffef78")
-        EXPTECTED_FRAME = bytes.fromhex(
+        EXPECTED_FRAME = bytes.fromhex(
             "aa23ac00000000000303c00145660000003c0010045c6800000000000000000000018426")
 
         # Setup the protocol
@@ -50,7 +50,7 @@ class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
 
         frame = _Packet.decode(payload)
         self.assertIsNotNone(frame)
-        self.assertEqual(frame, EXPTECTED_FRAME)
+        self.assertEqual(frame, EXPECTED_FRAME)
 
 
 if __name__ == "__main__":

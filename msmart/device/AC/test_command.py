@@ -49,7 +49,7 @@ class TestStateResponse(_TestResponseBase):
         # Assert response is a state response
         self.assertEqual(type(resp), StateResponse)
 
-        # Supress type errors
+        # Suppress type errors
         resp = cast(StateResponse, resp)
 
         self.assertEqual(resp.target_temperature, 27.0)
@@ -65,7 +65,7 @@ class TestStateResponse(_TestResponseBase):
         # Assert response is a state response
         self.assertEqual(type(resp), StateResponse)
 
-        # Supress type errors
+        # Suppress type errors
         resp = cast(StateResponse, resp)
 
         self.assertEqual(resp.target_temperature, 21.0)
@@ -81,7 +81,7 @@ class TestStateResponse(_TestResponseBase):
         # Assert response is a state response
         self.assertEqual(type(resp), StateResponse)
 
-        # Supress type errors
+        # Suppress type errors
         resp = cast(StateResponse, resp)
 
         self.assertEqual(resp.target_temperature, 21.0)
@@ -101,7 +101,7 @@ class TestCapabilitiesResponse(_TestResponseBase):
     def test_properties(self) -> None:
         """Test that the capabilities response has the expected properties."""
 
-        # Construt a response from a dummy payload with no caps
+        # Construct a response from a dummy payload with no caps
         with memoryview(b"\xb5\x00") as data:
             resp = CapabilitiesResponse(data)
         self.assertIsNotNone(resp)
@@ -145,8 +145,8 @@ class TestCapabilitiesResponse(_TestResponseBase):
     def test_capabilities_2(self) -> None:
         """Test that we decode capabilities responses as expected."""
         # https://github.com/mac-zhou/midea-ac-py/pull/177#issuecomment-1259772244
-        # Test case includes an unknown capabilitiy 0x40
-        # Supress any warnings from capability parsing
+        # Test case includes an unknown capability 0x40
+        # Suppress any warnings from capability parsing
         level = logging.getLogger("msmart").getEffectiveLevel()
         logging.getLogger("msmart").setLevel(logging.ERROR)
 

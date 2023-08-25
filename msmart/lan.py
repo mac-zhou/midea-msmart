@@ -332,7 +332,7 @@ class _LanProtocolV3(_LanProtocol):
     def write(self, data: bytes, *, packet_type=PacketType.ENCRYPTED_REQUEST) -> None:
         """Send a packet of the specified type to the peer."""
 
-        # Raise an error if attempting to send an encryptd request without authenticating
+        # Raise an error if attempting to send an encrypted request without authenticating
         if packet_type == self.PacketType.ENCRYPTED_REQUEST and self._local_key is None:
             raise ProtocolError("Protocol has not been authenticated.")
 
@@ -458,7 +458,7 @@ class LAN:
             self._protocol_version = 3
             await self._connect()
 
-        # A protocl should exist at this point
+        # A protocol should exist at this point
         assert self._protocol is not None
 
         _LOGGER.info("Authenticating with %s.", self._protocol.peer)
@@ -485,7 +485,7 @@ class LAN:
     async def _read(self, **kwargs) -> bytes:
         """Read and decode a frame from the protocol."""
 
-        # A protocl should exist at this point
+        # A protocol should exist at this point
         assert self._protocol is not None
 
         # Await a response
@@ -512,7 +512,7 @@ class LAN:
             if self._protocol_version == 3:
                 await self.authenticate()
 
-        # A protocl should exist at this point
+        # A protocol should exist at this point
         assert self._protocol is not None
 
         # Encode frame to packet

@@ -260,7 +260,7 @@ class Discover:
         """Get device information. 
 
         V2/V3 devices return sufficient information in their discovery response.
-        V1 devices must be querried.
+        V1 devices must be queried.
         """
 
         # Version 1 devices
@@ -314,7 +314,7 @@ class Discover:
                     decrypted_data = Security.decrypt_aes(encrypted_data)
                 except ValueError as e:
                     raise DiscoverError(
-                        "Failed to decrypt discovery resonse.") from e
+                        "Failed to decrypt discovery response.") from e
 
             with memoryview(decrypted_data) as decrypted_mv:
                 _LOGGER.debug("Decrypted data from %s: %s",

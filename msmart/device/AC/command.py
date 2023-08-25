@@ -110,7 +110,7 @@ class SetStateCommand(Command):
 
     @property
     def payload(self) -> bytes:
-        # Build bepp and power status bytes
+        # Build beep and power status bytes
         beep = 0x42 if self.beep_on else 0
         power = 0x1 if self.power_on else 0
 
