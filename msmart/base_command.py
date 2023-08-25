@@ -17,7 +17,7 @@ class Command(ABC):
 
     def pack(self) -> bytes:
         # Create payload with message id
-        payload = self.payload + bytes([self.message_id])
+        payload = self.payload + bytes([self._next_message_id()])
 
         # Create payload with CRC appended
         payload_crc = payload + bytes([crc8.calculate(payload)])
@@ -57,12 +57,7 @@ class Command(ABC):
 
         return bytes(frame)
 
-    @classmethod
-    def checksum(cls, frame: bytes) -> int:
-        return (~sum(frame) + 1) & 0xFF
-
-    @property
-    def message_id(self) -> int:
+    def _next_message_id(self) -> int:
         Command._message_id += 1
         return Command._message_id & 0xFF
 
@@ -70,3 +65,7 @@ class Command(ABC):
     @abstractmethod
     def payload(self) -> bytes:
         return bytes()
+
+    @classmethod
+    def checksum(cls, frame: bytes) -> int:
+        return (~sum(frame) + 1) & 0xFF
