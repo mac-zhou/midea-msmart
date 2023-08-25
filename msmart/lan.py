@@ -5,7 +5,7 @@ import struct
 from datetime import datetime
 from enum import IntEnum
 from hashlib import md5, sha256
-from typing import cast
+from typing import List, Optional, Union, cast
 
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -47,18 +47,18 @@ class _LanProtocol(asyncio.Protocol):
     #   16 byte MD5 of packet + fixed key
     #
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._transport = None
 
         self._peer = None
         self._queue = asyncio.Queue()
 
     @property
-    def peer(self):
+    def peer(self) -> Optional[str]:
         return self._peer
 
     @property
-    def alive(self):
+    def alive(self) -> bool:
         if self._transport is None or self._transport.is_closing():
             return False
 
@@ -71,6 +71,8 @@ class _LanProtocol(asyncio.Protocol):
 
     def connection_made(self, transport) -> None:
         """Handle connection events."""
+
+        transport = cast(asyncio.Transport, transport)
 
         # Save transport for later
         self._transport = transport
@@ -157,7 +159,7 @@ class _LanProtocolV3(_LanProtocol):
     #    but not in the size field
     #  - When used for device command/response, the payload contains a V2 packet
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
 
         self._packet_id = 0
@@ -211,8 +213,11 @@ class _LanProtocolV3(_LanProtocol):
                 # Queue the received packet
                 self._queue.put_nowait(packet.tobytes())
 
-    def _decode_encrypted_response(self, packet: memoryview):
+    def _decode_encrypted_response(self, packet: memoryview) -> bytes:
         """Decode an encrypted response packet."""
+
+        # We should always have a key by the time we're received data
+        assert self._local_key is not None
 
         # Extract header, encrypted payload and hash
         header = packet[:6]
@@ -236,9 +241,9 @@ class _LanProtocolV3(_LanProtocol):
             pad = header[5] >> 4
 
             # Get the frame from payload
-            return payload[2:-pad]
+            return payload[2:-pad].tobytes()
 
-    def _decode_handshake_response(self, packet: memoryview):
+    def _decode_handshake_response(self, packet: memoryview) -> bytes:
         """Decode a handshake response packet."""
 
         # Get payload from packet
@@ -247,7 +252,7 @@ class _LanProtocolV3(_LanProtocol):
         # Return remaining raw payload
         return payload[2:].tobytes()
 
-    def _process_packet(self, packet: memoryview):
+    def _process_packet(self, packet: memoryview) -> bytes:
         """Process a received packet based on its type."""
 
         if packet[:2] != b"\x83\x70":
@@ -278,7 +283,7 @@ class _LanProtocolV3(_LanProtocol):
         with memoryview(packet) as packet_mv:
             return self._process_packet(packet_mv)
 
-    def _build_header(self, length: int, extra: bytes):
+    def _build_header(self, length: int, extra: bytes) -> bytes:
         # Build header
         header = b"\x83\x70"
         header += length.to_bytes(2, "big")
@@ -287,8 +292,11 @@ class _LanProtocolV3(_LanProtocol):
 
         return header
 
-    def _encode_encrypted_request(self, packet_id: int, data: bytes):
+    def _encode_encrypted_request(self, packet_id: int, data: bytes) -> bytes:
         """Encode an encrypted request packet."""
+
+        # We should always have a key before sending data
+        assert self._local_key is not None
 
         # Compute required padding for 16 byte alignment
         # Include 2 bytes for packet ID in total length
@@ -308,7 +316,7 @@ class _LanProtocolV3(_LanProtocol):
         calc_hash = sha256(header + payload).digest()
         return header + Security.encrypt_aes_cbc(self._local_key, payload) + calc_hash
 
-    def _encode_handshake_request(self, packet_id: int, data: bytes):
+    def _encode_handshake_request(self, packet_id: int, data: bytes) -> bytes:
         """Encode a handshake request packet."""
 
         # Build header
@@ -342,7 +350,7 @@ class _LanProtocolV3(_LanProtocol):
         self._packet_id += 1
         self._packet_id &= 0xFFF  # Mask to 12 bits
 
-    def _get_local_key(self, key: Key, data: memoryview):
+    def _get_local_key(self, key: bytes, data: memoryview) -> bytes:
 
         if len(data) != 64:
             raise AuthenticationError(
@@ -362,7 +370,7 @@ class _LanProtocolV3(_LanProtocol):
         # Construct the local key
         return strxor(decrypted_payload, key)
 
-    async def authenticate(self, token: Token, key: Key):
+    async def authenticate(self, token: Optional[bytes], key: Optional[bytes]) -> None:
 
         # Raise an exception if trying to auth without any token or key
         if not token or not key:
@@ -386,7 +394,7 @@ class _LanProtocolV3(_LanProtocol):
 class LAN:
     RETRIES = 3
 
-    def __init__(self, ip: str, port: int, device_id: int):
+    def __init__(self, ip: str, port: int, device_id: int) -> None:
         self._ip = ip
         self._port = port
         self._device_id = device_id
@@ -397,14 +405,14 @@ class LAN:
         self._protocol = None
 
     @property
-    def token(self) -> bytes:
+    def token(self) -> Optional[bytes]:
         return self._token
 
     @property
-    def key(self) -> bytes:
+    def key(self) -> Optional[bytes]:
         return self._key
 
-    async def _connect(self):
+    async def _connect(self) -> None:
         _LOGGER.info("Creating new connection to %s:%s", self._ip, self._port)
 
         protocol_class = _LanProtocolV3 if self._protocol_version == 3 else _LanProtocol
@@ -419,12 +427,12 @@ class LAN:
         else:
             self._protocol = cast(_LanProtocol, protocol)
 
-    def _disconnect(self):
+    def _disconnect(self) -> None:
         if self._protocol:
             self._protocol.disconnect()
             self._protocol = None
 
-    async def authenticate(self, token: Token = None, key: Key = None, retries: int = RETRIES):
+    async def authenticate(self, token: Token = None, key: Key = None, retries: int = RETRIES) -> None:
         """Authenticate against a V3 device. Use cached token and key unless provided a new token and key."""
 
         # Use existing token and key if none provided
@@ -433,7 +441,7 @@ class LAN:
             key = self._key
         else:
             # Define a lambda to convert hex strings to bytes
-            def convert(x):
+            def convert(x: Union[Token, Key]) -> Optional[bytes]:
                 return bytes.fromhex(x) if isinstance(x, str) else x
 
             # Ensure passed token and key are in byte form
@@ -449,12 +457,15 @@ class LAN:
             self._protocol_version = 3
             await self._connect()
 
+        # A protocl should exist at this point
+        assert self._protocol is not None
+
         _LOGGER.info("Authenticating with %s.", self._protocol.peer)
 
         # Attempt to authenticate
         while retries > 0:
             try:
-                await self._protocol.authenticate(token, key)
+                await cast(_LanProtocolV3, self._protocol).authenticate(token, key)
                 break
             except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
@@ -470,8 +481,11 @@ class LAN:
         # Sleep briefly before requesting more data
         await asyncio.sleep(1)
 
-    async def _read(self, **kwargs):
+    async def _read(self, **kwargs) -> bytes:
         """Read and decode a frame from the protocol."""
+
+        # A protocl should exist at this point
+        assert self._protocol is not None
 
         # Await a response
         packet = await self._protocol.read(**kwargs)
@@ -485,7 +499,7 @@ class LAN:
 
         return response
 
-    async def send(self, data: bytes, retries: int = RETRIES):
+    async def send(self, data: bytes, retries: int = RETRIES) -> List[bytes]:
         """Send data via the LAN protocol. Connecting to the peer if necessary."""
 
         # Connect if protocol doesn't exist or is dead
@@ -496,6 +510,9 @@ class LAN:
             # Reauthenticate if needed
             if self._protocol_version == 3:
                 await self.authenticate()
+
+        # A protocl should exist at this point
+        assert self._protocol is not None
 
         # Encode frame to packet
         packet = _Packet.encode(self._device_id, data)
@@ -534,33 +551,33 @@ class Security:
     ENC_KEY = md5(SIGN_KEY).digest()
 
     @classmethod
-    def decrypt_aes_cbc(cls, key: bytes, data: bytes):
+    def decrypt_aes_cbc(cls, key: bytes, data: bytes) -> bytes:
         return AES.new(key, AES.MODE_CBC, iv=bytes(16)).decrypt(data)
 
     @classmethod
-    def encrypt_aes_cbc(cls, key: bytes, data: bytes):
+    def encrypt_aes_cbc(cls, key: bytes, data: bytes) -> bytes:
         return AES.new(key, AES.MODE_CBC, iv=bytes(16)).encrypt(data)
 
     @classmethod
-    def decrypt_aes(cls, data: bytes):
+    def decrypt_aes(cls, data: bytes) -> bytes:
         cipher = AES.new(Security.ENC_KEY, AES.MODE_ECB)
 
         # Decrypt and remove padding
         return Padding.unpad(cipher.decrypt(data), 16)
 
     @classmethod
-    def encrypt_aes(cls, data: bytes):
+    def encrypt_aes(cls, data: bytes) -> bytes:
         cipher = AES.new(Security.ENC_KEY, AES.MODE_ECB)
 
         # Encrypt the padded data
         return cipher.encrypt(Padding.pad(data, 16))
 
     @classmethod
-    def sign(cls, data: bytes):
+    def sign(cls, data: bytes) -> bytes:
         return md5(data + Security.SIGN_KEY).digest()
 
     @classmethod
-    def udpid(cls, device_id: bytes):
+    def udpid(cls, device_id: bytes) -> bytes:
         with memoryview(sha256(device_id).digest()) as mv_hash:
             return strxor(mv_hash[:16], mv_hash[16:])
 
@@ -569,7 +586,7 @@ class _Packet:
     """Class to encode/decode command frames to packets."""
 
     @classmethod
-    def encode(cls, device_id: int, command: bytes):
+    def encode(cls, device_id: int, command: bytes) -> bytes:
         """Encode a command frame to a LAN packet."""
         # Encrypt command
         encrypted_payload = Security.encrypt_aes(command)
@@ -592,7 +609,7 @@ class _Packet:
         return packet + Security.sign(packet)
 
     @classmethod
-    def decode(cls, data: bytes):
+    def decode(cls, data: bytes) -> bytes:
         """Decode a LAN packet to a command frame."""
 
         with memoryview(data) as packet:
@@ -622,7 +639,7 @@ class _Packet:
             return Security.decrypt_aes(encrypted_frame)
 
     @classmethod
-    def _timestamp(cls):
+    def _timestamp(cls) -> bytes:
         now = datetime.utcnow()
 
         # Each byte is a 2 digit component of the timestamp
