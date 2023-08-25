@@ -20,8 +20,11 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
 
         # Check info matches
         info = await Discover._get_device_info(IP_ADDRESS, version, DISCOVER_RESPONSE_V2)
-
         self.assertIsNotNone(info)
+
+        # Stop type errors
+        assert info is not None
+
         self.assertEqual(info["ip"], IP_ADDRESS)
         self.assertEqual(info["port"], 6444)
 
@@ -51,8 +54,11 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
 
         # Check info matches
         info = await Discover._get_device_info(IP_ADDRESS, version, DISCOVER_RESPONSE_V3)
-
         self.assertIsNotNone(info)
+
+        # Stop type errors
+        assert info is not None
+
         self.assertEqual(info["ip"], IP_ADDRESS)
         self.assertEqual(info["port"], 6444)
 
@@ -71,5 +77,5 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(device)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

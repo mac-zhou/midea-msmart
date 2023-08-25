@@ -43,7 +43,8 @@ class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
         protocol = _LanProtocolV3()
         protocol._local_key = LOCAL_KEY
 
-        payload = protocol._process_packet(PACKET)
+        with memoryview(PACKET) as mv_packet:
+            payload = protocol._process_packet(mv_packet)
         self.assertIsNotNone(payload)
         self.assertEqual(payload, EXPECTED_PAYLOAD)
 
@@ -52,5 +53,5 @@ class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(frame, EXPTECTED_FRAME)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
