@@ -15,7 +15,7 @@ class Command(ABC):
         self._frame_type = frame_type
         self._protocol_version = 0
 
-    def pack(self) -> bytes:
+    def tobytes(self) -> bytes:
         # Create payload with message id
         payload = self.payload + bytes([self._next_message_id()])
 
@@ -52,8 +52,6 @@ class Command(ABC):
 
         # Calculate total frame checksum
         frame.append(Command.checksum(frame[1:]))
-
-        _LOGGER.debug("Frame data: %s", frame.hex())
 
         return bytes(frame)
 

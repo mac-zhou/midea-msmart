@@ -43,7 +43,7 @@ class Device():
     async def send_command(self, command: Command) -> Optional[List[bytes]]:
         """Send a command to the device and return any responses."""
 
-        data = command.pack()
+        data = command.tobytes()
         _LOGGER.debug("Sending command to %s:%d: %s.",
                       self.ip, self.port, data.hex())
 
