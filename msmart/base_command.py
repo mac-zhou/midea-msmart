@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 
 import msmart.crc8 as crc8
-from msmart.const import FrameType
+from msmart.const import DeviceType, FrameType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 class Command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type: int = 0xAC, frame_type: FrameType = FrameType.REQUEST) -> None:
+    def __init__(self, device_type: DeviceType = DeviceType.AIR_CONDITIONER, frame_type: FrameType = FrameType.REQUEST) -> None:
         self.device_type = device_type
         self.frame_type = frame_type
         self.protocol_version = 0
