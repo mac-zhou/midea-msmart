@@ -62,6 +62,9 @@ def main() -> None:
         logging.getLogger("httpcore").setLevel(logging.INFO)
     else:
         logging.basicConfig(level=logging.INFO)
+        # Set httpx to warning level
+        logging.getLogger("httpx").setLevel(logging.WARNING)
+        logging.getLogger("httpcore").setLevel(logging.WARNING)
 
     try:
         asyncio.run(_discover(**vars(args)))
