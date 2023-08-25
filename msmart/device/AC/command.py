@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import logging
 import math
 import struct
 from collections import namedtuple
 from enum import IntEnum
+from typing import Callable, Union
 
 import msmart.crc8 as crc8
 from msmart.base_command import Command
@@ -52,11 +55,11 @@ class TemperatureType(IntEnum):
 
 
 class GetCapabilitiesCommand(Command):
-    def __init__(self, device_type):
+    def __init__(self, device_type: int) -> None:
         super().__init__(device_type, frame_type=FrameType.REQUEST)
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         return bytes([
             # Get capabilities
             0xB5,
@@ -66,13 +69,13 @@ class GetCapabilitiesCommand(Command):
 
 
 class GetStateCommand(Command):
-    def __init__(self, device_type):
+    def __init__(self, device_type: int) -> None:
         super().__init__(device_type, frame_type=FrameType.REQUEST)
 
         self.temperature_type = TemperatureType.INDOOR
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         return bytes([
             # Get state
             0x41,
@@ -90,7 +93,7 @@ class GetStateCommand(Command):
 
 
 class SetStateCommand(Command):
-    def __init__(self, device_type):
+    def __init__(self, device_type: int) -> None:
         super().__init__(device_type, frame_type=FrameType.SET)
 
         self.beep_on = True
@@ -106,7 +109,7 @@ class SetStateCommand(Command):
         self.freeze_protection_mode = False
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         # Build bepp and power status bytes
         beep = 0x42 if self.beep_on else 0
         power = 0x1 if self.power_on else 0
@@ -164,12 +167,12 @@ class SetStateCommand(Command):
 
 
 class ToggleDisplayCommand(Command):
-    def __init__(self, device_type):
+    def __init__(self, device_type: int) -> None:
         # For whatever reason, toggle display uses a request type...
         super().__init__(device_type, frame_type=FrameType.REQUEST)
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         # Payload taken directly from dudanov/MideaUART
         return bytes([
             # Get state
@@ -184,21 +187,21 @@ class ToggleDisplayCommand(Command):
 
 
 class Response():
-    def __init__(self, payload: memoryview):
+    def __init__(self, payload: memoryview) -> None:
         # Set ID and copy the payload
         self._id = payload[0]
         self._payload = bytes(payload)
 
     @property
-    def id(self):
+    def id(self) -> int:
         return self._id
 
     @property
-    def payload(self):
+    def payload(self) -> bytes:
         return self._payload
 
-    @staticmethod
-    def validate(frame: memoryview):
+    @classmethod
+    def validate(cls, frame: memoryview) -> None:
         # Validate frame checksum
         frame_checksum = Command.checksum(frame[1:-1])
         if frame_checksum != frame[-1]:
@@ -216,8 +219,8 @@ class Response():
             raise InvalidResponseException(
                 f"Payload '{payload.hex()}' failed CRC and checksum. Received: 0x{payload[-1]:X}, Expected: 0x{payload_crc:X} or 0x{payload_checksum:X}.")
 
-    @staticmethod
-    def construct(frame: bytes):
+    @classmethod
+    def construct(cls, frame: bytes) -> Union[StateResponse, CapabilitiesResponse, Response]:
         # Build a memoryview of the frame for zero-copy slicing
         with memoryview(frame) as frame_mv:
             # Ensure frame is valid before parsing
@@ -235,7 +238,7 @@ class Response():
 
 
 class CapabilitiesResponse(Response):
-    def __init__(self, payload: memoryview):
+    def __init__(self, payload: memoryview) -> None:
         super().__init__(payload)
 
         self._capabilities = {}
@@ -246,14 +249,14 @@ class CapabilitiesResponse(Response):
 
         _LOGGER.debug("Supported capabilities: %s", self._capabilities)
 
-    def _parse_capabilities(self, payload: memoryview):
+    def _parse_capabilities(self, payload: memoryview) -> None:
         # Clear existing capabilities
         self._capabilities.clear()
 
         # Define some local functions to parse capability values
-        def get_bool(v): return v != 0
-        def get_value(w): return lambda v: v == w
-        def get_no_value(w): return lambda v: v != w
+        def get_bool(v) -> bool: return v != 0
+        def get_value(w) -> Callable[[int], bool]: return lambda v: v == w
+        def get_no_value(w) -> Callable[[int], bool]: return lambda v: v != w
 
         # Define a named tuple that represents a decoder
         reader = namedtuple("decoder", "name read")
@@ -375,62 +378,62 @@ class CapabilitiesResponse(Response):
             caps = caps[3+size:]
 
     @property
-    def swing_horizontal(self):
+    def swing_horizontal(self) -> bool:
         return self._capabilities.get("swing_horizontal", False)
 
     @property
-    def swing_vertical(self):
+    def swing_vertical(self) -> bool:
         return self._capabilities.get("swing_vertical", False)
 
     @property
-    def swing_both(self):
+    def swing_both(self) -> bool:
         return self.swing_vertical and self.swing_horizontal
 
     @property
-    def dry_mode(self):
+    def dry_mode(self) -> bool:
         return self._capabilities.get("dry_mode", False)
 
     @property
-    def cool_mode(self):
+    def cool_mode(self) -> bool:
         return self._capabilities.get("cool_mode", False)
 
     @property
-    def heat_mode(self):
+    def heat_mode(self) -> bool:
         return self._capabilities.get("heat_mode", False)
 
     @property
-    def auto_mode(self):
+    def auto_mode(self) -> bool:
         return self._capabilities.get("auto_mode", False)
 
     @property
-    def eco_mode(self):
+    def eco_mode(self) -> bool:
         return self._capabilities.get("eco_mode", False) or self._capabilities.get("eco_mode_2", False)
 
     @property
-    def turbo_mode(self):
+    def turbo_mode(self) -> bool:
         return self._capabilities.get("turbo_heat", False) or self._capabilities.get("turbo_cool", False)
 
     @property
-    def display_control(self):
+    def display_control(self) -> bool:
         return self._capabilities.get("light_control", False)
 
     @property
-    def min_temperature(self):
+    def min_temperature(self) -> int:
         mode = ["cool", "auto", "heat"]
         return min([self._capabilities.get(f"{m}_min_temperature", 16) for m in mode])
 
     @property
-    def max_temperature(self):
+    def max_temperature(self) -> int:
         mode = ["cool", "auto", "heat"]
         return max([self._capabilities.get(f"{m}_max_temperature", 30) for m in mode])
 
     @property
-    def freeze_protection_mode(self):
+    def freeze_protection_mode(self) -> bool:
         return self._capabilities.get("freeze_protection", False)
 
 
 class StateResponse(Response):
-    def __init__(self, payload: memoryview):
+    def __init__(self, payload: memoryview) -> None:
         super().__init__(payload)
 
         self.power_on = None
@@ -452,7 +455,7 @@ class StateResponse(Response):
 
         self._parse(payload)
 
-    def _parse(self, payload: memoryview):
+    def _parse(self, payload: memoryview) -> None:
 
         self.power_on = bool(payload[1] & 0x1)
         # self.imode_resume = payload[1] & 0x4
