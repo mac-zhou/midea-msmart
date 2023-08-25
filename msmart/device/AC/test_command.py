@@ -1,7 +1,7 @@
 import unittest
-
 from typing import Union, cast
-from .command import Response, StateResponse, CapabilitiesResponse
+
+from .command import CapabilitiesResponse, Response, StateResponse
 
 
 class TestStateResponse(unittest.TestCase):
