@@ -44,6 +44,7 @@ Some external dependencies have been replaced with standard Python modules.
 - Code style and import sorting are enforced by autopep8 and isort via Github Actions.
 - Unit tests are implemented and executed by Github Actions.
 - A number of unused methods and modules have been removed from the code.
+- Naming conventions follow PEP8.
 
 ## Installing
 Use pip.
