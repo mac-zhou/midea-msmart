@@ -9,7 +9,7 @@ from typing import Callable, Union
 
 import msmart.crc8 as crc8
 from msmart.base_command import Command
-from msmart.const import FrameType
+from msmart.const import DeviceType, FrameType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class TemperatureType(IntEnum):
 
 
 class GetCapabilitiesCommand(Command):
-    def __init__(self, device_type: int) -> None:
+    def __init__(self, device_type: DeviceType) -> None:
         super().__init__(device_type, frame_type=FrameType.REQUEST)
 
     @property
@@ -69,7 +69,7 @@ class GetCapabilitiesCommand(Command):
 
 
 class GetStateCommand(Command):
-    def __init__(self, device_type: int) -> None:
+    def __init__(self, device_type: DeviceType) -> None:
         super().__init__(device_type, frame_type=FrameType.REQUEST)
 
         self.temperature_type = TemperatureType.INDOOR
@@ -93,7 +93,7 @@ class GetStateCommand(Command):
 
 
 class SetStateCommand(Command):
-    def __init__(self, device_type: int) -> None:
+    def __init__(self, device_type: DeviceType) -> None:
         super().__init__(device_type, frame_type=FrameType.SET)
 
         self.beep_on = True
@@ -167,7 +167,7 @@ class SetStateCommand(Command):
 
 
 class ToggleDisplayCommand(Command):
-    def __init__(self, device_type: int) -> None:
+    def __init__(self, device_type: DeviceType) -> None:
         # For whatever reason, toggle display uses a request type...
         super().__init__(device_type, frame_type=FrameType.REQUEST)
 
