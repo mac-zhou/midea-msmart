@@ -10,10 +10,10 @@ _LOGGER = logging.getLogger(__name__)
 class Command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type: DeviceType = DeviceType.AIR_CONDITIONER, frame_type: FrameType = FrameType.REQUEST) -> None:
-        self.device_type = device_type
-        self.frame_type = frame_type
-        self.protocol_version = 0
+    def __init__(self, device_type: DeviceType, frame_type: FrameType) -> None:
+        self._device_type = device_type
+        self._frame_type = frame_type
+        self._protocol_version = 0
 
     def pack(self) -> bytes:
         # Create payload with message id
@@ -32,9 +32,9 @@ class Command(ABC):
             # Length of payload and header
             length,
             # Device/appliance type
-            self.device_type,
+            self._device_type,
             # Frame checksum (sync?)
-            self.device_type ^ length,
+            self._device_type ^ length,
             # Reserved
             0x00, 0x00,
             # Frame ID
@@ -42,9 +42,9 @@ class Command(ABC):
             # Frame protocol version
             0x00,
             # Device protocol version
-            self.protocol_version,
+            self._protocol_version,
             # Frame type
-            self.frame_type
+            self._frame_type
         ])
 
         # Build frame from header and payload with CRC
