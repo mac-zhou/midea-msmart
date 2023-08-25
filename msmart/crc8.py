@@ -1,5 +1,4 @@
-# The huge CRC table! Aparently this can be generated, but storage space is cheap...
-crc8_854_table = [
+_CRC8_854_TABLE = [
     0x00, 0x5E, 0xBC, 0xE2, 0x61, 0x3F, 0xDD, 0x83,
     0xC2, 0x9C, 0x7E, 0x20, 0xA3, 0xFD, 0x1F, 0x41,
     0x9D, 0xC3, 0x21, 0x7F, 0xFC, 0xA2, 0x40, 0x1E,
@@ -43,5 +42,5 @@ def calculate(data: bytes) -> int:
             k -= 256
         if k < 0:
             k += 256
-        crc_value = crc8_854_table[k]
+        crc_value = _CRC8_854_TABLE[k]
     return crc_value
