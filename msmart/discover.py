@@ -18,6 +18,10 @@ _LOGGER = logging.getLogger(__name__)
 _IPV4_BROADCAST = "255.255.255.255"
 
 
+class DiscoverError(Exception):
+    pass
+
+
 class _V1DeviceInfoProtocol(asyncio.Protocol):
     """V1 device info protocol."""
 
@@ -109,7 +113,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         try:
             # pylint: disable=protected-access
             version = Discover._get_device_version(data)
-        except Discover.UnknownDeviceVersion:
+        except DiscoverError:
             _LOGGER.error("Unknown device version for %s.", ip)
             return
 
@@ -130,9 +134,6 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 
 class Discover:
     """Discover Midea smart devices on the local network."""
-
-    class UnknownDeviceVersion(Exception):
-        """Exception for unknown device version."""
 
     _account = OPEN_MIDEA_APP_ACCOUNT
     _password = OPEN_MIDEA_APP_PASSWORD
@@ -252,10 +253,10 @@ class Discover:
             elif start_of_packet == b'\x83\x70':
                 return 3
 
-        raise Discover.UnknownDeviceVersion()
+        raise DiscoverError()
 
     @classmethod
-    async def _get_device_info(cls, ip: str, version: int, data: bytes) -> Optional[Dict[str, Any]]:
+    async def _get_device_info(cls, ip: str, version: int, data: bytes) -> Dict[str, Any]:
         """Get device information. 
 
         V2/V3 devices return sufficient information in their discovery response.
@@ -269,7 +270,7 @@ class Discover:
 
             device = root.find("body/device")
             if device is None:
-                return None
+                raise DiscoverError("Could not find 'body/device' in XML.")
 
             port = int(device.attrib["port"])
 
@@ -286,8 +287,8 @@ class Discover:
                 transport.close()
 
             if protocol.response is None:
-                _LOGGER.error("No response from device.")
-                return None
+                raise DiscoverError(
+                    f"No device info response from {ip}:{port}.")
 
             # Parse response
             root = ET.fromstring(protocol.response.decode())
@@ -311,9 +312,9 @@ class Discover:
                 # Attempt to decrypt the packet
                 try:
                     decrypted_data = Security.decrypt_aes(encrypted_data)
-                except ValueError:
-                    _LOGGER.error("Discovery packet decrypt failed.")
-                    return None
+                except ValueError as e:
+                    raise DiscoverError(
+                        "Failed to decrypt discovery resonse.") from e
 
             with memoryview(decrypted_data) as decrypted_mv:
                 _LOGGER.debug("Decrypted data from %s: %s",
@@ -385,11 +386,8 @@ class Discover:
         # Fetch device information
         try:
             info = await Discover._get_device_info(ip, version, data)
-        except NotImplementedError as e:
+        except (DiscoverError, NotImplementedError) as e:
             _LOGGER.error(e)
-            return None
-
-        if info is None:
             return None
 
         # Get device class corresponding to type
