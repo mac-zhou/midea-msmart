@@ -338,7 +338,7 @@ class Discover:
                 device_type = int(name.split('_')[1], 16)
 
             # Return dictionary of device info
-            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "type": device_type, "version": version}
+            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "device_type": device_type, "version": version}
 
     @classmethod
     def _get_device_class(cls, device_type: int) -> Type[Device]:
@@ -393,7 +393,7 @@ class Discover:
             return None
 
         # Get device class corresponding to type
-        device_class = Discover._get_device_class(info["type"])
+        device_class = Discover._get_device_class(info["device_type"])
 
         # Build device, authenticate as needed and refresh
         dev = device_class(**info)

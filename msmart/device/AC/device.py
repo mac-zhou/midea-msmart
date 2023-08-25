@@ -87,10 +87,11 @@ class AirConditioner(Device):
             return cast(cls, super().get_from_name(name, default))
 
     def __init__(self, ip: str, device_id: int,  port: int, **kwargs) -> None:
-        # Ensure type is set
-        kwargs["type"] = DeviceType.AIR_CONDITIONER.value
+        # Remove possible duplicate device_type kwarg
+        kwargs.pop("device_type", None)
 
-        super().__init__(ip=ip, port=port, device_id=device_id, **kwargs)
+        super().__init__(ip=ip, port=port, device_id=device_id,
+                         device_type=DeviceType.AIR_CONDITIONER, **kwargs)
 
         self._updating = False
         self._keep_last_known_online_state = False

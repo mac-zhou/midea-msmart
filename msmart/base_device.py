@@ -3,6 +3,7 @@ import time
 from typing import List, Optional
 
 from msmart.base_command import Command
+from msmart.const import DeviceType
 from msmart.lan import LAN, AuthenticationError, ProtocolError
 from msmart.types import Key, Token
 
@@ -11,14 +12,14 @@ _LOGGER = logging.getLogger(__name__)
 
 class Device():
 
-    def __init__(self, *, ip: str, port: int, device_id: int, **kwargs) -> None:
+    def __init__(self, *, ip: str, port: int, device_id: int, device_type: DeviceType, **kwargs) -> None:
         self._ip = ip
         self._port = port
 
         self._id = device_id
+        self._type = device_type
         self._sn = kwargs.get("sn", None)
         self._name = kwargs.get("name", None)
-        self._type = kwargs.get("type", None)
         self._version = kwargs.get("version", None)
 
         self._lan = LAN(ip, port, device_id)
