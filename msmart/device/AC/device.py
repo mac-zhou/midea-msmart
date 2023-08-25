@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 from enum import IntEnum
-from typing import Any, List, Optional
+from typing import Any, List, Optional, cast
 
 from msmart.base_device import Device
 from msmart.const import DeviceType
@@ -15,26 +17,26 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class IntEnumHelper(IntEnum):
-    """Helper class to convert IntEnums to strings."""
+    """Helper class to convert IntEnums to/from strings."""
     @classmethod
-    def list(cls) -> List[IntEnum]:
+    def list(cls) -> List[IntEnumHelper]:
         return list(map(lambda c: c, cls))
 
     @classmethod
-    def get_from_value(cls, value, default=None) -> Any:
+    def get_from_value(cls, value: Optional[int], default: IntEnumHelper) -> IntEnumHelper:
         try:
-            return cls(value)
+            return cls(cast(int, value))
         except ValueError:
             _LOGGER.debug("Unknown %s: %d", cls, value)
-            return cls(default)
+            return default
 
     @classmethod
-    def get_from_name(cls, name, default=None) -> Any:
+    def get_from_name(cls, name: str, default: IntEnumHelper) -> IntEnumHelper:
         try:
             return cls[name]
         except KeyError:
             _LOGGER.debug("Unknown %s: %d", cls, name)
-            return cls[default]
+            return default
 
 
 class AirConditioner(Device):
@@ -48,12 +50,12 @@ class AirConditioner(Device):
         SILENT = 20
 
         @classmethod
-        def get_from_value(cls, value, default=AUTO) -> IntEnum:
-            return super().get_from_value(value, default)
+        def get_from_value(cls, value: Optional[int], default=AUTO) -> AirConditioner.FanSpeed:
+            return cast(cls, super().get_from_value(value, default))
 
         @classmethod
-        def get_from_name(cls, name, default=AUTO) -> IntEnum:
-            return super().get_from_name(name, default)
+        def get_from_name(cls, name: str, default=AUTO) -> AirConditioner.FanSpeed:
+            return cast(cls, super().get_from_name(name, default))
 
     class OperationalMode(IntEnumHelper):
         AUTO = 1
@@ -63,12 +65,12 @@ class AirConditioner(Device):
         FAN_ONLY = 5
 
         @classmethod
-        def get_from_value(cls, value, default=FAN_ONLY) -> IntEnum:
-            return super().get_from_value(value, default)
+        def get_from_value(cls, value: Optional[int], default=FAN_ONLY) -> AirConditioner.OperationalMode:
+            return cast(cls, super().get_from_value(value, default))
 
         @classmethod
-        def get_from_name(cls, name, default=FAN_ONLY) -> IntEnum:
-            return super().get_from_name(name, default)
+        def get_from_name(cls, name: str, default=FAN_ONLY) -> AirConditioner.OperationalMode:
+            return cast(cls, super().get_from_name(name, default))
 
     class SwingMode(IntEnumHelper):
         OFF = 0x0
@@ -77,18 +79,19 @@ class AirConditioner(Device):
         BOTH = 0xF
 
         @classmethod
-        def get_from_value(cls, value, default=OFF) -> IntEnum:
-            return super().get_from_value(value, default)
+        def get_from_value(cls, value: Optional[int], default=OFF) -> AirConditioner.SwingMode:
+            return cast(cls, super().get_from_value(value, default))
 
         @classmethod
-        def get_from_name(cls, name, default=OFF) -> IntEnum:
-            return super().get_from_name(name, default)
+        def get_from_name(cls, name: str, default=OFF) -> AirConditioner.SwingMode:
+            return cast(cls, super().get_from_name(name, default))
 
     def __init__(self, ip: str, device_id: int,  port: int, **kwargs) -> None:
-        # Ensure type is set
-        kwargs["type"] = DeviceType.AIR_CONDITIONER.value
+        # Remove possible duplicate device_type kwarg
+        kwargs.pop("device_type", None)
 
-        super().__init__(ip=ip, port=port, device_id=device_id, **kwargs)
+        super().__init__(ip=ip, port=port, device_id=device_id,
+                         device_type=DeviceType.AIR_CONDITIONER, **kwargs)
 
         self._updating = False
         self._keep_last_known_online_state = False
@@ -109,8 +112,10 @@ class AirConditioner(Device):
         self._filter_alert = False
 
         # Support all known modes initially
-        self._supported_op_modes = AirConditioner.OperationalMode.list()
-        self._supported_swing_modes = AirConditioner.SwingMode.list()
+        self._supported_op_modes = cast(
+            List[AirConditioner.OperationalMode], AirConditioner.OperationalMode.list())
+        self._supported_swing_modes = cast(
+            List[AirConditioner.SwingMode], AirConditioner.SwingMode.list())
         self._supports_eco = True
         self._supports_turbo = True
         self._supports_freeze_protection_mode = True
@@ -165,8 +170,10 @@ class AirConditioner(Device):
             self._supported = True
 
             if response.id == ResponseId.STATE:
+                response = cast(StateResponse, response)
                 self.update(response)
             elif response.id == ResponseId.CAPABILITIES:
+                response = cast(CapabilitiesResponse, response)
                 self.update_capabilities(response)
             else:
                 _LOGGER.debug("Ignored unknown response from %s:%d: %s",
@@ -195,18 +202,24 @@ class AirConditioner(Device):
             if self._freeze_protection_mode and not self._supports_freeze_protection_mode:
                 _LOGGER.warning("Device is not capable of freeze protection.")
 
+            # Define function to return value or a default if value is None
+            def or_default(v, d) -> Any: return v if v is not None else d
+
             cmd = SetStateCommand(self.type)
             cmd.beep_on = self._beep_on
-            cmd.power_on = self._power_state
-            cmd.target_temperature = self._target_temperature
+            cmd.power_on = or_default(self._power_state, False)
+            cmd.target_temperature = or_default(
+                self._target_temperature, 25)  # TODO?
             cmd.operational_mode = self._operational_mode
             cmd.fan_speed = self._fan_speed
             cmd.swing_mode = self._swing_mode
-            cmd.eco_mode = self._eco_mode
-            cmd.turbo_mode = self._turbo_mode
-            cmd.freeze_protection_mode = self._freeze_protection_mode
-            cmd.sleep_mode = self._sleep_mode
-            cmd.fahrenheit = self._fahrenheit_unit
+            cmd.eco_mode = or_default(self._eco_mode, False)
+            cmd.turbo_mode = or_default(self._turbo_mode, False)
+            cmd.freeze_protection_mode = or_default(
+                self._freeze_protection_mode, False)
+            cmd.sleep_mode = or_default(self._sleep_mode, False)
+            cmd.fahrenheit = or_default(self._fahrenheit_unit, False)
+
             await self.send_command(cmd, self._defer_update)
         finally:
             self._updating = False

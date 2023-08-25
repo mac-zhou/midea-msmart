@@ -4,9 +4,9 @@ import ipaddress
 import logging
 import socket
 import xml.etree.ElementTree as ET
-from typing import Any, Dict, Optional, Type, cast
+from typing import Any, Dict, List, Optional, Type, cast
 
-from msmart.cloud import ApiError, Cloud, CloudError
+from msmart.cloud import Cloud, CloudError
 from msmart.const import (DEVICE_INFO_MSG, DISCOVERY_MSG,
                           OPEN_MIDEA_APP_ACCOUNT, OPEN_MIDEA_APP_PASSWORD,
                           DeviceType)
@@ -18,15 +18,21 @@ _LOGGER = logging.getLogger(__name__)
 _IPV4_BROADCAST = "255.255.255.255"
 
 
+class DiscoverError(Exception):
+    pass
+
+
 class _V1DeviceInfoProtocol(asyncio.Protocol):
     """V1 device info protocol."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._transport = None
         self.response = None
 
     def connection_made(self, transport) -> None:
         """Send device info request on connection."""
+
+        transport = cast(asyncio.Transport, transport)
 
         self._transport = transport
         transport.write(DEVICE_INFO_MSG)
@@ -51,7 +57,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         target: str = _IPV4_BROADCAST,
         discovery_packets: int = 3,
         interface: Optional[str] = None,
-    ):
+    ) -> None:
         self._transport = None
         self._discovery_packets = discovery_packets
         self._interface = interface
@@ -63,6 +69,8 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
     def connection_made(self, transport) -> None:
         """Set socket options for broadcasting."""
 
+        transport = cast(asyncio.DatagramTransport, transport)
+
         self._transport = transport
 
         # Set broadcast if broadcasting
@@ -71,6 +79,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         if self._interface is not None:
+            sock = transport.get_extra_info("socket")
             sock.setsockopt(
                 socket.SOL_SOCKET, socket.SO_BINDTODEVICE, self._interface.encode()
             )
@@ -79,6 +88,9 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 
     def _send_discovery(self) -> None:
         """Send discovery messages to the target."""
+
+        # Transport should always exist
+        assert self._transport is not None
 
         for port in [6445, 20086]:
             _LOGGER.debug("Discovery sent to %s:%d.", self._target, port)
@@ -101,7 +113,7 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
         try:
             # pylint: disable=protected-access
             version = Discover._get_device_version(data)
-        except Discover.UnknownDeviceVersion:
+        except DiscoverError:
             _LOGGER.error("Unknown device version for %s.", ip)
             return
 
@@ -123,9 +135,6 @@ class _DiscoverProtocol(asyncio.DatagramProtocol):
 class Discover:
     """Discover Midea smart devices on the local network."""
 
-    class UnknownDeviceVersion(Exception):
-        """Exception for unknown device version."""
-
     _account = OPEN_MIDEA_APP_ACCOUNT
     _password = OPEN_MIDEA_APP_PASSWORD
     _lock = asyncio.Lock()
@@ -143,7 +152,7 @@ class Discover:
         account=None,
         password=None,
         auto_connect=True
-    ) -> [Device]:
+    ) -> List[Device]:
         """Discover devices via broadcast."""
 
         # Always use a new cloud connection
@@ -188,7 +197,7 @@ class Discover:
         cls,
         host,
         **kwargs
-    ) -> Device:
+    ) -> Optional[Device]:
         """Discover a single device by hostname or IP."""
 
         devices = await Discover.discover(target=host, **kwargs)
@@ -210,7 +219,7 @@ class Discover:
             raise ValueError("Both account and password must be specified.")
 
     @classmethod
-    async def _get_cloud(cls) -> Cloud:
+    async def _get_cloud(cls) -> Optional[Cloud]:
         """Return a cloud connection, creating it if necessary."""
 
         async with cls._lock:
@@ -244,7 +253,7 @@ class Discover:
             elif start_of_packet == b'\x83\x70':
                 return 3
 
-        raise Discover.UnknownDeviceVersion()
+        raise DiscoverError()
 
     @classmethod
     async def _get_device_info(cls, ip: str, version: int, data: bytes) -> Dict[str, Any]:
@@ -259,7 +268,11 @@ class Discover:
             with memoryview(data) as data_mv:
                 root = ET.fromstring(data_mv)
 
-            port = root.find("body/device").attrib["port"]
+            device = root.find("body/device")
+            if device is None:
+                raise DiscoverError("Could not find 'body/device' in XML.")
+
+            port = int(device.attrib["port"])
 
             loop = asyncio.get_event_loop()
             transport, protocol = await loop.create_connection(
@@ -273,9 +286,13 @@ class Discover:
             finally:
                 transport.close()
 
+            if protocol.response is None:
+                raise DiscoverError(
+                    f"No device info response from {ip}:{port}.")
+
             # Parse response
-            root = ET.fromstring(protocol.response)
-            _LOGGER.debug("Device info response:\n%s", ET.indent(root))
+            root = ET.fromstring(protocol.response.decode())
+            _LOGGER.debug("Device info response:\n%s", ET.tostring(root))
 
             raise NotImplementedError("V1 device not supported yet.")
 
@@ -295,9 +312,9 @@ class Discover:
                 # Attempt to decrypt the packet
                 try:
                     decrypted_data = Security.decrypt_aes(encrypted_data)
-                except ValueError:
-                    _LOGGER.error("Discovery packet decrypt failed.")
-                    return
+                except ValueError as e:
+                    raise DiscoverError(
+                        "Failed to decrypt discovery resonse.") from e
 
             with memoryview(decrypted_data) as decrypted_mv:
                 _LOGGER.debug("Decrypted data from %s: %s",
@@ -322,7 +339,7 @@ class Discover:
                 device_type = int(name.split('_')[1], 16)
 
             # Return dictionary of device info
-            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "type": device_type, "version": version}
+            return {"ip": ip_address, "port": port, "device_id": device_id, "name": name, "sn": sn, "device_type": device_type, "version": version}
 
     @classmethod
     def _get_device_class(cls, device_type: int) -> Type[Device]:
@@ -346,7 +363,8 @@ class Discover:
 
         # Try authenticating with udpids generated from both endians
         for endian in ["little", "big"]:
-            udpid = Security.udpid(dev.id.to_bytes(6, endian)).hex()
+            udpid = Security.udpid(dev.id.to_bytes(
+                6, endian)).hex()  # type: ignore
 
             _LOGGER.debug(
                 "Fetching token and key for udpid '%s' (%s).", udpid, endian)
@@ -362,18 +380,18 @@ class Discover:
         return False
 
     @classmethod
-    async def _get_device(cls, ip: str, version: int, data: bytes) -> Device:
+    async def _get_device(cls, ip: str, version: int, data: bytes) -> Optional[Device]:
         """Get device information and construct a device instance from the discovery response data."""
 
         # Fetch device information
         try:
             info = await Discover._get_device_info(ip, version, data)
-        except NotImplementedError as e:
+        except (DiscoverError, NotImplementedError) as e:
             _LOGGER.error(e)
             return None
 
         # Get device class corresponding to type
-        device_class = Discover._get_device_class(info["type"])
+        device_class = Discover._get_device_class(info["device_type"])
 
         # Build device, authenticate as needed and refresh
         dev = device_class(**info)

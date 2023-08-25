@@ -35,7 +35,7 @@ crc8_854_table = [
 ]
 
 
-def calculate(data):
+def calculate(data: bytes) -> int:
     crc_value = 0
     for m in data:
         k = crc_value ^ m

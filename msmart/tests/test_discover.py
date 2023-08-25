@@ -20,19 +20,22 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
 
         # Check info matches
         info = await Discover._get_device_info(IP_ADDRESS, version, DISCOVER_RESPONSE_V2)
-
         self.assertIsNotNone(info)
+
+        # Stop type errors
+        assert info is not None
+
         self.assertEqual(info["ip"], IP_ADDRESS)
         self.assertEqual(info["port"], 6444)
 
         self.assertEqual(info["device_id"], 15393162840672)
-        self.assertEqual(info["type"], DeviceType.AIR_CONDITIONER)
+        self.assertEqual(info["device_type"], DeviceType.AIR_CONDITIONER)
 
         self.assertEqual(info["name"], "net_ac_F7B4")
         self.assertEqual(info["sn"], "000000P0000000Q1F0C9D153F7B40000")
 
         # Check class is correct
-        device_class = Discover._get_device_class(info["type"])
+        device_class = Discover._get_device_class(info["device_type"])
         self.assertEqual(device_class, AC)
 
         # Check that device can be built
@@ -51,19 +54,22 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
 
         # Check info matches
         info = await Discover._get_device_info(IP_ADDRESS, version, DISCOVER_RESPONSE_V3)
-
         self.assertIsNotNone(info)
+
+        # Stop type errors
+        assert info is not None
+
         self.assertEqual(info["ip"], IP_ADDRESS)
         self.assertEqual(info["port"], 6444)
 
         self.assertEqual(info["device_id"], 147334558165565)
-        self.assertEqual(info["type"], DeviceType.AIR_CONDITIONER)
+        self.assertEqual(info["device_type"], DeviceType.AIR_CONDITIONER)
 
         self.assertEqual(info["name"], "net_ac_63BA")
         self.assertEqual(info["sn"], "000000P0000000Q1B88C29C963BA0000")
 
         # Check class is correct
-        device_class = Discover._get_device_class(info["type"])
+        device_class = Discover._get_device_class(info["device_type"])
         self.assertEqual(device_class, AC)
 
         # Check that device can be built
@@ -71,5 +77,5 @@ class TestDiscover(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(device)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

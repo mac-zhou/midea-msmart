@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 
 import msmart.crc8 as crc8
-from msmart.const import FrameType
+from msmart.const import DeviceType, FrameType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -10,12 +10,12 @@ _LOGGER = logging.getLogger(__name__)
 class Command(ABC):
     _message_id = 0
 
-    def __init__(self, device_type=0xAC, frame_type=FrameType.REQUEST):
+    def __init__(self, device_type: DeviceType = DeviceType.AIR_CONDITIONER, frame_type: FrameType = FrameType.REQUEST) -> None:
         self.device_type = device_type
         self.frame_type = frame_type
         self.protocol_version = 0
 
-    def pack(self):
+    def pack(self) -> bytes:
         # Create payload with message id
         payload = self.payload + bytes([self.message_id])
 
@@ -26,7 +26,7 @@ class Command(ABC):
         length = 10 + len(payload_crc)
 
         # Build frame header
-        header = bytearray([
+        header = bytes([
             # Start byte
             0xAA,
             # Length of payload and header
@@ -48,25 +48,25 @@ class Command(ABC):
         ])
 
         # Build frame from header and payload with CRC
-        frame = header + payload_crc
+        frame = bytearray(header + payload_crc)
 
         # Calculate total frame checksum
         frame.append(Command.checksum(frame[1:]))
 
         _LOGGER.debug("Frame data: %s", frame.hex())
 
-        return frame
+        return bytes(frame)
 
-    @staticmethod
-    def checksum(frame):
+    @classmethod
+    def checksum(cls, frame: bytes) -> int:
         return (~sum(frame) + 1) & 0xFF
 
     @property
-    def message_id(self):
+    def message_id(self) -> int:
         Command._message_id += 1
         return Command._message_id & 0xFF
 
     @property
     @abstractmethod
-    def payload(self):
+    def payload(self) -> bytes:
         return bytes()

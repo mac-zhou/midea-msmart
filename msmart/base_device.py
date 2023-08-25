@@ -2,22 +2,23 @@ import logging
 import time
 from typing import List, Optional
 
-from msmart.lan import LAN, AuthenticationError, ProtocolError
-from msmart.types import Key, Token
+from msmart.base_command import Command
+from msmart.const import DeviceType
+from msmart.lan import LAN, AuthenticationError, Key, ProtocolError, Token
 
 _LOGGER = logging.getLogger(__name__)
 
 
 class Device():
 
-    def __init__(self, *, ip: str, port: int, device_id: int, **kwargs) -> None:
+    def __init__(self, *, ip: str, port: int, device_id: int, device_type: DeviceType, **kwargs) -> None:
         self._ip = ip
         self._port = port
 
         self._id = device_id
+        self._type = device_type
         self._sn = kwargs.get("sn", None)
         self._name = kwargs.get("name", None)
-        self._type = kwargs.get("type", None)
         self._version = kwargs.get("version", None)
 
         self._lan = LAN(ip, port, device_id)
@@ -39,7 +40,7 @@ class Device():
             _LOGGER.error("Authentication failed. Error: %s", e)
             return False
 
-    async def send_command(self, command: bytes) -> List[object]:
+    async def send_command(self, command: Command) -> Optional[List[bytes]]:
         """Send a command to the device and return any responses."""
 
         data = command.pack()
@@ -92,7 +93,7 @@ class Device():
         return self._lan.key.hex()
 
     @property
-    def type(self) -> Optional[str]:
+    def type(self) -> DeviceType:
         return self._type
 
     @property
