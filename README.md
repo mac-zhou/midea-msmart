@@ -64,8 +64,14 @@ Discover all devices on the LAN with the `midea-discover` command.
 e.g.
 ```shell
 $ midea-discover 
-INFO:msmart.cli:msmart version: 2023.8.0 Currently only supports ac devices, only support MSmartHome and 美的美居 APP.
-INFO:msmart.cli:*** Found a device: {'name': 'net_ac_F7B4', 'ssid': 'net_ac_F7B4', 'ip': '10.100.1.140', 'port': 6444, 'id': 15393162840672, 'version': 2, 'token': None, 'key': None, 'type': 'ac', 'sn': '000P0000000Q1F0C9D153F7B40000', 'model': '00Q1F', 'support': True, 'run_test': True} 
+INFO:msmart.cli:msmart version: 2023.8.1
+INFO:msmart.cli:Only supports AC devices. Only supports MSmartHome and 美的美居.
+...
+INFO:msmart.cli:Found 2 devices.
+INFO:msmart.cli:Found device:
+{'ip': '10.100.1.140', 'port': 6444, 'id': 15393162840672, 'online': True, 'supported': True, 'type': <DeviceType.AIR_CONDITIONER: 172>, 'name': 'net_ac_F7B4', 'sn': '000000P0000000Q1F0C9D153F7B40000', 'key': None, 'token': None}
+INFO:msmart.cli:Found device:
+{'ip': '10.100.1.239', 'port': 6444, 'id': 147334558165565, 'online': True, 'supported': True, 'type': <DeviceType.AIR_CONDITIONER: 172>, 'name': 'net_ac_63BA', 'sn': '000000P0000000Q1B88C29C963BA0000', 'key': '3a13f53f335042f9ae5fd266a6bd779459ed7ee7e09842f1a0e03c024890fc96', 'token': '56a72747cef14d55e17e69b46cd98deae80607e318a7b55cb86bb98974501034c657e39e4a4032e3c8cc9a3cab00fd3ec0bab4a816a57f68b8038977406b7431'}
 ```
 Check the output to ensure the type is 0xAC and the `supported` property is True.
 
