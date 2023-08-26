@@ -116,8 +116,8 @@ class AirConditioner(Device):
             List[AirConditioner.OperationalMode], AirConditioner.OperationalMode.list())
         self._supported_swing_modes = cast(
             List[AirConditioner.SwingMode], AirConditioner.SwingMode.list())
-        self._supports_eco = True
-        self._supports_turbo = True
+        self._supports_eco_mode = True
+        self._supports_turbo_mode = True
         self._supports_freeze_protection_mode = True
         self._supports_display_control = True
         self._min_target_temperature = 16
@@ -193,10 +193,10 @@ class AirConditioner(Device):
                 _LOGGER.warning(
                     "Device is not capable of swing mode %s.", self._swing_mode)
 
-            if self._turbo_mode and not self._supports_turbo:
+            if self._turbo_mode and not self._supports_turbo_mode:
                 _LOGGER.warning("Device is not capable of turbo mode.")
 
-            if self._eco_mode and not self._supports_eco:
+            if self._eco_mode and not self._supports_eco_mode:
                 _LOGGER.warning("Device is not capable of eco mode.")
 
             if self._freeze_protection_mode and not self._supports_freeze_protection_mode:
@@ -279,8 +279,8 @@ class AirConditioner(Device):
 
         self._supported_swing_modes = swing_modes
 
-        self._supports_eco = res.eco_mode
-        self._supports_turbo = res.turbo_mode
+        self._supports_eco_mode = res.eco_mode
+        self._supports_turbo_mode = res.turbo_mode
         self._supports_freeze_protection_mode = res.freeze_protection_mode
 
         self._supports_display_control = res.display_control
@@ -349,6 +349,10 @@ class AirConditioner(Device):
         self._swing_mode = mode
 
     @property
+    def supports_ecode_mode(self) -> Optional[bool]:
+        return self._supports_eco_mode
+
+    @property
     def eco_mode(self) -> Optional[bool]:
         return self._eco_mode
 
@@ -357,6 +361,10 @@ class AirConditioner(Device):
         if self._updating:
             self._defer_update = True
         self._eco_mode = enabled
+
+    @property
+    def supports_turbo_mode(self) -> Optional[bool]:
+        return self._supports_turbo_mode
 
     @property
     def turbo_mode(self) -> Optional[bool]:
