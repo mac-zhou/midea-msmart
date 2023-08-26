@@ -47,14 +47,9 @@ Some external dependencies have been replaced with standard Python modules.
 - Naming conventions follow PEP8.
 
 ## Installing
-Use pip.
-1. Remove old `msmart` package.
+Use pip, remove the old `msmart` package if necessary, and install this fork `msmart-ng`.
 ```shell
 pip uninstall msmart
-```
-
-2. Install this fork `msmart-ng`.
-```shell
 pip install msmart-ng
 ```
 
