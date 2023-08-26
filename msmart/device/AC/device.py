@@ -349,7 +349,7 @@ class AirConditioner(Device):
         self._swing_mode = mode
 
     @property
-    def supports_ecode_mode(self) -> Optional[bool]:
+    def supports_eco_mode(self) -> Optional[bool]:
         return self._supports_eco_mode
 
     @property
