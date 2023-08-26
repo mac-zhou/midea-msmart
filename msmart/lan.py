@@ -470,7 +470,7 @@ class LAN:
                 break
             except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
-                    _LOGGER.warning("Authentication timeout. Resending.")
+                    _LOGGER.debug("Authentication timeout. Resending.")
                     retries -= 1
                 else:
                     raise TimeoutError("No response from host.") from e
@@ -531,7 +531,7 @@ class LAN:
                 break
             except (TimeoutError, asyncio.TimeoutError) as e:
                 if retries > 1:
-                    _LOGGER.warning("Request timeout. Resending.")
+                    _LOGGER.debug("Request timeout. Resending.")
                     retries -= 1
                 else:
                     self._disconnect()
