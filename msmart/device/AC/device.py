@@ -149,37 +149,44 @@ class AirConditioner(Device):
     async def send_command(self, command, ignore_response=False) -> None:
         responses = await super().send_command(command)
 
-        # Ignore responses if requested, or nonexistent
-        if ignore_response or responses is None:
+        # Ignore responses if requested
+        if ignore_response:
             return
+
+        # No response from device
+        if responses is None:
+            # Set device offline unless keeping last known state
+            if not self._keep_last_known_online_state:
+                self._online = False
+
+            return
+
+        # Device is online if we received any response
+        self._online = True
 
         for response in responses:
             self.process_response(response)
 
     def process_response(self, data) -> None:
-        if data:
-            self._online = True
+        # Construct response from data
+        try:
+            response = base_response.construct(data)
+        except InvalidResponseException as e:
+            _LOGGER.error(e)
+            return
 
-            # Construct response from data
-            try:
-                response = base_response.construct(data)
-            except InvalidResponseException as e:
-                _LOGGER.error(e)
-                return
+        # Device is supported if we can process a response
+        self._supported = True
 
-            self._supported = True
-
-            if response.id == ResponseId.STATE:
-                response = cast(StateResponse, response)
-                self.update(response)
-            elif response.id == ResponseId.CAPABILITIES:
-                response = cast(CapabilitiesResponse, response)
-                self.update_capabilities(response)
-            else:
-                _LOGGER.debug("Ignored unknown response from %s:%d: %s",
-                              self.ip, self.port, response.payload.hex())
-        elif not self._keep_last_known_online_state:
-            self._online = False
+        if response.id == ResponseId.STATE:
+            response = cast(StateResponse, response)
+            self.update(response)
+        elif response.id == ResponseId.CAPABILITIES:
+            response = cast(CapabilitiesResponse, response)
+            self.update_capabilities(response)
+        else:
+            _LOGGER.debug("Ignored unknown response from %s:%d: %s",
+                          self.ip, self.port, response.payload.hex())
 
     async def apply(self) -> None:
         self._updating = True
