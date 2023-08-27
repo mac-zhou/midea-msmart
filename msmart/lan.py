@@ -536,6 +536,11 @@ class LAN:
                 else:
                     self._disconnect()
                     raise TimeoutError("No response from host.") from e
+            except ProtocolError as e:
+                # Disconnect on protocol errors and reraise
+                # TODO could add a fatal flag to exception to trigger disconnect
+                self._disconnect()
+                raise e
 
         # Attempt to read any additional responses without blocking
         while True:
