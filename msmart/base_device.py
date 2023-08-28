@@ -51,8 +51,11 @@ class Device():
         responses = None
         try:
             responses = await self._lan.send(data)
-        except (ProtocolError, TimeoutError) as e:
+        except ProtocolError as e:
             _LOGGER.error("Network error: %s", e)
+            return None
+        except TimeoutError as e:
+            _LOGGER.warning("Network timeout: %s", e)
         finally:
             response_time = round(time.time() - start, 2)
 
