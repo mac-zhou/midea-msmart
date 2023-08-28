@@ -5,7 +5,7 @@ import math
 import struct
 from collections import namedtuple
 from enum import IntEnum
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 import msmart.crc8 as crc8
 from msmart.base_command import Command
@@ -513,11 +513,12 @@ class StateResponse(Response):
         # self.peak_elec = (payload[10] & 0x20) > 0
         # self.natural_fan = (payload[10] & 0x40) > 0
 
-        self.indoor_temperature = (
-            payload[11] - 50) / 2.0 if payload[11] != 0xff else None
+        # Define a local function to decode temperature values
+        def decode_temp(d: int) -> Optional[float]:
+            return ((d - 50)/2 if d != 0xFF else None)
 
-        self.outdoor_temperature = (
-            payload[12] - 50) / 2.0 if payload[12] != 0xff else None
+        self.indoor_temperature = decode_temp(payload[11])
+        self.outdoor_temperature = decode_temp(payload[12])
 
         # self.humidity = (payload[13] & 0x7F)
 
