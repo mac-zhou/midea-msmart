@@ -59,7 +59,7 @@ Discover all devices on the LAN with the `midea-discover` command.
 e.g.
 ```shell
 $ midea-discover 
-INFO:msmart.cli:msmart version: 2023.8.1
+INFO:msmart.cli:msmart version: 2023.9.0
 INFO:msmart.cli:Only supports AC devices. Only supports MSmartHome and 美的美居.
 ...
 INFO:msmart.cli:Found 2 devices.
