@@ -93,7 +93,7 @@ class _LanProtocol(asyncio.Protocol):
     def connection_lost(self, exc) -> None:
         """Log connection lost."""
         if exc:
-            _LOGGER.error("Connection to %s lost. Error: %s.", self.peer, exc)
+            _LOGGER.error("Connection to %s lost. Error: %s", self.peer, exc)
 
     def disconnect(self) -> None:
         """Disconnect from the peer."""

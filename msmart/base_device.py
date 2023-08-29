@@ -44,7 +44,7 @@ class Device():
         """Send a command to the device and return any responses."""
 
         data = command.tobytes()
-        _LOGGER.debug("Sending command to %s:%d: %s.",
+        _LOGGER.debug("Sending command to %s:%d: %s",
                       self.ip, self.port, data.hex())
 
         start = time.time()
@@ -52,10 +52,10 @@ class Device():
         try:
             responses = await self._lan.send(data)
         except ProtocolError as e:
-            _LOGGER.error("Network error: %s", e)
+            _LOGGER.error("Network error %s:%d: %s", self.ip, self.port, e)
             return None
         except TimeoutError as e:
-            _LOGGER.warning("Network timeout: %s", e)
+            _LOGGER.warning("Network timeout %s:%d: %s", self.ip, self.port, e)
         finally:
             response_time = round(time.time() - start, 2)
 
