@@ -41,7 +41,7 @@ class Cloud:
     LANGUAGE = "en_US"
     APP_ID = "1010"
     SRC = "1010"
-    DEVICE_ID = "c1acad8939ac0d7d"
+    DEVICE_ID = token_hex(8)  # Random device ID
 
     # Base URLs
     BASE_URL = "https://mp-prod.appsmb.com"
@@ -96,7 +96,7 @@ class Cloud:
             while retries > 0:
                 try:
                     # Post request and handle bad status code
-                    r = await client.post(url, headers=headers, content=contents)
+                    r = await client.post(url, headers=headers, content=contents, timeout=10.0)
                     r.raise_for_status()
 
                     # Parse the response
