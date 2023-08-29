@@ -1,6 +1,3 @@
-# -*- coding: UTF-8 -*-
+from msmart.base_device import Device
 
-# 0xAC - Air Conditioner
-from .AC.appliance import air_conditioning
-# 0xDB - Front Load Washer https://www.midea.com/sg/washer
-from .DB.appliance import front_load_washer
+from .AC.device import AirConditioner

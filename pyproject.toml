@@ -22,10 +22,8 @@ classifiers = [
   "Topic :: Home Automation"
 ]
 dependencies = [
-  "click",
   "pycryptodome",
-  "requests",
-  "ifaddr"
+  "httpx"
 ]
 dynamic = ["version"]
 
@@ -34,6 +32,6 @@ Repository = "https://github.com/mill1000/midea-msmart"
 Issues = "https://github.com/mill1000/midea-msmart/issues"
 
 [project.scripts]
-midea-discover = "msmart.cli:discover"
+midea-discover = "msmart.cli:main"
 
 [tool.setuptools_scm]

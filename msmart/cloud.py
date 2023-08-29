@@ -1,287 +1,288 @@
-# -*- coding: UTF-8 -*-
+"""Module for minimal Midea cloud API access."""
+import hashlib
+import hmac
 import json
 import logging
 import os
+from asyncio import Lock
 from datetime import datetime
-# from msmart.security import loginKey
 from secrets import token_hex, token_urlsafe
-from threading import Lock
-from time import time
+from typing import Any, Dict, Optional, Tuple
 
-import requests
-
-from msmart.security import security
-
-# The Midea cloud client is by far the more obscure part of this library, and without some serious reverse engineering
-# this would not have been possible. Thanks Yitsushi for the ruby implementation. This is an adaptation to Python 3
-
+import httpx
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class cloud:
-    CLIENT_TYPE = 1                 # Android
-    FORMAT = 2                      # JSON
-    LANGUAGE = 'en_US'
+class CloudError(Exception):
+    """Generic exception for Midea cloud errors."""
+    pass
+
+
+class ApiError(CloudError):
+    """Exception class for Midea cloud API errors."""
+
+    def __init__(self, message, code=None) -> None:
+        super().__init__(message, code)
+
+        self.message = message
+        self.code = code
+
+    def __str__(self) -> str:
+        return f"Code: {self.code}, Message: {self.message}"
+
+
+class Cloud:
+    """Class for minimal Midea cloud API access."""
+
+    # Misc constants for the API
+    CLIENT_TYPE = 1  # Android
+    FORMAT = 2  # JSON
+    LANGUAGE = "en_US"
     APP_ID = "1010"
     SRC = "1010"
     DEVICE_ID = "c1acad8939ac0d7d"
 
-    def __init__(self, email, password, use_china_server=False):
-        # Get this from any of the Midea based apps, you can find one on Yitsushi's github page
-        # self.app_key = app_key
-        self.login_account = email   # Your email address for your Midea account
-        self.password = password
+    # Base URLs
+    BASE_URL = "https://mp-prod.appsmb.com"
+    BASE_URL_CHINA = "https://mp-prod.smartmidea.net"
 
-        # An obscure log in ID that is seperate to the email address
-        self.login_id = None
+    # Default number of request retries
+    RETRIES = 3
 
-        # A session dictionary that holds the login information of the current user
-        self.session = {}
+    def __init__(self, account: str, password: str,
+                 use_china_server: bool = False) -> None:
+        # Allow override Chia server from environment
+        if os.getenv("MIDEA_CHINA_SERVER", "0") == "1":
+            use_china_server = True
 
-        # A list of home groups used by the API to seperate "zones"
-        self.home_groups = []
+        self._account = account
+        self._password = password
 
-        # A list of appliances associated with the account
-        self.appliance_list = []
+        # Attributes that holds the login information of the current user
+        self._login_id = None
+        self._access_token = ""
+        self._session = {}
 
         self._api_lock = Lock()
+        self._security = _Security(use_china_server)
 
-        self.security = security()
-        self._retries = 0
-        self.accessToken = ''
-        self._use_china_server = use_china_server
-        if os.getenv('USE_CHINA_SERVER', '0') == '1':
-            self._use_china_server = True
-        self.SERVER_URL = 'https://mp-prod.appsmb.com/mas/v5/app/proxy?alias='
-        if self._use_china_server:
-            self.SERVER_URL = 'https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias='
-        _LOGGER.info("Using Midea cloud server: %s %s",
-                     self.SERVER_URL, self._use_china_server)
+        self._base_url = Cloud.BASE_URL_CHINA if use_china_server else Cloud.BASE_URL
 
-    def api_request(self, endpoint, args=None, data=None):
-        """
-        Sends an API request to the Midea cloud service and returns the results
-        or raises ValueError if there is an error
-        """
-        args = args or {}
-        self._api_lock.acquire()
-        response = {}
-        headers = {}
-        try:
-            # Set up the initial data payload with the global variable set
-            if data is None:
-                data = {
-                    'appId': self.APP_ID,
-                    'format': self.FORMAT,
-                    'clientType': self.CLIENT_TYPE,
-                    'language': self.LANGUAGE,
-                    'src': self.SRC,
-                    'stamp': datetime.now().strftime("%Y%m%d%H%M%S"),
-                    'deviceId': self.DEVICE_ID,
-                }
-            # Add the method parameters for the endpoint
-            data.update(args)
+        _LOGGER.info("Using Midea cloud server: %s (China: %s).",
+                     self._base_url, use_china_server)
 
-            # Add the login information to the payload
-            if not data.get("reqId"):
-                data.update({
-                    'reqId': token_hex(16),
-                })
+    def _timestamp(self) -> str:
+        """Format a timestamp for the API."""
+        return datetime.utcnow().strftime("%Y%m%d%H%M%S")
 
-            url = self.SERVER_URL + endpoint
-            random = str(int(time()))
+    def _parse_response(self, response) -> Any:
+        """Parse a response from the API."""
 
-            # Add the sign to the header
-            sign = self.security.new_sign(json.dumps(data), random)
-            headers.update({
-                'Content-Type': 'application/json',
-                'secretVersion': '1',
-                'sign': sign,
-                'random': random,
-                'accessToken': self.accessToken
-            })
+        _LOGGER.debug("API response: %s", response.text)
+        body = json.loads(response.text)
 
-            # POST the endpoint with the payload
-            r = requests.post(
-                url=url,
-                headers=headers,
-                data=json.dumps(data),
-                # verify=False
-            )
-            _LOGGER.debug("Response: %s", r.text)
-            response = json.loads(r.text)
-        finally:
-            self._api_lock.release()
+        response_code = int(body["code"])
+        if response_code == 0:
+            return body["data"]
 
-        # Check for errors, raise if there are any
-        if int(response['code']) != 0:
-            self.handle_api_error(int(response['code']), response['msg'])
-            # If you don't throw, then retry
-            _LOGGER.debug("Retrying API call: '%s'", endpoint)
-            self._retries += 1
-            if (self._retries < 3):
-                return self.api_request(endpoint, args)
-            else:
-                raise RecursionError()
+        raise ApiError(body["msg"], code=response_code)
 
-        self._retries = 0
-        return response['data']
+    async def _post_request(self, url: str, headers: Dict[str, Any],
+                            contents: str, retries: int = RETRIES) -> Optional[dict]:
+        """Post a request to the API."""
 
-    def get_login_id(self):
-        """
-        Get the login ID from the email address
-        """
-        response = self.api_request(
-            "/v1/user/login/id/get",
-            {'loginAccount': self.login_account}
-        )
-        self.login_id = response['loginId']
+        async with httpx.AsyncClient() as client:
+            while retries > 0:
+                try:
+                    # Post request and handle bad status code
+                    r = await client.post(url, headers=headers, content=contents)
+                    r.raise_for_status()
 
-    def login(self):
-        """
-        Performs a user login with the credentials supplied to the constructor
-        """
-        if self.login_id == None:
-            self.get_login_id()
+                    # Parse the response
+                    return self._parse_response(r)
+                except httpx.TimeoutException as e:
+                    if retries > 1:
+                        _LOGGER.warning("Request to %s timed out.", url)
+                        retries -= 1
+                    else:
+                        raise CloudError("No response from server.") from e
 
-        if self.session:
-            return  # Don't try logging in again, someone beat this thread to it
+    async def _api_request(self, endpoint: str, body: Dict[str, Any]) -> Optional[dict]:
+        """Make a request to the Midea cloud return the results."""
 
-        stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        # Log in and store the session
-        self.session = self.api_request(
-            "/mj/user/login",
-            data={
-                "data": {
-                    # "appKey": loginKey,
-                    "platform": self.FORMAT,
-                    "deviceId": self.DEVICE_ID,
-                },
-                "iotData": {
-                    "appId": self.APP_ID,
-                    "clientType": self.CLIENT_TYPE,
-                    "iampwd": self.security.encrypt_iam_password(self.login_id, self.password),
-                    "loginAccount": self.login_account,
-                    "password": self.security.encryptPassword(self.login_id, self.password),
-                    "pushToken": token_urlsafe(120),
-                    "reqId": token_hex(16),
-                    "src": self.SRC,
-                    "stamp": stamp,
-                },
-            }
-        )
+        # Encode body as JSON
+        contents = json.dumps(body)
+        random = token_hex(16)
 
-        self.accessToken = self.session['mdata']['accessToken']
-
-    def list(self, home_group_id=-1):
-        """
-        Lists all appliances associated with the account
-        """
-
-        # If a homeGroupId is not specified, use the default one
-        if home_group_id == -1:
-            li = self.list_homegroups()
-            home_group_id = next(
-                x for x in li if x['isDefault'] == '1')['id']
-
-        response = self.api_request('appliance/list/get', {
-            'homegroupId': home_group_id
-        })
-
-        self.appliance_list = response['list']
-        _LOGGER.debug("Device list: %s", self.appliance_list)
-        return self.appliance_list
-
-    def gettoken(self, udpid):
-        """
-        Get tokenlist with udpid
-        """
-
-        response = self.api_request(
-            '/v1/iot/secure/getToken',
-            {'udpid': udpid}
-        )
-        for token in response['tokenlist']:
-            if token['udpId'] == udpid:
-                return token['token'], token['key']
-        return None, None
-
-    def encode(self, data: bytearray):
-        normalized = []
-        for b in data:
-            if b >= 128:
-                b = b - 256
-            normalized.append(str(b))
-
-        string = ','.join(normalized)
-        return bytearray(string.encode('ascii'))
-
-    def decode(self, data: bytearray):
-        data = [int(a) for a in data.decode('ascii').split(',')]
-        for i in range(len(data)):
-            if data[i] < 0:
-                data[i] = data[i] + 256
-        return bytearray(data)
-
-    def appliance_transparent_send(self, id, data):
-        if not self.session:
-            self.login()
-
-        _LOGGER.debug("Sending to %d: %s", id, data.hex())
-        encoded = self.encode(data)
-        order = self.security.aes_encrypt(encoded)
-        response = self.api_request('appliance/transparent/send', {
-            'order': order.hex(),
-            'funId': '0000',
-            'applianceId': id
-        })
-
-        reply = self.decode(self.security.aes_decrypt(
-            bytearray.fromhex(response['reply'])))
-
-        _LOGGER.debug("Recieved from %d: %s", id, reply.hex())
-        return reply
-
-    def list_homegroups(self, force_update=False):
-        """
-        Lists all home groups
-        """
-
-        # Get all home groups (I think the API supports multiple zones or something)
-        if not self.home_groups or force_update:
-            response = self.api_request('homegroup/list/get', {})
-            self.home_groups = response['list']
-
-        return self.home_groups
-
-    def handle_api_error(self, error_code, message: str):
-
-        def restart_full():
-            _LOGGER.debug("Restarting full: '%d' - '%s'", error_code, message)
-            self.session = None
-            self.get_login_id()
-            self.login()
-
-        def session_restart():
-            _LOGGER.debug("Restarting session: '%d' - '%s'",
-                          error_code, message)
-            self.session = None
-            self.login()
-
-        def throw():
-            raise ValueError(error_code, message)
-
-        def ignore():
-            _LOGGER.debug("Error ignored: '%d' - '%s'", error_code, message)
-
-        error_handlers = {
-            3176: ignore,          # The asyn reply does not exist.
-            3106: session_restart,  # invalidSession.
-            3144: restart_full,
-            3004: ignore,  # value is illegal.
-            9999: ignore,  # system error.
+        # Sign the contents and add it to the header
+        sign = self._security.sign(contents, random)
+        headers = {
+            'Content-Type': 'application/json',
+            "secretVersion": "1",
+            "sign": sign,
+            "random": random,
+            "accessToken": self._access_token
         }
 
-        handler = error_handlers.get(error_code, throw)
-        handler()
+        # Build complete request URL
+        url = f"{self._base_url}/mas/v5/app/proxy?alias={endpoint}"
+
+        # Lock the API and post the request
+        async with self._api_lock:
+            return await self._post_request(url, headers, contents)
+
+    def _build_request_body(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Build a request body."""
+
+        # Set up the initial body
+        body = {
+            "appId": Cloud.APP_ID,
+            "format": Cloud.FORMAT,
+            "clientType": Cloud.CLIENT_TYPE,
+            "language": Cloud.LANGUAGE,
+            "src": Cloud.SRC,
+            "stamp": self._timestamp(),
+            "deviceId": Cloud.DEVICE_ID,
+            "reqId": token_hex(16),
+        }
+
+        # Add additional fields to the body
+        body.update(data)
+
+        return body
+
+    async def _get_login_id(self) -> str:
+        """Get a login ID for the cloud account."""
+
+        response = await self._api_request(
+            "/v1/user/login/id/get",
+            self._build_request_body(
+                {"loginAccount": self._account}
+            )
+        )
+
+        # Assert response is not None since we should throw on errors
+        assert response is not None
+
+        return response["loginId"]
+
+    async def login(self, force: bool = False) -> None:
+        """Login to the cloud API."""
+
+        # Don't login if session already exists
+        if self._session and not force:
+            return
+
+        # Get a login ID if we don't have one
+        if self._login_id is None:
+            self._login_id = await self._get_login_id()
+            _LOGGER.debug("Received loginId: %s", self._login_id)
+
+        # Build the login data
+        body = {
+            "data": {
+                "platform": Cloud.FORMAT,
+                "deviceId": Cloud.DEVICE_ID,
+            },
+            "iotData": {
+                "appId": Cloud.APP_ID,
+                "clientType": Cloud.CLIENT_TYPE,
+                "iampwd": self._security.encrypt_iam_password(self._login_id, self._password),
+                "loginAccount": self._account,
+                "password": self._security.encrypt_password(self._login_id, self._password),
+                "pushToken": token_urlsafe(120),
+                "reqId": token_hex(16),
+                "src": Cloud.SRC,
+                "stamp": self._timestamp(),
+            },
+        }
+
+        # Login and store the session
+        response = await self._api_request("/mj/user/login", body)
+
+        # Assert response is not None since we should throw on errors
+        assert response is not None
+
+        self._session = response
+        self._access_token = response["mdata"]["accessToken"]
+        _LOGGER.debug("Received accessToken: %s", self._access_token)
+
+    async def get_token(self, udpid: str) -> Tuple[str, str]:
+        """Get token and key for the provided udpid."""
+
+        response = await self._api_request(
+            '/v1/iot/secure/getToken',
+            self._build_request_body({"udpid": udpid})
+        )
+
+        # Assert response is not None since we should throw on errors
+        assert response is not None
+
+        for token in response["tokenlist"]:
+            if token["udpId"] == udpid:
+                return token["token"], token["key"]
+
+        # No matching udpId in the tokenlist
+        raise CloudError(f"No token/key found for udpid {udpid}.")
+
+
+class _Security:
+    """"Class for Midea cloud specific security."""
+
+    HMAC_KEY = "PROD_VnoClJI9aikS8dyy"
+
+    IOT_KEY = "meicloud"
+    LOGIN_KEY = "ac21b9f9cbfe4ca5a88562ef25e2b768"
+
+    IOT_KEY_CHINA = "prod_secret123@muc"
+    LOGIN_KEY_CHINA = "ad0ee21d48a64bf49f4fb583ab76e799"
+
+    def __init__(self, use_china_server=False):
+        self._use_china_server = use_china_server
+
+    @property
+    def _iot_key(self) -> str:
+        """Get the IOT key for the appropriate server."""
+        return _Security.IOT_KEY_CHINA if self._use_china_server else _Security.IOT_KEY
+
+    @property
+    def _login_key(self) -> str:
+        """Get the login key for the appropriate server."""
+        return _Security.LOGIN_KEY_CHINA if self._use_china_server else _Security.LOGIN_KEY
+
+    def sign(self, data: str, random: str) -> str:
+        """Generate a HMAC signature for the provided data and random data."""
+        msg = self._iot_key + data + random
+
+        sign = hmac.new(self.HMAC_KEY.encode("ASCII"),
+                        msg.encode("ASCII"), hashlib.sha256)
+        return sign.hexdigest()
+
+    def encrypt_password(self, login_id: str, password: str) -> str:
+        """Encrypt the password for cloud API password."""
+        # Hash the password
+        m1 = hashlib.sha256(password.encode("ASCII"))
+
+        # Create the login hash with the loginID + password hash + loginKey, then hash it all AGAIN
+        login_hash = login_id + m1.hexdigest() + self._login_key
+        m2 = hashlib.sha256(login_hash.encode("ASCII"))
+
+        return m2.hexdigest()
+
+    def encrypt_iam_password(self, login_id: str, password: str) -> str:
+        """Encrypts password for cloud API iampwd field."""
+
+        # Hash the password
+        m1 = hashlib.md5(password.encode("ASCII"))
+
+        # Hash the password hash
+        m2 = hashlib.md5(m1.hexdigest().encode("ASCII"))
+
+        if self._use_china_server:
+            return m2.hexdigest()
+
+        login_hash = login_id + m2.hexdigest() + self._login_key
+        sha = hashlib.sha256(login_hash.encode("ASCII"))
+
+        return sha.hexdigest()

@@ -1,8 +1,8 @@
 import logging
 import unittest
-from typing import cast
+from typing import Union, cast
 
-from .command import capabilities_response, response, state_response
+from .command import CapabilitiesResponse, Response, StateResponse
 
 
 class _TestResponseBase(unittest.TestCase):
@@ -13,9 +13,9 @@ class _TestResponseBase(unittest.TestCase):
         self.assertTrue(hasattr(obj, attr),
                         msg=f"Object {obj} lacks attribute '{attr}'.")
 
-    def _test_build_response(self, msg) -> response:
+    def _test_build_response(self, msg) -> Union[StateResponse, CapabilitiesResponse, Response]:
         """Build a response from the frame and assert it exists."""
-        resp = response.construct(msg)
+        resp = Response.construct(msg)
         self.assertIsNotNone(resp)
         return resp
 
@@ -35,16 +35,22 @@ class TestStateResponse(_TestResponseBase):
                       "outdoor_temperature", "filter_alert", "display_on",
                       "freeze_protection_mode"]
 
-    def _test_response(self, msg) -> state_response:
+    def _test_response(self, msg) -> StateResponse:
         resp = self._test_build_response(msg)
         self._test_check_attributes(resp, self.EXPECTED_ATTRS)
-        return cast(state_response, resp)
+        return cast(StateResponse, resp)
 
     def test_message_checksum(self) -> None:
         # V3 state response with checksum as CRC, and shorter than expected
         TEST_MESSAGE_CHECKSUM_AS_CRC = bytes.fromhex(
             "aa1eac00000000000003c0004b1e7f7f000000000069630000000000000d33")
         resp = self._test_response(TEST_MESSAGE_CHECKSUM_AS_CRC)
+
+        # Assert response is a state response
+        self.assertEqual(type(resp), StateResponse)
+
+        # Suppress type errors
+        resp = cast(StateResponse, resp)
 
         self.assertEqual(resp.target_temperature, 27.0)
         self.assertEqual(resp.indoor_temperature, 27.5)
@@ -56,6 +62,12 @@ class TestStateResponse(_TestResponseBase):
             "aa22ac00000000000303c0014566000000300010045eff00000000000000000069fdb9")
         resp = self._test_response(TEST_MESSAGE_V2)
 
+        # Assert response is a state response
+        self.assertEqual(type(resp), StateResponse)
+
+        # Suppress type errors
+        resp = cast(StateResponse, resp)
+
         self.assertEqual(resp.target_temperature, 21.0)
         self.assertEqual(resp.indoor_temperature, 22.0)
         self.assertEqual(resp.outdoor_temperature, None)
@@ -65,6 +77,12 @@ class TestStateResponse(_TestResponseBase):
         TEST_MESSAGE_V3 = bytes.fromhex(
             "aa23ac00000000000303c00145660000003c0010045c6b20000000000000000000020d79")
         resp = self._test_response(TEST_MESSAGE_V3)
+
+        # Assert response is a state response
+        self.assertEqual(type(resp), StateResponse)
+
+        # Suppress type errors
+        resp = cast(StateResponse, resp)
 
         self.assertEqual(resp.target_temperature, 21.0)
         self.assertEqual(resp.indoor_temperature, 21.0)
@@ -83,9 +101,9 @@ class TestCapabilitiesResponse(_TestResponseBase):
     def test_properties(self) -> None:
         """Test that the capabilities response has the expected properties."""
 
-        # Construt a response from a dummy payload with no caps
+        # Construct a response from a dummy payload with no caps
         with memoryview(b"\xb5\x00") as data:
-            resp = capabilities_response(data)
+            resp = CapabilitiesResponse(data)
         self.assertIsNotNone(resp)
 
         # Check that the object has all the expected properties
@@ -98,7 +116,7 @@ class TestCapabilitiesResponse(_TestResponseBase):
         TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
             "aa29ac00000000000303b5071202010113020101140201011502010116020101170201001a020101dedb")
         resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
-        resp = cast(capabilities_response, resp)
+        resp = cast(CapabilitiesResponse, resp)
 
         EXPECTED_RAW_CAPABILITIES = {
             "eco_mode": True, "eco_mode_2": False,
@@ -127,15 +145,15 @@ class TestCapabilitiesResponse(_TestResponseBase):
     def test_capabilities_2(self) -> None:
         """Test that we decode capabilities responses as expected."""
         # https://github.com/mac-zhou/midea-ac-py/pull/177#issuecomment-1259772244
-        # Test case includes an unknown capabilitiy 0x40
-        # Supress any warnings from capability parsing
+        # Test case includes an unknown capability 0x40
+        # Suppress any warnings from capability parsing
         level = logging.getLogger("msmart").getEffectiveLevel()
         logging.getLogger("msmart").setLevel(logging.ERROR)
 
         TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
             "aa3dac00000000000203b50a12020101180001001402010115020101160201001a020101100201011f020100250207203c203c203c00400001000100c83a")
         resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
-        resp = cast(capabilities_response, resp)
+        resp = cast(CapabilitiesResponse, resp)
 
         # Restore original level
         logging.getLogger("msmart").setLevel(level)
@@ -171,7 +189,7 @@ class TestCapabilitiesResponse(_TestResponseBase):
         TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
             "aa29ac00000000000303b507120201021402010015020102170201021a0201021002010524020101990d")
         resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
-        resp = cast(capabilities_response, resp)
+        resp = cast(CapabilitiesResponse, resp)
 
         EXPECTED_RAW_CAPABILITIES = {
             "eco_mode": False, "eco_mode_2": True, "heat_mode": False,
@@ -200,7 +218,7 @@ class TestCapabilitiesResponse(_TestResponseBase):
         TEST_CAPABILITIES_RESPONSE = bytes.fromhex(
             "aa39ac00000000000303b50912020102130201001402010015020100170201021a02010010020101250207203c203c203c00240201010102a1a0")
         resp = self._test_build_response(TEST_CAPABILITIES_RESPONSE)
-        resp = cast(capabilities_response, resp)
+        resp = cast(CapabilitiesResponse, resp)
 
         EXPECTED_RAW_CAPABILITIES = {
             "eco_mode": False, "eco_mode_2": True, "freeze_protection": False,
