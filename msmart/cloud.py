@@ -41,7 +41,7 @@ class Cloud:
     LANGUAGE = "en_US"
     APP_ID = "1010"
     SRC = "1010"
-    DEVICE_ID = token_hex(8) # Random device ID
+    DEVICE_ID = token_hex(8)  # Random device ID
 
     # Base URLs
     BASE_URL = "https://mp-prod.appsmb.com"
