@@ -1,8 +1,8 @@
 # msmart-ng
 A Python library for local control of Midea (and associated brands) smart air conditioners.
 
-![Code Quality Badge](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml/badge.svg)
-![PyPI](https://img.shields.io/pypi/v/msmart-ng?logo=PYPI)
+[![Code Quality Checks](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml/badge.svg)](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml)
+[![PyPI](https://img.shields.io/pypi/v/msmart-ng?logo=PYPI)](https://pypi.org/project/msmart-ng/)
 
 ## Features
 #### Async Support
