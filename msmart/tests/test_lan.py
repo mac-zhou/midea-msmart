@@ -52,6 +52,39 @@ class TestEncodeDecode(unittest.IsolatedAsyncioTestCase):
         self.assertIsNotNone(frame)
         self.assertEqual(frame, EXPECTED_FRAME)
 
+    async def test_encode_packet_v3_roundtrip(self) -> None:
+        """Test that we can encode a frame to V3 packet and back to the same frame."""
+        FRAME = bytes.fromhex(
+            "aa23ac00000000000303c00145660000003c0010045c6800000000000000000000018426")
+        LOCAL_KEY = bytes.fromhex(
+            "55a0a178746a424bf1fc6bb74b9fb9e4515965048d24ce8dc72aca91597d05ab")
+
+        # Setup the protocol
+        protocol = _LanProtocolV3()
+        protocol._local_key = LOCAL_KEY
+
+        # Encode frame into V2 payload
+        payload = _Packet.encode(123456, FRAME)
+        self.assertIsNotNone(payload)
+
+        # Encode V2 payload into V3 packet
+        with memoryview(payload) as mv_payload:
+            packet = protocol._encode_encrypted_request(5555, mv_payload)
+
+        self.assertIsNotNone(packet)
+
+        # Decode packet into V2 payload
+        with memoryview(packet) as mv_packet:
+            # Can't call _process_packet since our test packet doesn't have the right type byte
+            rx_payload = protocol._decode_encrypted_response(mv_packet)
+
+        self.assertIsNotNone(rx_payload)
+
+        # Decode V2 payload to frame
+        rx_frame = _Packet.decode(rx_payload)
+        self.assertIsNotNone(rx_frame)
+        self.assertEqual(rx_frame, FRAME)
+
 
 if __name__ == "__main__":
     unittest.main()
