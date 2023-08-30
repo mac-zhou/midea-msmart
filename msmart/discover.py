@@ -374,7 +374,7 @@ class Discover:
                 _LOGGER.error(e)
                 continue
 
-            if await dev.authenticate(token, key):
+            if await dev.authenticate(token, key, silent=True):
                 return True
 
         return False

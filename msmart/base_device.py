@@ -31,13 +31,15 @@ class Device():
     async def apply(self):
         raise NotImplementedError()
 
-    async def authenticate(self, token: Token, key: Key) -> bool:
+    async def authenticate(self, token: Token, key: Key, *, silent=False) -> bool:
         """Authenticate with a V3 device."""
         try:
             await self._lan.authenticate(token, key)
             return True
         except (AuthenticationError, TimeoutError) as e:
-            _LOGGER.error("Authentication failed. Error: %s", e)
+            # TODO feels like a hack, should we make caller try/except instead?
+            if not silent:
+                _LOGGER.error("Authentication failed. Error: %s", e)
             return False
 
     async def send_command(self, command: Command) -> Optional[List[bytes]]:
