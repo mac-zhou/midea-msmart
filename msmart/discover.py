@@ -410,6 +410,12 @@ class Discover:
             if not success:
                 return False
 
-        await dev.refresh()
+        # Attempt to refresh the device state
+        try:
+            await dev.refresh()
+        except NotImplementedError:
+            _LOGGER.error(
+                "Device class %s has not implemented refresh().", type(dev).__name__)
+            return False
 
         return True
