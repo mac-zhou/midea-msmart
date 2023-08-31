@@ -82,6 +82,28 @@ ERROR:msmart.discover:V1 device not supported yet.
 ```
 I don't have any V1 devices to test with so please create an issue with the output of `midea-discover -d`.
 
+### Docker
+A docker image is available on ghcr.io at `ghcr.io/mill1000/msmart-ng`. The container should be run with `--network=host` to allow broadcast packets to reach devices on the local network. Additional arguments to the container are passed to the `midea-discover` command.
+
+```shell
+$ docker run --network=host ghcr.io/mill1000/msmart-ng:latest --help
+usage: midea-discover [-h] [-d] [-a ACCOUNT] [-p PASSWORD] [-i IP] [-c COUNT] [--china]
+
+Discover Midea devices and print device information.
+
+options:
+  -h, --help            show this help message and exit
+  -d, --debug           Enable debug logging. (default: False)
+  -a ACCOUNT, --account ACCOUNT
+                        MSmartHome or 美的美居 account username. (default: midea_is_best@outlook.com)
+  -p PASSWORD, --password PASSWORD
+                        MSmartHome or 美的美居 account password. (default: lovemidea4ever)
+  -i IP, --ip IP        IP address of a device. Useful if broadcasts don't work, or to query a single device. (default: None)
+  -c COUNT, --count COUNT
+                        Number of broadcast packets to send. (default: 3)
+  --china               Use China server. (default: False)
+```
+
 ### Home Assistant
 Use [this fork](https://github.com/mill1000/midea-ac-py) of midea-ac-py to control devices from Home Assistant.
 
