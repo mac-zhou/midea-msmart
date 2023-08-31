@@ -81,12 +81,10 @@ ERROR:msmart.discover:V1 device not supported yet.
 I don't have any V1 devices to test with so please create an issue with the output of `midea-discover -d`.
 
 ### Docker
-A docker image is available. 
-
-Arguments to the container are passed to the `midea-discover` command. Run with `--network=host` to allow broadcast packets to reach devices on the local network.
+A docker image is available on ghcr.io at `ghcr.io/mill1000/msmart-ng`. The container should be run with `--network=host` to allow broadcast packets to reach devices on the local network. Additional arguments to the container are passed to the `midea-discover` command.
 
 ```shell
-$ docker run --network=host mill1000/msmart-ng:latest --help
+$ docker run --network=host ghcr.io/mill1000/msmart-ng:latest --help
 usage: midea-discover [-h] [-d] [-a ACCOUNT] [-p PASSWORD] [-i IP] [-c COUNT] [--china]
 
 Discover Midea devices and print device information.
