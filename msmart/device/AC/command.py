@@ -256,7 +256,6 @@ class CapabilitiesResponse(Response):
         # Define some local functions to parse capability values
         def get_bool(v) -> bool: return v != 0
         def get_value(w) -> Callable[[int], bool]: return lambda v: v == w
-        def get_no_value(w) -> Callable[[int], bool]: return lambda v: v != w
 
         # Define a named tuple that represents a decoder
         reader = namedtuple("decoder", "name read")
@@ -272,7 +271,7 @@ class CapabilitiesResponse(Response):
             CapabilityId.ONE_KEY_NO_WIND_ON_ME: reader("one_key_no_wind_on_me", get_value(1)),
             CapabilityId.BREEZE_CONTROL: reader("breeze_control", get_value(1)),
             # Fan speed control always seems to return false, even if unit can
-            CapabilityId.FAN_SPEED_CONTROL: reader("fan_speed_control", get_no_value(1)),
+            CapabilityId.FAN_SPEED_CONTROL: reader("fan_speed_control", lambda v: v != 1),
             CapabilityId.PRESET_ECO: [
                 reader("eco_mode", get_value(1)),
                 reader("eco_mode_2", get_value(2)),

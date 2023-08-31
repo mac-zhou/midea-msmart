@@ -2,7 +2,8 @@ import logging
 import unittest
 from typing import Union, cast
 
-from .command import CapabilitiesResponse, Response, StateResponse
+from .command import (CapabilitiesResponse, CapabilityId, Response,
+                      StateResponse)
 
 
 class _TestResponseBase(unittest.TestCase):
@@ -108,6 +109,73 @@ class TestCapabilitiesResponse(_TestResponseBase):
 
         # Check that the object has all the expected properties
         self._test_check_attributes(resp, self.EXPECTED_PROPERTIES)
+
+    def test_capabilities_parsers(self) -> None:
+        """Test the generic capabilities parsers. e.g. bool, get_value"""
+
+        def _build_capability_response(cap, value) -> CapabilitiesResponse:
+            data = b"\xBA\x01" + \
+                cap.to_bytes(2, "little") + b"\x01" + bytes([value])
+            with memoryview(data) as mv_data:
+                resp = CapabilitiesResponse(mv_data)
+            self.assertIsNotNone(resp)
+            return resp
+
+        # Test INDOOR_HUMIDITY capability which uses a boolean parser. e.g. X > 0
+        self.assertEqual(_build_capability_response(
+            CapabilityId.INDOOR_HUMIDITY, 0)._capabilities["indoor_humidity"], False)
+        self.assertEqual(_build_capability_response(
+            CapabilityId.INDOOR_HUMIDITY, 1)._capabilities["indoor_humidity"], True)
+        self.assertEqual(_build_capability_response(
+            CapabilityId.INDOOR_HUMIDITY, 100)._capabilities["indoor_humidity"], True)
+
+        # Test SILKY_COOL capability which uses a get_value parser. e.g. X == 1
+        self.assertEqual(_build_capability_response(
+            CapabilityId.SILKY_COOL, 0)._capabilities["silky_cool"], False)
+        self.assertEqual(_build_capability_response(
+            CapabilityId.SILKY_COOL, 1)._capabilities["silky_cool"], True)
+        self.assertEqual(_build_capability_response(
+            CapabilityId.SILKY_COOL, 100)._capabilities["silky_cool"], False)
+
+        # Test FAN_SPEED_CONTROL capability which uses an inverse get_value parser. e.g. X != 1
+        self.assertEqual(_build_capability_response(
+            CapabilityId.FAN_SPEED_CONTROL, 0)._capabilities["fan_speed_control"], True)
+        self.assertEqual(_build_capability_response(
+            CapabilityId.FAN_SPEED_CONTROL, 1)._capabilities["fan_speed_control"], False)
+        self.assertEqual(_build_capability_response(
+            CapabilityId.FAN_SPEED_CONTROL, 100)._capabilities["fan_speed_control"], True)
+
+        # Test PRESET_ECO capability which uses 2 get_value parsers.
+        # e.g. eco_mode -> X == 1, eco_mode2 -> X == 2
+        resp = _build_capability_response(CapabilityId.PRESET_ECO, 0)
+        self.assertEqual(resp._capabilities["eco_mode"], False)
+        self.assertEqual(resp._capabilities["eco_mode_2"], False)
+
+        resp = _build_capability_response(CapabilityId.PRESET_ECO, 1)
+        self.assertEqual(resp._capabilities["eco_mode"], True)
+        self.assertEqual(resp._capabilities["eco_mode_2"], False)
+
+        resp = _build_capability_response(CapabilityId.PRESET_ECO, 2)
+        self.assertEqual(resp._capabilities["eco_mode"], False)
+        self.assertEqual(resp._capabilities["eco_mode_2"], True)
+
+        # Test PRESET_TURBO capability which uses 2 custom parsers.
+        # e.g. turbo_heat -> X == 1 or X == 3, turbo_cool -> X < 2
+        resp = _build_capability_response(CapabilityId.PRESET_TURBO, 0)
+        self.assertEqual(resp._capabilities["turbo_heat"], False)
+        self.assertEqual(resp._capabilities["turbo_cool"], True)
+
+        resp = _build_capability_response(CapabilityId.PRESET_TURBO, 1)
+        self.assertEqual(resp._capabilities["turbo_heat"], True)
+        self.assertEqual(resp._capabilities["turbo_cool"], True)
+
+        resp = _build_capability_response(CapabilityId.PRESET_TURBO, 3)
+        self.assertEqual(resp._capabilities["turbo_heat"], True)
+        self.assertEqual(resp._capabilities["turbo_cool"], False)
+
+        resp = _build_capability_response(CapabilityId.PRESET_TURBO, 4)
+        self.assertEqual(resp._capabilities["turbo_heat"], False)
+        self.assertEqual(resp._capabilities["turbo_cool"], False)
 
     def test_capabilities(self) -> None:
         """Test that we decode capabilities responses as expected."""
