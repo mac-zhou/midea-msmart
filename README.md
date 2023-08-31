@@ -4,6 +4,10 @@ A Python library for local control of Midea (and associated brands) smart air co
 [![Code Quality Checks](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml/badge.svg)](https://github.com/mill1000/midea-msmart/actions/workflows/checks.yml)
 [![PyPI](https://img.shields.io/pypi/v/msmart-ng?logo=PYPI)](https://pypi.org/project/msmart-ng/)
 
+__Note: Only air conditioner devices (type 0xAC) are supported.__ 
+
+See [usage](#usage) to determine if a device is supported.
+
 ## Features
 #### Async Support
 The device, LAN and cloud classes have all been rewritten to support async/await syntax.
@@ -56,7 +60,6 @@ pip install msmart-ng
 ## Usage
 Discover all devices on the LAN with the `midea-discover` command.
 
-e.g.
 ```shell
 $ midea-discover 
 INFO:msmart.cli:msmart version: 2023.9.0
@@ -71,7 +74,6 @@ INFO:msmart.cli:Found device:
 Check the output to ensure the type is 0xAC and the `supported` property is True.
 
 Save the device ID, IP address, and port. Version 3 devices will also require the `token` and `key` fields to control the device.
-
 
 #### Note: V1 Device Owners
 Users with V1 devices will see the following error:
