@@ -29,15 +29,6 @@ jobs:
   publish-package:
     needs: build-package
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      # url: https://pypi.org/p/msmart-ng
-      url: https://test.pypi.org/p/msmart-ng
-
-    # Required for trusted publishing
-    permissions:
-      id-token: write
-
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -46,7 +37,5 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
-    # - uses: pypa/gh-action-pypi-publish@release/v1
-    #   with:
-    #     user: __token__
-    #     password: ${{ secrets.PYPI_API_TOKEN }}
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}
