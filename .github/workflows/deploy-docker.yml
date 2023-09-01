@@ -10,7 +10,7 @@ on:
 
 # Kill existing jobs
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: deploy-docker-${{ github.ref }}
   cancel-in-progress: true
 
 env:
