@@ -18,8 +18,12 @@ env:
   IMAGE_NAME: mill1000/msmart-ng
 
 jobs:
-  build-and-push-image:
+  build-wheel:
+    uses: ./.github/workflows/build-wheel.yml
+
+  push-image:
     runs-on: ubuntu-latest
+    needs: [build-wheel]
 
     permissions:
       contents: read
@@ -31,12 +35,6 @@ jobs:
           # History/tags required to generate version info
           fetch-depth: 0
 
-      - uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: docker/metadata-action@v4
         id: meta
         with:
@@ -47,9 +45,21 @@ jobs:
             type=pep440,pattern={{version}}
             type=ref,event=pr
 
+      - uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist
+
+      - uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: docker/build-push-action@v4
         with:
           context: .
-          push: true
+          file: Dockerfile.wheel
+          push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
