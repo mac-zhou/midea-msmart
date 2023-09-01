@@ -1,4 +1,4 @@
 FROM python:3.11-alpine
-COPY ./dist/msmart_ng-*.whl /tmp
+COPY dist/msmart_ng-*.whl /tmp
 RUN pip install /tmp/msmart_ng-*.whl
 ENTRYPOINT ["/usr/local/bin/midea-discover"]
