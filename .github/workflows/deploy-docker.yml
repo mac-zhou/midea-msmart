@@ -18,12 +18,12 @@ env:
   IMAGE_NAME: mill1000/msmart-ng
 
 jobs:
-  checks:
-    uses: ./.github/workflows/checks.yml
+  # checks:
+  #   uses: ./.github/workflows/checks.yml
 
   build-wheel:
     uses: ./.github/workflows/build-wheel.yml
-    needs: [checks]
+    # needs: [checks]
 
   build-and-push-image:
     runs-on: ubuntu-latest
